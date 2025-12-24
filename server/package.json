@@ -1,19 +1,7 @@
 {
-  "name": "ispace-ms",
-  "version": "1.0.0",
-  "description": "Employee management system",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/saidigesh19/HRMS.git"
-  },
-  "author": "KF Interns",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/saidigesh19/HRMS/issues"
-  },
-  "homepage": "https://github.com/saidigesh19/HRMS#readme"
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^5.2.1",
+    "mongoose": "^9.0.2"
+  }
 }
