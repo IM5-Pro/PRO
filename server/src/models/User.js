@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema(
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
+    refreshToken: { type: String },
+    refreshTokenExpiresAt: { type: Date },
   },
   { timestamps: true },
 );
