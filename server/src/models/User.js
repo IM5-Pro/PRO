@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     employeeId: { type: String },
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
+    refreshToken: { type: String },
+    refreshTokenExpiresAt: { type: Date },
   },
   { timestamps: true },
 );
