@@ -1,11 +1,17 @@
 import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid";
 
 const payrollDetailSchema = new mongoose.Schema(
   {
-    id: { type: String, unique: true, default: uuidv4 },
-    payrollRunId: { type: String, required: true },
-    employeeId: { type: String, required: true },
+    payrollRunId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PayrollRun",
+      required: true,
+    },
+    employeeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
     grossSalary: { type: Number, required: true },
     deductions: { type: Number, required: true },
     netSalary: { type: Number, required: true },

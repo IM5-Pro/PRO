@@ -1,9 +1,7 @@
 import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid";
 
 const employeeSchema = new mongoose.Schema(
   {
-    id: { type: String, unique: true, default: uuidv4 },
     employeeCode: { type: String, unique: true, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -11,7 +9,11 @@ const employeeSchema = new mongoose.Schema(
     phone: { type: String },
     panNumber: { type: String },
     aadhaarNumber: { type: String },
-    departmentId: { type: String, required: true },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
     designation: { type: String },
     joiningDate: { type: Date, required: true },
     employmentType: {
@@ -19,7 +21,10 @@ const employeeSchema = new mongoose.Schema(
       enum: ["FULL_TIME", "PART_TIME", "CONTRACT"],
       required: true,
     },
-    salaryTemplateId: { type: String },
+    salaryTemplateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SalaryTemplate",
+    },
     status: {
       type: String,
       enum: ["ACTIVE", "RESIGNED", "TERMINATED"],

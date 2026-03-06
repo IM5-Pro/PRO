@@ -1,13 +1,15 @@
 import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid";
 
 const userSchema = new mongoose.Schema(
   {
-    id: { type: String, unique: true, default: uuidv4 },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    roleId: { type: String, required: true },
-    employeeId: { type: String },
+    roleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      required: true,
+    },
+    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
   },

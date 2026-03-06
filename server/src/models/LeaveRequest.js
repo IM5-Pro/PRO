@@ -1,11 +1,17 @@
 import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid";
 
 const leaveRequestSchema = new mongoose.Schema(
   {
-    id: { type: String, unique: true, default: uuidv4 },
-    employeeId: { type: String, required: true },
-    leaveTypeId: { type: String, required: true },
+    employeeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    leaveTypeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LeaveType",
+      required: true,
+    },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     reason: { type: String },
