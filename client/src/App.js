@@ -1,10 +1,16 @@
 /**
  * Main Application Component
- * HRMS Employee Dashboard
+ * HRMS Dashboard - Secure routing with authentication
+ * Routes between Login, Employee Dashboard, and Manager Dashboard
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import './App.css';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './components/Login/Login';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+
+// Dashboard Components
 import Sidebar from './components/Sidebar/Sidebar';
 import Header from './components/Header/Header';
 import ProfileCard from './components/ProfileCard/ProfileCard';
@@ -15,14 +21,21 @@ import PerformanceChart from './components/PerformanceChart/PerformanceChart';
 import Announcements from './components/Announcements/Announcements';
 import TodoList from './components/TodoList/TodoList';
 import Birthdays from './components/Birthdays/Birthdays';
+import ManagerDashboard from './components/ManagerDashboard/ManagerDashboard';
 
 /**
- * App Component - Main application layout
- * @returns {JSX.Element} - Application component
+ * EmployeeDashboard Component
+ * Dashboard for employee users with various widgets
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.className] - Additional CSS classes
+ * @returns {JSX.Element} - Employee dashboard content
  */
-function App() {
-  // Current user data
-  const currentUser = {
+const EmployeeDashboard = ({ className = '' }) => {
+  const { user, logout } = useAuth();
+
+  // Current employee user data from context
+  const currentUser = user || {
     name: 'John Doe',
     email: 'john.doe@company.com',
     avatar: '👨‍💼',
@@ -32,8 +45,7 @@ function App() {
     location: 'New York, USA',
   };
 
-  // State for current page/section
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = React.useState('dashboard');
 
   /**
    * Handle navigation between pages
@@ -44,15 +56,31 @@ function App() {
     setCurrentPage(page);
   };
 
+  /**
+   * Handle logout
+   */
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className={`flex h-screen bg-gray-100 ${className}`}>
       {/* Sidebar Navigation */}
       <Sidebar onNavigate={handleNavigation} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header user={currentUser} />
+        {/* Header with Logout */}
+        <div className="flex items-center justify-between">
+          <Header user={currentUser} />
+          <button
+            onClick={handleLogout}
+            className="mr-6 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+            title="Logout"
+          >
+            Logout
+          </button>
+        </div>
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
@@ -145,7 +173,7 @@ function App() {
               </p>
               <button
                 onClick={() => handleNavigation('dashboard')}
-                className="mt-4 btn-primary"
+                className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 Back to Dashboard
               </button>
@@ -154,6 +182,52 @@ function App() {
         </div>
       </div>
     </div>
+  );
+};
+
+/**
+ * AppContent Component
+ * Routes between Login and Dashboards based on authentication
+ * Wrapped inside AuthProvider for access to useAuth hook
+ * 
+ * @returns {JSX.Element} - Application content with routing
+ */
+const AppContent = () => {
+  const { isAuthenticated, user } = useAuth();
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  // Route to appropriate dashboard based on user role
+  if (user?.role === 'manager') {
+    return (
+      <ProtectedRoute requiredRole="manager">
+        <ManagerDashboard />
+      </ProtectedRoute>
+    );
+  }
+
+  // Default to employee dashboard
+  return (
+    <ProtectedRoute requiredRole="employee">
+      <EmployeeDashboard />
+    </ProtectedRoute>
+  );
+};
+
+/**
+ * App Component - Main application wrapper
+ * Wraps everything with AuthProvider for global auth state
+ * 
+ * @returns {JSX.Element} - Application component
+ */
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
