@@ -1,13 +1,16 @@
-const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
-const payrollDetailSchema = new mongoose.Schema({
-  id: { type: String, unique: true, default: uuidv4 },
-  payrollRunId: { type: String, required: true },
-  employeeId: { type: String, required: true },
-  grossSalary: { type: Number, required: true },
-  deductions: { type: Number, required: true },
-  netSalary: { type: Number, required: true },
-}, { timestamps: true });
+const payrollDetailSchema = new mongoose.Schema(
+  {
+    id: { type: String, unique: true, default: uuidv4 },
+    payrollRunId: { type: String, required: true },
+    employeeId: { type: String, required: true },
+    grossSalary: { type: Number, required: true },
+    deductions: { type: Number, required: true },
+    netSalary: { type: Number, required: true },
+  },
+  { timestamps: true },
+);
 
-module.exports = mongoose.model('PayrollDetail', payrollDetailSchema);
+export default mongoose.model("PayrollDetail", payrollDetailSchema);

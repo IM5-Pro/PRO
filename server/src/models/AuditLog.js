@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { v4: uuidv4 } = require("uuid");
+import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
 const auditLogSchema = new mongoose.Schema({
   id: { type: String, unique: true, default: uuidv4 },
@@ -10,4 +10,4 @@ const auditLogSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model("AuditLog", auditLogSchema);
+export default mongoose.model("AuditLog", auditLogSchema);
