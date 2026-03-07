@@ -11,7 +11,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  // seed roles after successful connection
+  roleSeeder();
+});
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

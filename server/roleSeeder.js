@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Roles from './src/constants/roles.js';
+import RolesConst from './src/constants/roles.js';
+import Role from './src/models/Role.js';
 
 // Load environment variables
 dotenv.config();
@@ -31,8 +32,8 @@ const seedRoles = async () => {
 
     console.log('Connected to MongoDB');
 
-    // Clear existing roles
-    await Roles.deleteMany({});
+    // Clear existing roles from Role collection
+    await Role.deleteMany({});
     console.log('Cleared existing roles');
 
     // Insert new roles one by one to handle any potential issues
