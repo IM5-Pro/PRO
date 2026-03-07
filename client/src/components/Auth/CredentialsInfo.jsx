@@ -28,42 +28,54 @@ import React from 'react';
 const CredentialsInfo = ({
   credentials = [
     {
-      role: 'Manager',
-      email: 'manager@company.com',
+      role: '👩‍💼 HR Admin',
+      email: 'hr@company.com',
       password: 'password',
+      dashboard: 'HR Dashboard',
     },
     {
-      role: 'Employee',
+      role: '👨‍💼 Manager',
+      email: 'manager@company.com',
+      password: 'password',
+      dashboard: 'Manager Dashboard',
+    },
+    {
+      role: '👤 Employee',
       email: 'employee@company.com',
       password: 'password',
+      dashboard: 'Employee Dashboard',
     },
   ],
-  title = '📝 Demo Credentials:',
+  title = '📝 Demo Credentials (Try any to access different dashboards):',
   className = '',
 }) => {
   return (
     <div
       className={`
-        bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6
+        bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-lg p-4 mt-6
         ${className}
       `}
     >
-      <p className="text-xs font-semibold text-blue-900 mb-3">
+      <p className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-3">
         {title}
       </p>
 
       <div className="space-y-2">
         {credentials.map((cred, idx) => (
-          <div key={idx} className="text-xs text-blue-800">
+          <div key={idx} className="text-xs text-blue-800 dark:text-blue-200">
             <p>
-              <strong>{cred.role}:</strong>{' '}
-              <code className="bg-blue-100 px-2 py-1 rounded">
+              <strong>{cred.role}</strong>
+              {' → '}
+              <code className="bg-blue-100 dark:bg-slate-700 px-2 py-1 rounded text-blue-900 dark:text-blue-300">
                 {cred.email}
               </code>
               {' / '}
-              <code className="bg-blue-100 px-2 py-1 rounded">
+              <code className="bg-blue-100 dark:bg-slate-700 px-2 py-1 rounded text-blue-900 dark:text-blue-300">
                 {cred.password}
               </code>
+              <span className="text-blue-600 dark:text-blue-400 ml-2">
+                ({cred.dashboard})
+              </span>
             </p>
           </div>
         ))}

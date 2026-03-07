@@ -90,13 +90,35 @@ export const AuthProvider = ({ children }) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Mock user data - Replace with actual backend response
+      // ROLE DETECTION:
+      // - 'hr@...' or 'admin@...' → HR role (access to HR Dashboard)
+      // - 'manager@...' → Manager role (access to Manager Dashboard)
+      // - default → Employee role (access to Employee Dashboard)
+      let userRole = 'employee';
+      let userName = 'Employee';
+      let department = 'Engineering';
+      let avatar = '👨‍💼';
+
+      if (email.includes('admin') || email.includes('hr')) {
+        userRole = 'hr';
+        userName = 'HR Admin';
+        department = 'Human Resources';
+        avatar = '👩‍💼';
+      } else if (email.includes('manager')) {
+        userRole = 'manager';
+        userName = 'Sourav';
+        department = 'Management';
+      } else {
+        userName = email.split('@')[0];
+      }
+
       const mockUser = {
         id: '1',
-        name: email.split('@')[0] === 'manager' ? 'Sourav' : 'John Doe',
+        name: userName,
         email,
-        role: email.includes('manager') ? 'manager' : 'employee',
-        department: email.includes('manager') ? 'Management' : 'Engineering',
-        avatar: '👨‍💼',
+        role: userRole,
+        department,
+        avatar,
       };
 
       // Generate mock token
