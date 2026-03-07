@@ -29,23 +29,70 @@ import Leaves from './components/Pages/Leaves';
 import Analytics from './components/Pages/Analytics';
 
 import ManagerDashboard from './components/ManagerDashboard/ManagerDashboard';
+import HRDashboard from './components/HRDashboard/HRDashboard';
 
 /**
  * AppContent Component
- * Routes between Login and Dashboards based on authentication
- * Wrapped inside AuthProvider for access to useAuth hook
+ * Main routing logic with authentication and role-based dashboard routing
  * 
- * @returns {JSX.Element} - Application content with routing
+ * AUTHENTICATION FLOW:
+ * 1. User visits app (not authenticated) → Login Page
+ * 2. User logs in → Redirects to role-based dashboard
+ * 3. User tries to access without login → Redirect to login
+ * 
+ * ROLE-BASED ROUTING:
+ * - 'hr' or 'admin' → HR Dashboard (10 modules)
+ * - 'manager' → Manager Dashboard (Team management)
+ * - 'employee' → Employee Dashboard (Personal features)
+ * 
+ * @returns {JSX.Element} - Login or Dashboard based on authentication
  */
 const AppContent = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
-  // Show login if not authenticated
-  if (!isAuthenticated) {
-    return <Login />;
+  // ============================================================================
+  // LOADING STATE
+  // ============================================================================
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-center">
+          <div className="inline-block">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-white text-lg font-semibold">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  // Route to appropriate dashboard based on user role
+  // ============================================================================
+  // NOT AUTHENTICATED - REDIRECT TO LOGIN PAGE
+  // ============================================================================
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // ============================================================================
+  // AUTHENTICATED - ROLE-BASED DASHBOARD ROUTING
+  // ============================================================================
+
+  /**
+   * HR/ADMIN DASHBOARD
+   * Full HR management system with 10 modules
+   */
+  if (user?.role === 'hr' || user?.role === 'admin') {
+    return (
+      <ProtectedRoute requiredRole={user?.role}>
+        <HRDashboard />
+      </ProtectedRoute>
+    );
+  }
+
+  /**
+   * MANAGER DASHBOARD
+   * Team management and employee oversight
+   */
   if (user?.role === 'manager') {
     return (
       <ProtectedRoute requiredRole="manager">
@@ -54,12 +101,18 @@ const AppContent = () => {
     );
   }
 
-  // Default to employee dashboard with sidebar layout
+  /**
+   * EMPLOYEE DASHBOARD
+   * Personal dashboard with employee features
+   * Default for all other authenticated users
+   */
   return (
     <ProtectedRoute requiredRole="employee">
       <DashboardLayout>
         <Routes>
-          {/* Main Dashboard Pages */}
+          {/* ============================================================
+              MAIN DASHBOARD PAGES - EMPLOYEE
+              ============================================================ */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/announcements" element={<Announcements />} />
           <Route path="/attendance" element={<Attendance />} />
@@ -70,13 +123,17 @@ const AppContent = () => {
           <Route path="/team" element={<TeamCollaboration />} />
           <Route path="/payroll" element={<Payroll />} />
 
-          {/* Sidebar Navigation Pages */}
+          {/* ============================================================
+              SIDEBAR NAVIGATION PAGES - EMPLOYEE
+              ============================================================ */}
           <Route path="/employees" element={<Employees />} />
           <Route path="/leaves" element={<Leaves />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
 
-          {/* Default redirect */}
+          {/* ============================================================
+              DEFAULT & FALLBACK ROUTES
+              ============================================================ */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -88,6 +145,7 @@ const AppContent = () => {
 /**
  * App Component - Main application wrapper
  * Wraps everything with Router, ThemeProvider, and AuthProvider for global state
+ * Uses top-level Routes to handle Login page routing
  * 
  * @returns {JSX.Element} - Application component
  */
@@ -96,7 +154,13 @@ function App() {
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <AppContent />
+          <Routes>
+            {/* LOGIN ROUTE - Always accessible */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* MAIN APP ROUTES - Protected by AppContent */}
+            <Route path="/*" element={<AppContent />} />
+          </Routes>
         </AuthProvider>
       </ThemeProvider>
     </Router>
