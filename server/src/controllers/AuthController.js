@@ -1,20 +1,18 @@
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
-import {
-  generateAccessToken,
-  generateRefreshToken
-} from "../utils/jwt.js";
+import Role from "../models/Role.js";
+import Permission from "../models/Permission.js"; // ensure mongoose registers the Permission schema
+import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 
 const registerSuperAdmin = async (req, res) => {
   try {
-
     const { email, password } = req.body;
 
     const exist = await User.findOne({ role: "SUPER_ADMIN" });
 
     if (exist) {
       return res.status(400).json({
-        message: "Super admin already exists"
+        message: "Super admin already exists",
       });
     }
 
@@ -23,22 +21,20 @@ const registerSuperAdmin = async (req, res) => {
     const user = await User.create({
       email,
       password: hash,
-      role: "SUPER_ADMIN"
+      role: "SUPER_ADMIN",
     });
 
     res.json({
       success: true,
       message: "Super admin registered successfully",
-      data: user
+      data: user,
     });
-
   } catch (err) {
     res.status(500).json(err);
   }
 };
 
 const login = async (req, res) => {
-
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
@@ -53,7 +49,19 @@ const login = async (req, res) => {
     return res.status(401).json({ message: "Invalid password" });
   }
 
-  const accessToken = generateAccessToken(user);
+  // fetch role document to get permissions
+  const roleDoc = await Role.findOne({ name: user.role }).populate(
+    "permissions",
+  );
+  const permissions = roleDoc ? roleDoc.permissions.map((p) => p.name) : [];
+
+  const tokenUser = {
+    id: user._id,
+    role: user.role,
+    permissions,
+  };
+
+  const accessToken = generateAccessToken(tokenUser);
   const refreshToken = generateRefreshToken(user);
 
   user.refreshToken = refreshToken;
@@ -69,8 +77,9 @@ const login = async (req, res) => {
         id: user._id,
         email: user.email,
         role: user.role,
-      }
-    }
+        permissions,
+      },
+    },
   });
 };
 

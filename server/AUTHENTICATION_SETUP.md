@@ -1,6 +1,7 @@
 # Authentication System Setup Guide
 
 ## Overview
+
 This guide explains how to set up and use the secure authentication system with JWT tokens, password hashing, and role-based access control (RBAC).
 
 ---
@@ -31,6 +32,7 @@ NODE_ENV=development
 ```
 
 > **⚠️ Important**: In production, use strong, random secrets. Generate them using:
+>
 > ```bash
 > node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 > ```
@@ -64,8 +66,8 @@ server/
 In `server/index.js`, add the authentication routes:
 
 ```javascript
-const express = require('express');
-const authRouter = require('./src/routes/AuthRouter');
+const express = require("express");
+const authRouter = require("./src/routes/AuthRouter");
 
 const app = express();
 
@@ -73,7 +75,7 @@ const app = express();
 app.use(express.json());
 
 // Routes
-app.use('/api/auth', authRouter);
+app.use("/api/auth", authRouter);
 
 // Other routes...
 ```
@@ -83,14 +85,14 @@ app.use('/api/auth', authRouter);
 When creating a new user, always hash the password:
 
 ```javascript
-const { hashPassword } = require('./src/utils/passwordUtil');
+const { hashPassword } = require("./src/utils/passwordUtil");
 
 // When creating a user
 const hashedPassword = await hashPassword(plainTextPassword);
 const user = await User.create({
-  email: 'user@example.com',
+  email: "user@example.com",
   password: hashedPassword,
-  roleId: 'role-id',
+  roleId: "role-id",
 });
 ```
 
@@ -99,18 +101,22 @@ const user = await User.create({
 For protected routes, use the authentication middleware:
 
 ```javascript
-const { verifyAccessToken, requireRole } = require('./src/middleware/authMiddleware');
+const {
+  verifyAccessToken,
+  requireRole,
+} = require("./src/middleware/authMiddleware");
 
 // Protect route with authentication
-router.get('/profile', verifyAccessToken, (req, res) => {
+router.get("/profile", verifyAccessToken, (req, res) => {
   // req.user contains { id, roleId }
 });
 
 // Protect route with role-based access
-router.delete('/users/:id', 
-  verifyAccessToken, 
-  requireRole('Admin'), 
-  deleteUserHandler
+router.delete(
+  "/users/:id",
+  verifyAccessToken,
+  requireRole("Admin"),
+  deleteUserHandler,
 );
 ```
 
@@ -119,9 +125,11 @@ router.delete('/users/:id',
 ## API Endpoints
 
 ### 1. Login
+
 **Endpoint**: `POST /api/auth/login`
 
 **Request Body**:
+
 ```json
 {
   "email": "user@example.com",
@@ -130,6 +138,7 @@ router.delete('/users/:id',
 ```
 
 **Response** (Success - 200):
+
 ```json
 {
   "success": true,
@@ -150,6 +159,7 @@ router.delete('/users/:id',
 ```
 
 **Response** (Error - 401):
+
 ```json
 {
   "success": false,
@@ -160,9 +170,11 @@ router.delete('/users/:id',
 ---
 
 ### 2. Refresh Access Token
+
 **Endpoint**: `POST /api/auth/refresh`
 
 **Request Body**:
+
 ```json
 {
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -170,6 +182,7 @@ router.delete('/users/:id',
 ```
 
 **Response** (Success - 200):
+
 ```json
 {
   "success": true,
@@ -183,14 +196,17 @@ router.delete('/users/:id',
 ---
 
 ### 3. Verify Token
+
 **Endpoint**: `GET /api/auth/verify`
 
 **Headers**:
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response** (Success - 200):
+
 ```json
 {
   "success": true,
@@ -211,14 +227,17 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ---
 
 ### 4. Logout
+
 **Endpoint**: `POST /api/auth/logout`
 
 **Headers**:
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response** (Success - 200):
+
 ```json
 {
   "success": true,
@@ -229,14 +248,17 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ---
 
 ### 5. Get Current User Info
+
 **Endpoint**: `GET /api/auth/me`
 
 **Headers**:
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response** (Success - 200):
+
 ```json
 {
   "success": true,
@@ -257,67 +279,78 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ## Features Explained
 
 ### 1. JWT Access Token (15 minutes)
+
 - Short-lived token for API access
 - Sent in Authorization header: `Bearer <token>`
 - Expires in 15 minutes
 - Used for request authentication
 
 ### 2. Refresh Token (7 days)
+
 - Long-lived token stored in database
 - Used to get new access tokens
 - Expires in 7 days
 - Provides seamless user experience
 
 ### 3. Password Hashing (bcrypt)
+
 - Passwords are hashed with salt rounds (10)
 - Never stored in plain text
 - One-way encryption for security
 - Verified during login
 
-### 4. Role-Based Access Control (RBAC)
-- Control access by user roles (Admin, Manager, Employee)
-- Use middleware: `requireRole('Admin', 'Manager')`
-- Role information included in JWT token
-- Database lookup for permission validation
+### 4. Role‑and‑Permission‑Based Access Control (RBAC)
+
+- Control access by user roles and fine‑grained permissions
+- Permissions are stored in a dedicated collection and referenced by role documents
+- When a user logs in the role's permissions array is loaded and embedded in the access JWT
+- Use middleware: `requireRole('Admin','Manager')` for coarse checks or `permissionGuard('leave.apply')` for specific actions
+- `authGuard` populates `req.user` with `{ id, role, permissions }` so downstream code can inspect permissions
+- Database lookup for permission validation is performed during seeding or login, not on every request
 
 ---
 
 ## Usage Examples
 
 ### Example 1: Admin-Only Route
-```javascript
-const { verifyAccessToken, requireRole } = require('./src/middleware/authMiddleware');
 
-router.delete('/users/:id',
+```javascript
+const {
   verifyAccessToken,
-  requireRole('Admin'),
+  requireRole,
+} = require("./src/middleware/authMiddleware");
+
+router.delete(
+  "/users/:id",
+  verifyAccessToken,
+  requireRole("Admin"),
   (req, res) => {
     // Only admins can delete users
-  }
+  },
 );
 ```
 
 ### Example 2: Manager or Admin Route
+
 ```javascript
-router.put('/attendance/approve',
+router.put(
+  "/attendance/approve",
   verifyAccessToken,
-  requireRole('Admin', 'Manager'),
+  requireRole("Admin", "Manager"),
   (req, res) => {
     // Admin or Manager can approve attendance
-  }
+  },
 );
 ```
 
 ### Example 3: Get Current User in Route
+
 ```javascript
-router.get('/profile',
-  verifyAccessToken,
-  async (req, res) => {
-    const userId = req.user.id;
-    const user = await User.findOne({ id: userId });
-    res.json(user);
-  }
-);
+router.get("/profile", verifyAccessToken, async (req, res) => {
+  const userId = req.user.id;
+  const user = await User.findOne({ id: userId });
+  res.json(user);
+});
 ```
 
 ---
@@ -338,16 +371,19 @@ router.get('/profile',
 ## Troubleshooting
 
 ### "Invalid token" error
+
 - Check if token has expired (access tokens last 15 min)
 - Verify token format: `Authorization: Bearer <token>`
 - Use refresh endpoint to get new access token
 
 ### "Access denied" error
+
 - User's role doesn't have permission
 - Check role permissions in RBAC middleware
 - Verify user.roleId matches allowed roles
 
 ### "Refresh token has expired"
+
 - Refresh tokens last 7 days
 - User must login again
 - Database cleanup of expired tokens recommended
