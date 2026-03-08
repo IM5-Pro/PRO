@@ -6,7 +6,7 @@
 
 import React from 'react';
 import './App.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Login from './components/Login/Login';
@@ -49,6 +49,13 @@ import HRDashboard from './components/HRDashboard/HRDashboard';
  */
 const AppContent = () => {
   const { isAuthenticated, user, loading } = useAuth();
+  const location = useLocation();
+
+  // if someone is already signed in and manually visits /login, bounce
+  // them to the appropriate dashboard instead of showing the login form.
+  if (isAuthenticated && location.pathname === '/login') {
+    return <Navigate to="/" replace />;
+  }
 
   // ============================================================================
   // LOADING STATE
@@ -134,6 +141,8 @@ const AppContent = () => {
           {/* ============================================================
               DEFAULT & FALLBACK ROUTES
               ============================================================ */}
+          {/* when an employee hits the root we send them to their dashboard
+              (previously the code redirected to /hrDashboard which was wrong) */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

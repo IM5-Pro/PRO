@@ -9,6 +9,7 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiMail, FiLock } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from '../Auth/AuthLayout';
@@ -36,7 +37,10 @@ const Login = ({ onLoginSuccess = null }) => {
   const [passwordError, setPasswordError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Auth context
+  // navigation - ensure we leave the login page after a successful sign‑in
+  const navigate = useNavigate();
+
+  // authentication helper
   const { login } = useAuth();
 
   /**
@@ -117,7 +121,12 @@ const Login = ({ onLoginSuccess = null }) => {
       setEmail('');
       setPassword('');
 
-      // Call success callback
+      // push the user off the login route so AppContent can render the
+      // appropriate dashboard for their role. we navigate to the root
+      // because AppContent handles role‑based routing on '/'.
+      navigate('/', { replace: true });
+
+      // Call success callback (legacy prop, still supported)
       if (onLoginSuccess) {
         setTimeout(onLoginSuccess, 500);
       }
