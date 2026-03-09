@@ -35,7 +35,7 @@ const AuthLayout = ({
   return (
     // full-screen background image with form overlay on the right
     <div
-      className="min-h-screen bg-cover bg-center flex items-center justify-end p-4 md:p-8"
+      className="min-h-screen bg-cover bg-center bg-fixed flex items-center justify-end p-4 md:p-8"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
       <div className="w-full max-w-md mr-4 md:mr-12 lg:mr-20 xl:mr-32">

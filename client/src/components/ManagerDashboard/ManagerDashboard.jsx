@@ -17,6 +17,7 @@ import TeamStatsCard from '../TeamStatsCard/TeamStatsCard';
 import TimingsChart from '../TimingsChart/TimingsChart';
 import TeamScheduleCalendar from '../TeamScheduleCalendar/TeamScheduleCalendar';
 import BookMeeting from '../BookMeeting/BookMeeting';
+import bgImage from '../../assets/ispace-bg.png';
 
 /**
  * ManagerDashboard Component
@@ -226,7 +227,10 @@ const ManagerDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div
+      className="flex h-screen bg-cover bg-center bg-fixed overflow-hidden"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Sidebar */}
       <ManagerSidebar
         currentPage={currentPage}

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { FiClock, FiCheckCircle, FiXCircle, FiLogIn, FiLogOut, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
+import bgImage from '../../assets/ispace-bg.png';
 
 const Attendance = () => {
   const { colors, isDark } = useTheme();
@@ -74,7 +75,10 @@ const Attendance = () => {
   };
 
   return (
-    <div className={`min-h-screen p-6 md:p-8 transition-colors duration-300 bg-gradient-to-br ${colors.gradient.primary}`}>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

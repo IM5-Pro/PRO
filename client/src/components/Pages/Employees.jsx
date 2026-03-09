@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { FiUsers, FiSearch, FiFilter, FiPlus, FiMail, FiPhone, FiBriefcase, FiMapPin, FiMoreVertical } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
+import bgImage from '../../assets/ispace-bg.png';
 
 const Employees = () => {
   const { colors, resolvedTheme } = useTheme();
@@ -66,46 +67,53 @@ const Employees = () => {
   const departments = ['all', 'Product', 'Engineering', 'Design', 'Quality', 'Marketing'];
 
   return (
-    <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gradient-to-br from-blue-900 via-teal-900 to-green-900' : 'bg-gradient-to-br from-blue-50 via-teal-50 to-green-50'} p-6 md:p-8`}>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-            <FiUsers className="w-10 h-10" /> Employees
-          </h1>
-          <p className={colors.text.tertiary}>Manage and view all employees</p>
+      <div className="glass rounded-2xl p-6 mb-8 backdrop-blur-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+              <FiUsers className="w-10 h-10" /> Employees
+            </h1>
+            <p className={colors.text.tertiary}>Manage and view all employees</p>
+          </div>
+          <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2">
+            <FiPlus size={20} /> Add Employee
+          </button>
         </div>
-        <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2">
-          <FiPlus size={20} /> Add Employee
-        </button>
       </div>
 
       {/* Search & Filter */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className="relative">
-          <FiSearch className="absolute left-4 top-3.5 text-slate-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search employees..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full pl-12 pr-4 py-3 glass border ${colors.border.primary} rounded-xl ${colors.text.primary} placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all duration-300`}
-          />
-        </div>
+      <div className="glass rounded-2xl p-4 mb-8 backdrop-blur-xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="relative">
+            <FiSearch className="absolute left-4 top-3.5 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search employees..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full pl-12 pr-4 py-3 bg-white/10 border ${colors.border.primary} rounded-xl ${colors.text.primary} placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all duration-300`}
+            />
+          </div>
 
-        <div className={`flex items-center gap-2 glass border ${colors.border.primary} rounded-xl px-4 py-3 hover:border-slate-600 transition-all duration-300`}>
-          <FiFilter className="text-slate-400" size={20} />
-          <select
-            value={filterDept}
-            onChange={(e) => setFilterDept(e.target.value)}
-            className={`bg-transparent ${colors.text.primary} outline-none font-medium flex-1`}
-          >
-            {departments.map((dept) => (
-              <option key={dept} value={dept} className="bg-slate-800">
-                {dept === 'all' ? 'All Departments' : dept}
-              </option>
-            ))}
-          </select>
+          <div className={`flex items-center gap-2 bg-white/10 border ${colors.border.primary} rounded-xl px-4 py-3 hover:border-slate-600 transition-all duration-300`}>
+            <FiFilter className="text-slate-400" size={20} />
+            <select
+              value={filterDept}
+              onChange={(e) => setFilterDept(e.target.value)}
+              className={`bg-transparent ${colors.text.primary} outline-none font-medium flex-1`}
+            >
+              {departments.map((dept) => (
+                <option key={dept} value={dept} className="bg-slate-800">
+                  {dept === 'all' ? 'All Departments' : dept}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

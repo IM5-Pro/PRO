@@ -6,6 +6,7 @@
 import React from 'react';
 import { FiDollarSign, FiDownload } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
+import bgImage from '../../assets/ispace-bg.png';
 
 const Payroll = () => {
   const { colors } = useTheme();
@@ -44,7 +45,10 @@ const Payroll = () => {
   ];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Header */}
       <div>
         <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>

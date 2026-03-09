@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { FiBarChart2, FiTrendingUp, FiUsers, FiTarget, FiCalendar, FiDownload, FiFilter } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
+import bgImage from '../../assets/ispace-bg.png';
 
 const Analytics = () => {
   const { colors } = useTheme();
@@ -56,7 +57,10 @@ const Analytics = () => {
   ];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -67,7 +71,7 @@ const Analytics = () => {
         </div>
 
         <div className="flex gap-3">
-          <div className={`flex items-center gap-2 bg-gradient-to-br ${colors.gradient.card} border ${colors.border.primary} rounded-xl px-4 py-3 hover:border-slate-600 transition-all duration-300`}>
+          <div className={`flex items-center gap-2 glass rounded-xl px-4 py-3 hover:border-slate-600 transition-all duration-300`}>
             <FiFilter className="text-slate-400" size={20} />
             <select
               value={period}
@@ -93,7 +97,7 @@ const Analytics = () => {
           return (
             <div
               key={idx}
-              className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
+              className={`group glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1`}
             >
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${metric.color} text-white`}>
@@ -111,7 +115,7 @@ const Analytics = () => {
       </div>
 
       {/* Department Analytics */}
-      <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 mb-8 hover:border-slate-600 transition-all duration-300`}>
+      <div className={`glass rounded-2xl border p-6 mb-8 hover:border-slate-600 transition-all duration-300`}>
         <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Department Performance</h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -145,7 +149,7 @@ const Analytics = () => {
       {/* Trends & Statistics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Attendance Trends */}
-        <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300`}>
+        <div className={`glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300`}>
           <h2 className={`text-xl font-bold ${colors.text.primary} mb-6 flex items-center gap-2`}>
             <FiTrendingUp className="text-blue-400" /> Attendance Trends
           </h2>
@@ -175,7 +179,7 @@ const Analytics = () => {
         </div>
 
         {/* Top Performers */}
-        <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300`}>
+        <div className={`glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300`}>
           <h2 className={`text-xl font-bold ${colors.text.primary} mb-6`}>Top Performers</h2>
 
           <div className="space-y-4">

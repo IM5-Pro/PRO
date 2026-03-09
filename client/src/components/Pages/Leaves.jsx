@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { FiCalendar, FiPlus, FiCheck, FiX, FiClock, FiAlert, FiTrendingDown } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
+import bgImage from '../../assets/ispace-bg.png';
 
 const Leaves = () => {
   const { colors } = useTheme();
@@ -86,7 +87,10 @@ const Leaves = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -110,7 +114,7 @@ const Leaves = () => {
           return (
             <div
               key={idx}
-              className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl ${colors.shadow}`}
+              className={`group glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1`}
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className={`${colors.text.secondary} font-semibold text-sm`}>{leave.type}</h3>
@@ -144,7 +148,7 @@ const Leaves = () => {
       {/* Leave Requests Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 mb-8">
-          <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-8 max-w-md w-full shadow-2xl`}>
+        <div className={`glass rounded-2xl border p-8 max-w-md w-full shadow-2xl`}>
             <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Request Leave</h2>
 
             <form className="space-y-4">
@@ -188,7 +192,7 @@ const Leaves = () => {
       )}
 
       {/* Leave Requests */}
-      <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300`}>
+      <div className={`glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300`}>
         <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Leave Requests</h2>
 
         <div className="space-y-4">

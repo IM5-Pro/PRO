@@ -8,6 +8,7 @@ import { FiSettings, FiBell, FiLock, FiEye, FiEyeOff, FiToggleRight, FiToggleLef
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import bgImage from '../../assets/ispace-bg.png';
 
 const SettingsPage = () => {
   const { colors } = useTheme();
@@ -33,7 +34,10 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Header */}
       <div className="mb-8">
         <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>

@@ -1,19 +1,18 @@
 /**
  * SidebarNav Component
- * Sidebar navigation for employee dashboard with collapsible menu and theme switcher
+ * Sidebar navigation for employee dashboard with collapsible menu
  */
 
 import React, { useState } from 'react';
-import { FiMenu, FiX, FiHome, FiUsers, FiCalendar, FiBarChart2, FiSettings, FiBell, FiLogOut, FiSun, FiMoon, FiMonitor } from 'react-icons/fi';
+import { FiMenu, FiX, FiHome, FiUsers, FiCalendar, FiBarChart2, FiSettings, FiBell, FiLogOut } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 const SidebarNav = () => {
   const [isOpen, setIsOpen] = useState(true);
-  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const location = useLocation();
-  const { colors, theme, toggleTheme, resolvedTheme } = useTheme();
+  const { colors } = useTheme();
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -85,39 +84,6 @@ const SidebarNav = () => {
             );
           })}
         </nav>
-
-        {/* Theme Switcher */}
-        <div className={`relative p-4 border-t-2 transition-colors duration-300 ${colors.border.primary}`}>
-          <button
-            onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium ${colors.text.tertiary} hover:${colors.text.primary}`}
-          >
-            {resolvedTheme === 'dark' ? <FiMoon size={20} /> : <FiSun size={20} />}
-            <span className="text-sm capitalize">{theme}</span>
-          </button>
-
-          {showThemeMenu && (
-            <div className={`absolute bottom-16 left-4 right-4 rounded-lg border-2 transition-colors duration-300 glass ${colors.border.primary}`}>
-              {['light', 'dark', 'system'].map((themeOption) => (
-                <button
-                  key={themeOption}
-                  onClick={() => {
-                    toggleTheme();
-                    setShowThemeMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 flex items-center gap-2 transition-colors duration-300 ${
-                    theme === themeOption ?  'bg-blue-600/20' : ''
-                  }`}
-                >
-                  {themeOption === 'light' && <FiSun size={16} />}
-                  {themeOption === 'dark' && <FiMoon size={16} />}
-                  {themeOption === 'system' && <FiMonitor size={16} />}
-                  <span className="text-sm capitalize">{themeOption}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Footer */}
         <div className={`p-4 border-t-2 transition-colors duration-300 ${colors.border.primary}`}>
