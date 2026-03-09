@@ -90,11 +90,6 @@ const Login = ({ onLoginSuccess = null }) => {
     setPassword(value);
     setPasswordError(validatePassword(value));
   };
-
-  /**
-   * Handle form submission
-   * Validates input and attempts login
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
