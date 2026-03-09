@@ -6,9 +6,13 @@
 import React, { useState } from 'react';
 import { FiSettings, FiBell, FiLock, FiEye, FiEyeOff, FiToggleRight, FiToggleLeft, FiLogOut, FiTrash2, FiSave } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const SettingsPage = () => {
   const { colors } = useTheme();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState({
     emailNotifications: true,
     pushNotifications: false,
@@ -222,7 +226,13 @@ const SettingsPage = () => {
             </h2>
 
             <div className="space-y-4">
-              <button className="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+              <button
+                className="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+              >
                 <FiLogOut size={20} /> Sign Out
               </button>
 

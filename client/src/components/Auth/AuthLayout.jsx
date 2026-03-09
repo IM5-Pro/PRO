@@ -23,6 +23,8 @@ import React from 'react';
  * @param {string} [props.footerText] - Footer text
  * @returns {JSX.Element} - Auth layout wrapper
  */
+import loginBg from '../../assets/ispace-bg.png';
+
 const AuthLayout = ({
   children,
   title = 'HRMS',
@@ -31,22 +33,22 @@ const AuthLayout = ({
   footerText = '© 2024-2026 HRMS System. All rights reserved.',
 }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    // full-screen background image with form overlay on the right
+    <div
+      className="min-h-screen bg-cover bg-center flex items-center justify-end p-4 md:p-8"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      <div className="w-full max-w-md mr-4 md:mr-12 lg:mr-20 xl:mr-32">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-4">{emoji}</div>
-          <h1 className="text-4xl font-bold text-white mb-2">{title}</h1>
-          <p className="text-blue-100">{subtitle}</p>
-        </div>
+       
 
         {/* Content */}
-        <div className="bg-white rounded-xl shadow-2xl p-8">
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
           {children}
         </div>
 
         {/* Footer */}
-        <p className="text-center text-blue-100 text-sm mt-8">
+        <p className="text-center text-white/90 text-sm mt-8 drop-shadow-md">
           {footerText}
         </p>
       </div>

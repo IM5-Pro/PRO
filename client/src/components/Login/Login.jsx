@@ -16,7 +16,6 @@ import AuthLayout from '../Auth/AuthLayout';
 import FormInput from '../Auth/FormInput';
 import SubmitButton from '../Auth/SubmitButton';
 import AlertMessage from '../Auth/AlertMessage';
-import CredentialsInfo from '../Auth/CredentialsInfo';
 
 /**
  * Login Component
@@ -91,11 +90,6 @@ const Login = ({ onLoginSuccess = null }) => {
     setPassword(value);
     setPasswordError(validatePassword(value));
   };
-
-  /**
-   * Handle form submission
-   * Validates input and attempts login
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -162,7 +156,7 @@ const Login = ({ onLoginSuccess = null }) => {
 
       {/* Form */}
       {!success && (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email Input */}
           <FormInput
             label="Email Address"
@@ -173,7 +167,6 @@ const Login = ({ onLoginSuccess = null }) => {
             icon={FiMail}
             placeholder="user@company.com"
             error={emailError}
-            helperText="Try: manager@company.com or employee@company.com"
             disabled={isLoading}
           />
 
@@ -187,7 +180,6 @@ const Login = ({ onLoginSuccess = null }) => {
             icon={FiLock}
             placeholder="••••••••"
             error={passwordError}
-            helperText="Any password (min 6 characters)"
             disabled={isLoading}
           />
 
@@ -201,9 +193,6 @@ const Login = ({ onLoginSuccess = null }) => {
           />
         </form>
       )}
-
-      {/* Demo Credentials */}
-      {!success && <CredentialsInfo />}
     </AuthLayout>
   );
 };

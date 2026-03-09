@@ -25,7 +25,7 @@ export const themeColors = {
       hover: 'hover:border-gray-400',
     },
     gradient: {
-      primary: 'from-blue-100 to-blue-50',
+      primary: 'from-slate-50 via-indigo-50 to-cyan-50',
       success: 'from-green-100 to-green-50',
       warning: 'from-yellow-100 to-yellow-50',
       error: 'from-red-100 to-red-50',
@@ -54,7 +54,7 @@ export const themeColors = {
       hover: 'hover:border-slate-600',
     },
     gradient: {
-      primary: 'from-slate-800 to-slate-700',
+      primary: 'from-purple-900 via-violet-900 to-indigo-900',
       success: 'from-green-500 to-emerald-500',
       warning: 'from-yellow-500 to-orange-500',
       error: 'from-red-500 to-pink-500',
@@ -69,7 +69,7 @@ export const getThemeClasses = (isDark) => {
 };
 
 export const getDynamicBg = (isDark) => 
-  isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-br from-gray-50 via-white to-gray-50';
+  isDark ? 'bg-gradient-to-br from-purple-900 via-violet-900 to-indigo-900' : 'bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50';
 
 export const getDynamicCardBg = (isDark) => 
   isDark ? 'bg-gradient-to-br from-slate-800 to-slate-700 border border-slate-700 hover:border-slate-600' : 'bg-white border border-gray-200 hover:border-gray-300';

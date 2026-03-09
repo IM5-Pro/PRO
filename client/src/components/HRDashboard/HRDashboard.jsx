@@ -13,6 +13,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 import HRSidebar from '../HRSidebar/HRSidebar';
 import HRHeader from '../HRHeader/HRHeader';
 import ManpowerPlanning from '../Pages/HR/ManpowerPlanning';
@@ -144,6 +145,7 @@ const HRDashboard = () => {
   // ============================================================================
   const { user = {}, logout } = useAuth();
   const { colors } = useTheme();
+  const navigate = useNavigate();
 
   // ============================================================================
   // STATE MANAGEMENT
@@ -246,6 +248,7 @@ const HRDashboard = () => {
       case 'logout':
         console.log('User logging out...');
         logout();
+        navigate('/login');
         break;
       case 'profile':
         console.log('Opening user profile...');

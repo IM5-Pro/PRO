@@ -5,14 +5,17 @@
 
 import React, { useState } from 'react';
 import { FiMenu, FiX, FiHome, FiUsers, FiCalendar, FiBarChart2, FiSettings, FiBell, FiLogOut, FiSun, FiMoon, FiMonitor } from 'react-icons/fi';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 const SidebarNav = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const location = useLocation();
   const { colors, theme, toggleTheme, resolvedTheme } = useTheme();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const menuItems = [
     { icon: FiHome, label: 'Dashboard', path: '/dashboard' },
@@ -47,7 +50,7 @@ const SidebarNav = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen border-r-2 z-40 transition-all duration-300 bg-gradient-to-b ${colors.gradient.card} ${colors.border.primary} ${
+        className={`fixed left-0 top-0 h-screen border-r-2 z-40 transition-all duration-300 glass ${
           isOpen ? 'w-64' : 'w-0 md:w-64'
         } overflow-hidden md:translate-x-0 ${!isOpen && 'md:w-64'}`}
       >
@@ -94,7 +97,7 @@ const SidebarNav = () => {
           </button>
 
           {showThemeMenu && (
-            <div className={`absolute bottom-16 left-4 right-4 rounded-lg border-2 transition-colors duration-300 ${colors.gradient.card} ${colors.border.primary}`}>
+            <div className={`absolute bottom-16 left-4 right-4 rounded-lg border-2 transition-colors duration-300 glass ${colors.border.primary}`}>
               {['light', 'dark', 'system'].map((themeOption) => (
                 <button
                   key={themeOption}
@@ -118,7 +121,10 @@ const SidebarNav = () => {
 
         {/* Footer */}
         <div className={`p-4 border-t-2 transition-colors duration-300 ${colors.border.primary}`}>
-          <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium ${colors.text.tertiary} hover:${colors.text.primary}`}>
+          <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium ${colors.text.tertiary} hover:${colors.text.primary}`} onClick={() => {
+            logout();
+            navigate('/login');
+          }}>
             <FiLogOut size={20} />
             <span className="text-sm">Sign Out</span>
           </button>

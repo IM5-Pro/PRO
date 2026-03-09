@@ -8,7 +8,7 @@ import { FiUsers, FiSearch, FiFilter, FiPlus, FiMail, FiPhone, FiBriefcase, FiMa
 import { useTheme } from '../../context/ThemeContext';
 
 const Employees = () => {
-  const { colors } = useTheme();
+  const { colors, resolvedTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
 
@@ -66,7 +66,7 @@ const Employees = () => {
   const departments = ['all', 'Product', 'Engineering', 'Design', 'Quality', 'Marketing'];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gradient-to-br from-blue-900 via-teal-900 to-green-900' : 'bg-gradient-to-br from-blue-50 via-teal-50 to-green-50'} p-6 md:p-8`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -89,11 +89,11 @@ const Employees = () => {
             placeholder="Search employees..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full pl-12 pr-4 py-3 bg-gradient-to-br ${colors.gradient.card} border ${colors.border.primary} rounded-xl ${colors.text.primary} placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all duration-300`}
+            className={`w-full pl-12 pr-4 py-3 glass border ${colors.border.primary} rounded-xl ${colors.text.primary} placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all duration-300`}
           />
         </div>
 
-        <div className={`flex items-center gap-2 bg-gradient-to-br ${colors.gradient.card} border ${colors.border.primary} rounded-xl px-4 py-3 hover:border-slate-600 transition-all duration-300`}>
+        <div className={`flex items-center gap-2 glass border ${colors.border.primary} rounded-xl px-4 py-3 hover:border-slate-600 transition-all duration-300`}>
           <FiFilter className="text-slate-400" size={20} />
           <select
             value={filterDept}
@@ -114,7 +114,7 @@ const Employees = () => {
         {employees.map((employee) => (
           <div
             key={employee.id}
-            className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
+            className={`group glass rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
           >
             {/* Avatar & Name */}
             <div className="flex items-start justify-between mb-4">

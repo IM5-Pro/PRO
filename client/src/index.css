@@ -23,6 +23,26 @@ code {
 }
 
 /* Utility classes */
+@layer utilities {
+  .glass {
+    /* heavier blur and stronger background so the panel reads solid */
+    @apply bg-white/0 backdrop-blur-3xl border border-white/20 rounded-2xl;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  .glass-dark {
+    /* nearly opaque dark glass with extra blur */
+    @apply bg-slate-900/95 backdrop-blur-3xl border border-slate-700/80 rounded-2xl;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .glass:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  .glass, .glass-dark {
+    transition: all 0.3s ease;
+  }
+}
+
 @layer components {
   .card {
     @apply bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-300;
@@ -51,4 +71,13 @@ code {
   .badge-warning {
     @apply bg-yellow-100 text-yellow-800;
   }
+}
+
+.from-slate-800 {
+  --tw-gradient-from: #1e293b var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(30 41 59 / 0) …           /* 0 % opacity */
+  …
+}
+.to-slate-700 {
+  --tw-gradient-to: #080925 …
 }
