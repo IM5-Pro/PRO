@@ -23,6 +23,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server is Running at ${PORT}`);
-});
+// start server only when not running tests
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`Server is Running at ${PORT}`);
+  });
+}
+
+export default app;
