@@ -6,12 +6,27 @@ import permissionGuard from "../middleware/permissionGuard.js";
 
 const router = express.Router();
 
+// Super Admin: Create any user (HR_ADMIN, MANAGER, EMPLOYEE)
+router.post(
+  "/admin/create-user",
+  authGuard,
+  roleGuard("SUPER_ADMIN"),
+  userController.createUser,
+);
+
+// HR Admin: Create MANAGER or EMPLOYEE only
+router.post(
+  "/hr/create-user",
+  authGuard,
+  roleGuard("HR_ADMIN"),
+  userController.createUser,
+);
+
+// Generic create (kept for backward compatibility)
 router.post(
   "/create",
   authGuard,
-  // either role-based or permission-based check can be used
-  // roleGuard("SUPER_ADMIN", "HR_ADMIN"),
-  permissionGuard("user.create"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN"),
   userController.createUser,
 );
 
