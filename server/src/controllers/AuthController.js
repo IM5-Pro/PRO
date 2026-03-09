@@ -8,21 +8,18 @@ const registerSuperAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const exist = await User.findOne({ role: "SUPER_ADMIN" });
-
-    if (exist) {
-      return res.status(400).json({
-        message: "Super admin already exists",
-      });
-    }
-
     const hash = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      email,
-      password: hash,
-      role: "SUPER_ADMIN",
-    });
+    // Update existing super admin or create new one
+    const user = await User.findOneAndUpdate(
+      { role: "SUPER_ADMIN" },
+      {
+        email,
+        password: hash,
+        role: "SUPER_ADMIN",
+      },
+      { upsert: true, new: true }
+    );
 
     res.json({
       success: true,
