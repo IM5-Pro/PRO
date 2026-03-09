@@ -26,6 +26,7 @@ import LetterTemplates from '../Pages/HR/LetterTemplates';
 import AdminPanelConfig from '../Pages/HR/AdminPanelConfig';
 import Workflows from '../Pages/HR/Workflows';
 import MeetingRoom from '../Pages/HR/MeetingRoom';
+import bgImage from '../../assets/ispace-bg.png';
 
 /**
  * Validation constants for user data
@@ -335,7 +336,10 @@ const HRDashboard = () => {
   // ============================================================================
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+    <div
+      className="flex h-screen bg-cover bg-center bg-fixed overflow-hidden"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* ========================================
           SIDEBAR NAVIGATION
           ======================================== */}

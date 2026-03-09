@@ -6,12 +6,16 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import SidebarNav from '../SidebarNav/SidebarNav';
+import bgImage from '../../assets/ispace-bg.png';
 
 const DashboardLayout = ({ children }) => {
   const { colors } = useTheme();
 
   return (
-    <div className={`flex min-h-screen bg-gradient-to-br ${colors.gradient.primary}`}>
+    <div
+      className="flex min-h-screen bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Sidebar */}
       <SidebarNav />
 

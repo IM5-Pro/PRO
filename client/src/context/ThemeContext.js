@@ -1,10 +1,5 @@
-/**
- * ThemeContext
- * Global theme management for dark, light, and system-default modes
- * Provides theme colors and utilities across all components
- */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext } from 'react';
 
 const ThemeContext = createContext();
 
@@ -63,59 +58,14 @@ const themeColors = {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('system');
-  const [resolvedTheme, setResolvedTheme] = useState('dark');
-
-  // Detect system preference
-  useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const updateTheme = () => {
-      const savedTheme = localStorage.getItem('theme') || 'system';
-      setTheme(savedTheme);
-      
-      if (savedTheme === 'system') {
-        setResolvedTheme(prefersDark.matches ? 'dark' : 'light');
-      } else {
-        setResolvedTheme(savedTheme);
-      }
-
-      // Apply theme to document
-      if (savedTheme === 'system') {
-        document.documentElement.classList.toggle('dark', prefersDark.matches);
-      } else {
-        document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-      }
-    };
-
-    updateTheme();
-    prefersDark.addEventListener('change', updateTheme);
-    return () => prefersDark.removeEventListener('change', updateTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const themes = ['light', 'dark', 'system'];
-    const currentIndex = themes.indexOf(theme);
-    const nextTheme = themes[(currentIndex + 1) % themes.length];
-    
-    setTheme(nextTheme);
-    localStorage.setItem('theme', nextTheme);
-
-    if (nextTheme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-      setResolvedTheme(prefersDark.matches ? 'dark' : 'light');
-      document.documentElement.classList.toggle('dark', prefersDark.matches);
-    } else {
-      setResolvedTheme(nextTheme);
-      document.documentElement.classList.toggle('dark', nextTheme === 'dark');
-    }
-  };
+  // Always use light theme
+  const resolvedTheme = 'light';
+  const isDark = false;
 
   const colors = themeColors[resolvedTheme];
-  const isDark = resolvedTheme === 'dark';
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, toggleTheme, colors, isDark }}>
+    <ThemeContext.Provider value={{ resolvedTheme, colors, isDark }}>
       {children}
     </ThemeContext.Provider>
   );

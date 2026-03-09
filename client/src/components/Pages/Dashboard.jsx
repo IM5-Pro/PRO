@@ -6,6 +6,7 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar } from 'react-icons/fi';
+import bgImage from '../../assets/ispace-bg.png';
 
 const Dashboard = () => {
   const { colors } = useTheme();
@@ -53,18 +54,23 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-            <FiHome className="w-10 h-10" /> Welcome Back!
-          </h1>
-          <p className={colors.text.tertiary}>Here's your dashboard overview for today</p>
-        </div>
-        <div className="text-right hidden md:block">
-          <p className={`${colors.text.tertiary} text-sm`}>Today</p>
-          <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+      <div className="glass rounded-2xl p-6 mb-8 backdrop-blur-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+              <FiHome className="w-10 h-10" /> Welcome Back!
+            </h1>
+            <p className={colors.text.tertiary}>Here's your dashboard overview for today</p>
+          </div>
+          <div className="text-right hidden md:block">
+            <p className={`${colors.text.tertiary} text-sm`}>Today</p>
+            <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          </div>
         </div>
       </div>
 
@@ -75,7 +81,7 @@ const Dashboard = () => {
           return (
             <div
               key={idx}
-              className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:${colors.border.secondary} transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
+              className={`group glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1`}
             >
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} text-white`}>
@@ -98,14 +104,14 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}
         <div className="lg:col-span-2">
-          <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:${colors.border.secondary} transition-all duration-300`}>
+          <div className={`glass rounded-2xl p-6 hover:border-slate-600 transition-all duration-300`}>
             <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Recent Activity</h2>
 
             <div className="space-y-4">
               {recentActivity.map((activity, idx) => (
                 <div
                   key={idx}
-                  className={`flex items-start gap-4 p-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-xl hover:${colors.border.primary} hover:${colors.bg.tertiary}/50 transition-all duration-300 group/item cursor-pointer`}
+                  className={`flex items-start gap-4 p-4 bg-white/10 border border-white/20 rounded-xl hover:border-white/40 transition-all duration-300 group/item cursor-pointer`}
                 >
                   <div className="text-3xl mt-1">{activity.icon}</div>
 
@@ -131,7 +137,7 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div>
-          <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:${colors.border.secondary} transition-all duration-300 h-full`}>
+          <div className={`glass rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 h-full`}>
             <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Quick Actions</h2>
 
             <div className="space-y-3">
