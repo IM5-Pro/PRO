@@ -1,8 +1,3 @@
-/**
- * ThemeContext
- * Global theme management - Light theme only
- * Provides theme colors and utilities across all components
- */
 
 import React, { createContext, useContext } from 'react';
 
