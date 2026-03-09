@@ -10,6 +10,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import ManagerSidebar from '../ManagerSidebar/ManagerSidebar';
 import ManagerHeader from '../ManagerHeader/ManagerHeader';
 import TeamStatsCard from '../TeamStatsCard/TeamStatsCard';
@@ -26,6 +27,7 @@ import BookMeeting from '../BookMeeting/BookMeeting';
 const ManagerDashboard = () => {
   // Get user and logout from auth context
   const { user = {}, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Use user from context or fallback to defaults
   const CURRENT_MANAGER = {
@@ -75,6 +77,7 @@ const ManagerDashboard = () => {
     if (action === 'logout') {
       console.log('User logging out...');
       logout(); // Call logout from auth context
+      navigate('/login');
     } else if (action === 'profile') {
       console.log('Opening user profile...');
       alert('Profile page would open here');
