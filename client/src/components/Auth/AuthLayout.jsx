@@ -33,25 +33,30 @@ const AuthLayout = ({
   footerText = '© 2024-2026 HRMS System. All rights reserved.',
 }) => {
   return (
-    // full-screen background image with form overlay on the right
+    // full-screen background image with form card on the right side
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed flex items-center justify-end p-4 md:p-8"
+      className="min-h-screen bg-cover bg-center bg-fixed flex flex-col items-end justify-center p-4 md:p-8 relative"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
-      <div className="w-full max-w-md mr-4 md:mr-12 lg:mr-20 xl:mr-32">
-        {/* Header */}
-       
+      {/* Login Card */}
+      <div className="w-full max-w-md mr-8 md:mr-16 lg:mr-24">
+        {/* Content Card */}
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-10 border border-white/20">
+          {/* Logo Header Inside Card */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-blue-600 tracking-tight">
+              HRMS
+            </h1>
+          </div>
 
-        {/* Content */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
           {children}
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-white/90 text-sm mt-8 drop-shadow-md">
-          {footerText}
-        </p>
       </div>
+
+      {/* Footer at Bottom Center - Centered Horizontally */}
+      <p className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center text-blue-900 text-sm drop-shadow-md font-medium whitespace-nowrap">
+        © 2025-2026 HRMS System. All rights reserved.
+      </p>
     </div>
   );
 };
