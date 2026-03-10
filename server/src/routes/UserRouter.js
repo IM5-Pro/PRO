@@ -2,7 +2,6 @@ import express from "express";
 import userController from "../controllers/UserController.js";
 import authGuard from "../middleware/authGuard.js";
 import roleGuard from "../middleware/roleGuard.js";
-import permissionGuard from "../middleware/permissionGuard.js";
 
 const router = express.Router();
 

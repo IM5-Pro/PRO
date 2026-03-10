@@ -9,6 +9,11 @@ import payrollRoutes from "./src/routes/PayrollRouter.js";
 import recruitmentRoutes from "./src/routes/RecruitmentRouter.js";
 import performanceRoutes from "./src/routes/PerformanceRouter.js";
 import documentRoutes from "./src/routes/DocumentRouter.js";
+import roleRoutes from "./src/routes/RoleRouter.js";
+import permissionRoutes from "./src/routes/PermissionRouter.js";
+import employeeRoutes from "./src/routes/EmployeeRouter.js";
+import designationRoutes from "./src/routes/DesignationRouter.js";
+import attendanceRoutes from "./src/routes/AttendanceRouter.js";
 import roleSeeder from "./src/seeders/roleSeeder.js";
 
 dotenv.config();
@@ -34,6 +39,11 @@ app.use("/api/payroll", payrollRoutes);
 app.use("/api/recruitment", recruitmentRoutes);
 app.use("/api/performance", performanceRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/roles", roleRoutes);
+app.use("/api/permissions", permissionRoutes);
+app.use("/api/employees", employeeRoutes);
+app.use("/api/designations", designationRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 // start server only when not running tests
 if (process.env.NODE_ENV !== "test") {
