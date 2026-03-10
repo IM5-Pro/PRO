@@ -26,7 +26,7 @@ import LetterTemplates from '../Pages/HR/LetterTemplates';
 import AdminPanelConfig from '../Pages/HR/AdminPanelConfig';
 import Workflows from '../Pages/HR/Workflows';
 import MeetingRoom from '../Pages/HR/MeetingRoom';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 /**
  * Validation constants for user data

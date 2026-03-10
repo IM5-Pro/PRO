@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { FiClock, FiCheckCircle, FiXCircle, FiLogIn, FiLogOut, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const Attendance = () => {
   const { colors, isDark } = useTheme();

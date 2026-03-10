@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { FiUser, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const EmployeeProfile = () => {
   const { colors } = useTheme();

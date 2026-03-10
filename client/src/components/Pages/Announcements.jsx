@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { FiBell, FiFilter, FiFlag } from 'react-icons/fi';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const Announcements = () => {
   const [pinned, setPinned] = useState({ 0: true });

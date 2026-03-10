@@ -27,8 +27,7 @@ import loginBg from '../../assets/ispace-bg.png';
 
 const AuthLayout = ({
   children,
-  title = 'HRMS',
-  footerText = '© 2025-2026 HRMS System. All rights reserved.',
+ 
 }) => {
   return (
     // full-screen background image with form card on the right side
@@ -48,9 +47,6 @@ const AuthLayout = ({
           </div>
 
           {children}
-          <p className="text-center text-black/90 text-sm mt-8 drop-shadow-md">
-            {footerText}
-          </p>
         </div>
       </div>
 
