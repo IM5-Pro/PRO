@@ -164,7 +164,7 @@ const Login = ({ onLoginSuccess = null }) => {
             id="email"
             value={email}
             onChange={handleEmailChange}
-            placeholder="Enter your work email address"
+            placeholder="Enter your email"
             error={emailError}
             disabled={isLoading}
           />
