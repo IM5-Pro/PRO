@@ -8,7 +8,7 @@ import Permission from "./src/models/Permission.js";
 dotenv.config();
 
 // permissions catalog (a subset shown; expand to ~160 as needed)
-const permissionsList = [
+export const permissionsList = [
   // 1️⃣ Authentication
   "auth.login",
   "auth.logout",
@@ -205,7 +205,7 @@ const permissionsList = [
   "system.global_settings",
 ];
 
-const roles = [
+export const roles = [
   {
     name: "SUPER_ADMIN",
     description: "Super Administrator with full system access",
@@ -312,5 +312,11 @@ const seedRoles = async () => {
   }
 };
 
-// Run the seeder
-seedRoles();
+// run the seeder only if this module is the main script
+// (index.js already calls it after DB connection)
+if (process.env.NODE_ENV !== "test") {
+  seedRoles();
+}
+
+// export seed function for scripts/tests
+export default seedRoles;
