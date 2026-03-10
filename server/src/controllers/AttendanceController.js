@@ -11,6 +11,7 @@ import {
   validateBulkAttendanceUpload,
   validateAttendanceDateRange,
 } from "../utils/attendanceValidators.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 /**
  * Check-in: Employee marks attendance (automatic)
@@ -20,7 +21,7 @@ export const checkIn = async (req, res) => {
     // Validate input
     const validation = validateAttendanceCheckIn(req.body);
     if (!validation.isValid) {
-      return res.status(400).json({ success: false, message: "Validation failed", errors: validation.errors });
+      return sendError(res, 400, "Validation failed", validation.errors);
     }
 
     const { employee, checkInLocation = "Office" } = req.body;
@@ -28,9 +29,9 @@ export const checkIn = async (req, res) => {
     // Verify employee exists
     const employeeRecord = await Employee.findById(employee);
     if (!employeeRecord) {
-      return res.status(404).json({ success: false, message: "Employee not found", errors: {
+      return sendError(res, 404, "Employee not found", {
         employee: "The requested employee does not exist",
-      } });
+      });
     }
 
     // Get today's date (without time)
@@ -56,9 +57,9 @@ export const checkIn = async (req, res) => {
     } else {
       // Update existing record
       if (attendance.checkInTime) {
-        return res.status(409).json({ success: false, message: "Already checked in today", errors: {
+        return sendError(res, 409, "Already checked in today", {
           checkIn: "You have already checked in today",
-        } });
+        });
       }
       attendance.checkInTime = new Date();
       attendance.checkInLocation = checkInLocation;
@@ -77,12 +78,12 @@ export const checkIn = async (req, res) => {
       description: `Employee checked in at ${checkInLocation}`,
     });
 
-    return res.status(201).json({ success: true, message: "Check-in recorded successfully", data: attendance });
+    return sendSuccess(res, 201, "Check-in recorded successfully", attendance);
   } catch (error) {
     console.error("Check-in error:", error);
-    return res.status(500).json({ success: false, message: "Failed to record check-in", errors: {
+    return sendError(res, 500, "Failed to record check-in", {
       error: error.message,
-    } });
+    });
   }
 };
 
@@ -94,7 +95,7 @@ export const checkOut = async (req, res) => {
     // Validate input
     const validation = validateAttendanceCheckOut(req.body);
     if (!validation.isValid) {
-      return res.status(400).json({ success: false, message: "Validation failed", errors: validation.errors });
+      return sendError(res, 400, "Validation failed", validation.errors);
     }
 
     const { employee, checkOutLocation = "Office" } = req.body;
@@ -102,9 +103,9 @@ export const checkOut = async (req, res) => {
     // Verify employee exists
     const employeeRecord = await Employee.findById(employee);
     if (!employeeRecord) {
-      return res.status(404).json({ success: false, message: "Employee not found", errors: {
+      return sendError(res, 404, "Employee not found", {
         employee: "The requested employee does not exist",
-      } });
+      });
     }
 
     // Get today's date
@@ -118,21 +119,21 @@ export const checkOut = async (req, res) => {
     });
 
     if (!attendance) {
-      return res.status(404).json({ success: false, message: "No check-in found for today", errors: {
+      return sendError(res, 404, "No check-in found for today", {
         attendance: "Please check in first before checking out",
-      } });
+      });
     }
 
     if (!attendance.checkInTime) {
-      return res.status(400).json({ success: false, message: "No check-in found for today", errors: {
+      return sendError(res, 400, "No check-in found for today", {
         checkIn: "You must check in before checking out",
-      } });
+      });
     }
 
     if (attendance.checkOutTime) {
-      return res.status(409).json({ success: false, message: "Already checked out today", errors: {
+      return sendError(res, 409, "Already checked out today", {
         checkOut: "You have already checked out today",
-      } });
+      });
     }
 
     // Calculate working hours
@@ -157,12 +158,12 @@ export const checkOut = async (req, res) => {
       description: `Employee checked out at ${checkOutLocation}. Working hours: ${attendance.workingHours}`,
     });
 
-    return res.status(200).json({ success: true, message: "Check-out recorded successfully", data: attendance });
+    return sendSuccess(res, 200, "Check-out recorded successfully", attendance);
   } catch (error) {
     console.error("Check-out error:", error);
-    return res.status(500).json({ success: false, message: "Failed to record check-out", errors: {
+    return sendError(res, 500, "Failed to record check-out", {
       error: error.message,
-    } });
+    });
   }
 };
 

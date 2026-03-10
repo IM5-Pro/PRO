@@ -1,18 +1,17 @@
 import Department from "../models/Department.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 // create a new department
 const createDepartment = async (req, res) => {
   try {
     const { name, managerId } = req.body;
     const department = await Department.create({ name, managerId });
-    res.json({ success: true, data: department });
+    return sendSuccess(res, 201, "Department created successfully", { data: department });
   } catch (err) {
     if (err.code === 11000) {
-      return res
-        .status(400)
-        .json({ message: "Department name already exists" });
+      return sendError(res, 400, "Department name already exists");
     }
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -20,9 +19,9 @@ const createDepartment = async (req, res) => {
 const getDepartments = async (req, res) => {
   try {
     const departments = await Department.find();
-    res.json({ success: true, data: departments });
+    return sendSuccess(res, 200, "Departments retrieved successfully", { data: departments });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -31,10 +30,10 @@ const readDepartment = async (req, res) => {
   try {
     const department = await Department.findById(req.params.id);
     if (!department)
-      return res.status(404).json({ message: "Department not found" });
-    res.json({ success: true, data: department });
+      return sendError(res, 404, "Department not found");
+    return sendSuccess(res, 200, "Department retrieved successfully", { data: department });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -48,10 +47,10 @@ const updateDepartment = async (req, res) => {
       { new: true },
     );
     if (!department)
-      return res.status(404).json({ message: "Department not found" });
-    res.json({ success: true, data: department });
+      return sendError(res, 404, "Department not found");
+    return sendSuccess(res, 200, "Department updated successfully", { data: department });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -60,10 +59,10 @@ const deleteDepartment = async (req, res) => {
   try {
     const department = await Department.findByIdAndDelete(req.params.id);
     if (!department)
-      return res.status(404).json({ message: "Department not found" });
-    res.json({ success: true, message: "Department deleted" });
+      return sendError(res, 404, "Department not found");
+    return sendSuccess(res, 200, "Department deleted");
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -77,10 +76,10 @@ const assignManager = async (req, res) => {
       { new: true },
     );
     if (!department)
-      return res.status(404).json({ message: "Department not found" });
-    res.json({ success: true, data: department });
+      return sendError(res, 404, "Department not found");
+    return sendSuccess(res, 200, "Manager assigned successfully", { data: department });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 

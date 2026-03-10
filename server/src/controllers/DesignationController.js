@@ -5,7 +5,7 @@ import {
   validateDesignation,
   validateDesignationAssignment,
 } from "../utils/designationValidators.js";
-// import { sendError, sendSuccess } from "../utils/response.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 // Create a new designation
 export const createDesignation = async (req, res) => {

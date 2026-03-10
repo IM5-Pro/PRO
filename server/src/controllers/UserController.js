@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 const createUser = async (req, res) => {
   try {
@@ -9,20 +10,18 @@ const createUser = async (req, res) => {
 
     if (creatorRole === "SUPER_ADMIN") {
       if (!["HR_ADMIN", "MANAGER", "EMPLOYEE"].includes(role)) {
-        return res.status(403).json({ message: "Invalid role creation" });
+        return sendError(res, 403, "Invalid role creation");
       }
     }
 
     if (creatorRole === "HR_ADMIN") {
       if (!["MANAGER", "EMPLOYEE"].includes(role)) {
-        return res.status(403).json({ message: "Invalid role creation" });
+        return sendError(res, 403, "Invalid role creation");
       }
     }
 
     if (creatorRole === "MANAGER" || creatorRole === "EMPLOYEE") {
-      return res.status(403).json({
-        message: "You cannot create users",
-      });
+      return sendError(res, 403, "You cannot create users");
     }
 
     const hash = await bcrypt.hash(password, 10);
@@ -33,13 +32,9 @@ const createUser = async (req, res) => {
       role,
     });
 
-    res.json({
-      success: true,
-      message: "User created successfully",
-      data: user,
-    });
+    sendSuccess(res, 201, "User created successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -48,21 +43,17 @@ const getEmployees = async (req, res) => {
     role: "EMPLOYEE",
   });
 
-  res.json({
-    success: true,
-    message: "Employees retrieved successfully",
-    data: users,
-  });
+  sendSuccess(res, 200, "Employees retrieved successfully", users);
 };
 
 // Read user by ID
 const readUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, data: user });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "User retrieved successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -75,10 +66,10 @@ const updateUser = async (req, res) => {
       { $set: { email, role, isActive } },
       { new: true },
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, data: user });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "User updated successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -86,10 +77,10 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, message: "User deleted" });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "User deleted successfully");
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -101,10 +92,10 @@ const activateUser = async (req, res) => {
       { $set: { isActive: true } },
       { new: true },
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, data: user });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "User activated successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -116,10 +107,10 @@ const deactivateUser = async (req, res) => {
       { $set: { isActive: false } },
       { new: true },
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, data: user });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "User deactivated successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -132,10 +123,10 @@ const assignRole = async (req, res) => {
       { $set: { role } },
       { new: true },
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, data: user });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "Role assigned successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -147,10 +138,10 @@ const removeRole = async (req, res) => {
       { $unset: { role: "" } },
       { new: true },
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, data: user });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "Role removed successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 
@@ -164,10 +155,10 @@ const resetPassword = async (req, res) => {
       { $set: { password: hash } },
       { new: true },
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ success: true, message: "Password reset", data: user });
+    if (!user) return sendError(res, 404, "User not found");
+    sendSuccess(res, 200, "Password reset successfully", user);
   } catch (err) {
-    res.status(500).json(err);
+    sendError(res, 500, "Internal server error", err.message);
   }
 };
 

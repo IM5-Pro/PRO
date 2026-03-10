@@ -1,5 +1,6 @@
 import LeaveRequest from "../models/LeaveRequest.js";
 import LeaveType from "../models/LeaveType.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 // apply for a leave (create request)
 const applyLeave = async (req, res) => {
@@ -15,9 +16,9 @@ const applyLeave = async (req, res) => {
       reason,
     });
 
-    res.json({ success: true, data: request });
+    return sendSuccess(res, 200, "Leave applied successfully", { data: request });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -29,10 +30,10 @@ const cancelLeave = async (req, res) => {
       { $set: { status: "CANCELLED" } },
       { new: true },
     );
-    if (!request) return res.status(404).json({ message: "Request not found" });
-    res.json({ success: true, data: request });
+    if (!request) return sendError(res, 404, "Request not found");
+    return sendSuccess(res, 200, "Leave cancelled successfully", { data: request });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -45,10 +46,10 @@ const updateLeave = async (req, res) => {
       { $set: { startDate, endDate, reason, leaveTypeId } },
       { new: true },
     );
-    if (!request) return res.status(404).json({ message: "Request not found" });
-    res.json({ success: true, data: request });
+    if (!request) return sendError(res, 404, "Request not found");
+    return sendSuccess(res, 200, "Leave updated successfully", { data: request });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -57,9 +58,9 @@ const viewOwn = async (req, res) => {
   try {
     const employeeId = req.user.id;
     const requests = await LeaveRequest.find({ employeeId });
-    res.json({ success: true, data: requests });
+    return sendSuccess(res, 200, "Leave requests retrieved successfully", { data: requests });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -68,9 +69,9 @@ const viewTeam = async (req, res) => {
   try {
     // TODO: filter by manager's team members
     const requests = await LeaveRequest.find();
-    res.json({ success: true, data: requests });
+    return sendSuccess(res, 200, "Team leave requests retrieved successfully", { data: requests });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -78,9 +79,9 @@ const viewTeam = async (req, res) => {
 const viewAll = async (req, res) => {
   try {
     const requests = await LeaveRequest.find();
-    res.json({ success: true, data: requests });
+    return sendSuccess(res, 200, "All leave requests retrieved successfully", { data: requests });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -92,10 +93,10 @@ const approveLeave = async (req, res) => {
       { $set: { status: "APPROVED" } },
       { new: true },
     );
-    if (!request) return res.status(404).json({ message: "Request not found" });
-    res.json({ success: true, data: request });
+    if (!request) return sendError(res, 404, "Request not found");
+    return sendSuccess(res, 200, "Leave approved successfully", { data: request });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -107,10 +108,10 @@ const rejectLeave = async (req, res) => {
       { $set: { status: "REJECTED" } },
       { new: true },
     );
-    if (!request) return res.status(404).json({ message: "Request not found" });
-    res.json({ success: true, data: request });
+    if (!request) return sendError(res, 404, "Request not found");
+    return sendSuccess(res, 200, "Leave rejected successfully", { data: request });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -122,9 +123,9 @@ const bulkApprove = async (req, res) => {
       { _id: { $in: ids } },
       { $set: { status: "APPROVED" } },
     );
-    res.json({ success: true, data: result });
+    return sendSuccess(res, 200, "Bulk approval completed", { data: result });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -133,9 +134,9 @@ const createPolicy = async (req, res) => {
   try {
     const { name, totalDays } = req.body;
     const policy = await LeaveType.create({ name, totalDays });
-    res.json({ success: true, data: policy });
+    return sendSuccess(res, 201, "Leave policy created successfully", { data: policy });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
@@ -147,47 +148,41 @@ const updatePolicy = async (req, res) => {
       { $set: { name, totalDays } },
       { new: true },
     );
-    if (!policy) return res.status(404).json({ message: "Policy not found" });
-    res.json({ success: true, data: policy });
+    if (!policy) return sendError(res, 404, "Policy not found");
+    return sendSuccess(res, 200, "Leave policy updated successfully", { data: policy });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
 const deletePolicy = async (req, res) => {
   try {
     const policy = await LeaveType.findByIdAndDelete(req.params.id);
-    if (!policy) return res.status(404).json({ message: "Policy not found" });
-    res.json({ success: true, message: "Policy deleted" });
+    if (!policy) return sendError(res, 404, "Policy not found");
+    return sendSuccess(res, 200, "Policy deleted");
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
 const viewPolicies = async (req, res) => {
   try {
     const policies = await LeaveType.find();
-    res.json({ success: true, data: policies });
+    return sendSuccess(res, 200, "Leave policies retrieved successfully", { data: policies });
   } catch (err) {
-    res.status(500).json(err);
+    return sendError(res, 500, "Internal server error", err);
   }
 };
 
 // leave balance operations - placeholder implementations
 const viewBalance = async (req, res) => {
   // in a real app we'd calculate remaining days by employee & type
-  res.json({
-    success: true,
-    data: { message: "balance endpoint not implemented" },
-  });
+  return sendSuccess(res, 200, "Balance retrieved", { data: { message: "balance endpoint not implemented" } });
 };
 
 const adjustBalance = async (req, res) => {
   // typically an HR operation that updates a user's balance record
-  res.json({
-    success: true,
-    data: { message: "adjust balance not implemented" },
-  });
+  return sendSuccess(res, 200, "Balance adjusted", { data: { message: "adjust balance not implemented" } });
 };
 
 export default {

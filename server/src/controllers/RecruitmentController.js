@@ -1,47 +1,49 @@
 // RecruitmentController contains stubs for job and candidate operations.
 
+import { sendError, sendSuccess } from "../utils/response.js";
+
 const createJob = async (req, res) => {
-  res.json({ success: true, message: "Job created (stub)" });
+  sendSuccess(res, 201, "Job created (stub)");
 };
 
 const updateJob = async (req, res) => {
-  res.json({ success: true, message: "Job updated (stub)" });
+  sendSuccess(res, 200, "Job updated (stub)");
 };
 
 const deleteJob = async (req, res) => {
-  res.json({ success: true, message: "Job deleted (stub)" });
+  sendSuccess(res, 200, "Job deleted (stub)");
 };
 
 const viewJobs = async (req, res) => {
-  res.json({ success: true, message: "Jobs listed (stub)" });
+  sendSuccess(res, 200, "Jobs listed (stub)");
 };
 
 const applyCandidate = async (req, res) => {
-  res.json({ success: true, message: "Candidate applied (stub)" });
+  sendSuccess(res, 201, "Candidate applied (stub)");
 };
 
 const updateCandidate = async (req, res) => {
-  res.json({ success: true, message: "Candidate updated (stub)" });
+  sendSuccess(res, 200, "Candidate updated (stub)");
 };
 
 const deleteCandidate = async (req, res) => {
-  res.json({ success: true, message: "Candidate deleted (stub)" });
+  sendSuccess(res, 200, "Candidate deleted (stub)");
 };
 
 const scheduleInterview = async (req, res) => {
-  res.json({ success: true, message: "Interview scheduled (stub)" });
+  sendSuccess(res, 201, "Interview scheduled (stub)");
 };
 
 const updateInterview = async (req, res) => {
-  res.json({ success: true, message: "Interview updated (stub)" });
+  sendSuccess(res, 200, "Interview updated (stub)");
 };
 
 const rejectCandidate = async (req, res) => {
-  res.json({ success: true, message: "Candidate rejected (stub)" });
+  sendSuccess(res, 200, "Candidate rejected (stub)");
 };
 
 const hireCandidate = async (req, res) => {
-  res.json({ success: true, message: "Candidate hired (stub)" });
+  sendSuccess(res, 200, "Candidate hired (stub)");
 };
 
 export default {

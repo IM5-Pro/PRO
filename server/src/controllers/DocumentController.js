@@ -1,35 +1,36 @@
 // DocumentController provides basic CRUD stubs for document management
+import { sendSuccess } from "../utils/response.js";
 
 const uploadDocument = async (req, res) => {
-  res.json({ success: true, message: "Document uploaded (stub)" });
+  return sendSuccess(res, 200, "Document uploaded (stub)");
 };
 
 const viewDocument = async (req, res) => {
-  res.json({ success: true, message: "Document view details (stub)" });
+  return sendSuccess(res, 200, "Document view details (stub)");
 };
 
 const downloadDocument = async (req, res) => {
-  res.json({ success: true, message: "Document download (stub)" });
+  return sendSuccess(res, 200, "Document download (stub)");
 };
 
 const deleteDocument = async (req, res) => {
-  res.json({ success: true, message: "Document deleted (stub)" });
+  return sendSuccess(res, 200, "Document deleted (stub)");
 };
 
 const updateDocument = async (req, res) => {
-  res.json({ success: true, message: "Document updated (stub)" });
+  return sendSuccess(res, 200, "Document updated (stub)");
 };
 
 const shareDocument = async (req, res) => {
-  res.json({ success: true, message: "Document shared (stub)" });
+  return sendSuccess(res, 200, "Document shared (stub)");
 };
 
 const archiveDocument = async (req, res) => {
-  res.json({ success: true, message: "Document archived (stub)" });
+  return sendSuccess(res, 200, "Document archived (stub)");
 };
 
 const restoreDocument = async (req, res) => {
-  res.json({ success: true, message: "Document restored (stub)" });
+  return sendSuccess(res, 200, "Document restored (stub)");
 };
 
 export default {

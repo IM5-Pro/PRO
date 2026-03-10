@@ -1,6 +1,7 @@
 import Permission from "../models/Permission.js";
 import Role from "../models/Role.js";
 import { validatePermission, validatePermissionAssignment } from "../utils/roleValidators.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 /**
  * List all permissions
@@ -9,19 +10,10 @@ const listPermissions = async (req, res) => {
   try {
     const permissions = await Permission.find({});
 
-    res.status(200).json({
-      success: true,
-      message: "Permissions retrieved successfully",
-      data: permissions,
-      count: permissions.length,
-    });
+    return sendSuccess(res, 200, "Permissions retrieved successfully", { data: permissions, count: permissions.length });
   } catch (err) {
     console.error("List permissions error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -79,11 +71,7 @@ const createPermission = async (req, res) => {
   try {
     const validation = validatePermission(req.body);
     if (!validation.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: validation.errors,
-      });
+      return sendError(res, 400, "Validation failed", validation.errors);
     }
 
     const { name, description } = req.body;
@@ -91,11 +79,7 @@ const createPermission = async (req, res) => {
     // Check if permission already exists
     const existingPermission = await Permission.findOne({ name });
     if (existingPermission) {
-      return res.status(409).json({
-        success: false,
-        message: "Permission already exists",
-        errors: { name: `Permission "${name}" already exists` },
-      });
+      return sendError(res, 409, "Permission already exists", { name: `Permission "${name}" already exists` });
     }
 
     const permission = await Permission.create({
@@ -103,18 +87,10 @@ const createPermission = async (req, res) => {
       description: description || "",
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Permission created successfully",
-      data: permission,
-    });
+    return sendSuccess(res, 201, "Permission created successfully", { data: permission });
   } catch (err) {
     console.error("Create permission error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -126,39 +102,24 @@ const updatePermission = async (req, res) => {
     const { permissionId } = req.params;
 
     if (!permissionId || permissionId.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: { permissionId: "Permission ID is required" },
-      });
+      return sendError(res, 400, "Validation failed", { permissionId: "Permission ID is required" });
     }
 
     const validation = validatePermission(req.body);
     if (!validation.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: validation.errors,
-      });
+      return sendError(res, 400, "Validation failed", validation.errors);
     }
 
     const permission = await Permission.findById(permissionId);
     if (!permission) {
-      return res.status(404).json({
-        success: false,
-        message: "Permission not found",
-      });
+      return sendError(res, 404, "Permission not found");
     }
 
     // Check if new name is unique (if changing name)
     if (req.body.name && req.body.name !== permission.name) {
       const existingPermission = await Permission.findOne({ name: req.body.name });
       if (existingPermission) {
-        return res.status(409).json({
-          success: false,
-          message: "Permission name already exists",
-          errors: { name: `Permission "${req.body.name}" already exists` },
-        });
+        return sendError(res, 409, "Permission name already exists", { name: `Permission "${req.body.name}" already exists` });
       }
     }
 
@@ -178,11 +139,7 @@ const updatePermission = async (req, res) => {
     });
   } catch (err) {
     console.error("Update permission error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 

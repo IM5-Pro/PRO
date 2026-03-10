@@ -6,6 +6,7 @@ import {
   validateDocumentUpload,
   validateBulkEmployeeData,
 } from "../utils/employeeValidators.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 /**
  * Create new employee (HR_ADMIN, SUPER_ADMIN only)
@@ -14,11 +15,7 @@ const createEmployee = async (req, res) => {
   try {
     const validation = validateEmployeeData(req.body);
     if (!validation.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: validation.errors,
-      });
+      return sendError(res, 400, "Validation failed", validation.errors);
     }
 
     const { email, firstName, lastName, department, designation, salary, managerID, joinDate, dateOfBirth } = req.body;
@@ -26,10 +23,7 @@ const createEmployee = async (req, res) => {
     // Check if employee with same email exists
     const existingEmployee = await Employee.findOne({ email });
     if (existingEmployee) {
-      return res.status(409).json({
-        success: false,
-        message: "Employee with this email already exists",
-      });
+      return sendError(res, 409, "Employee with this email already exists");
     }
 
     const employee = await Employee.create({
@@ -63,11 +57,7 @@ const createEmployee = async (req, res) => {
     });
   } catch (err) {
     console.error("Create employee error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -116,11 +106,7 @@ const listEmployees = async (req, res) => {
     });
   } catch (err) {
     console.error("List employees error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -134,10 +120,7 @@ const readEmployee = async (req, res) => {
     const userId = req.user.id;
 
     if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee ID is required",
-      });
+      return sendError(res, 400, "Employee ID is required");
     }
 
     const employee = await Employee.findById(employeeId)
@@ -145,25 +128,16 @@ const readEmployee = async (req, res) => {
       .populate("createdBy", "email firstName lastName");
 
     if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: "Employee not found",
-      });
+      return sendError(res, 404, "Employee not found");
     }
 
     // Role-based access control
     if (userRole === "EMPLOYEE" && employee._id.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only view your own employee record",
-      });
+      return sendError(res, 403, "You can only view your own employee record");
     }
 
     if (userRole === "MANAGER" && employee.managerID.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only view your team members",
-      });
+      return sendError(res, 403, "You can only view your team members");
     }
 
     res.status(200).json({
@@ -173,11 +147,7 @@ const readEmployee = async (req, res) => {
     });
   } catch (err) {
     console.error("Read employee error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -189,10 +159,7 @@ const updateEmployee = async (req, res) => {
     const { employeeId } = req.params;
 
     if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee ID is required",
-      });
+      return sendError(res, 400, "Employee ID is required");
     }
 
     const validation = validateEmployeeData(req.body, true);

@@ -1,52 +1,53 @@
 // PerformanceController stubs for review and goal operations
+import { sendSuccess } from "../utils/response.js";
 
 const createReview = async (req, res) => {
-  res.json({ success: true, message: "Review created (stub)" });
+  return sendSuccess(res, 200, "Review created (stub)");
 };
 
 const updateReview = async (req, res) => {
-  res.json({ success: true, message: "Review updated (stub)" });
+  return sendSuccess(res, 200, "Review updated (stub)");
 };
 
 const deleteReview = async (req, res) => {
-  res.json({ success: true, message: "Review deleted (stub)" });
+  return sendSuccess(res, 200, "Review deleted (stub)");
 };
 
 const viewReview = async (req, res) => {
-  res.json({ success: true, message: "Review viewed (stub)" });
+  return sendSuccess(res, 200, "Review viewed (stub)");
 };
 
 const submitReview = async (req, res) => {
-  res.json({ success: true, message: "Review submitted (stub)" });
+  return sendSuccess(res, 200, "Review submitted (stub)");
 };
 
 const approveReview = async (req, res) => {
-  res.json({ success: true, message: "Review approved (stub)" });
+  return sendSuccess(res, 200, "Review approved (stub)");
 };
 
 const rejectReview = async (req, res) => {
-  res.json({ success: true, message: "Review rejected (stub)" });
+  return sendSuccess(res, 200, "Review rejected (stub)");
 };
 
 // goal operations
 const goalCreate = async (req, res) => {
-  res.json({ success: true, message: "Goal created (stub)" });
+  return sendSuccess(res, 200, "Goal created (stub)");
 };
 
 const goalUpdate = async (req, res) => {
-  res.json({ success: true, message: "Goal updated (stub)" });
+  return sendSuccess(res, 200, "Goal updated (stub)");
 };
 
 const goalDelete = async (req, res) => {
-  res.json({ success: true, message: "Goal deleted (stub)" });
+  return sendSuccess(res, 200, "Goal deleted (stub)");
 };
 
 const goalAssign = async (req, res) => {
-  res.json({ success: true, message: "Goal assigned (stub)" });
+  return sendSuccess(res, 200, "Goal assigned (stub)");
 };
 
 const goalView = async (req, res) => {
-  res.json({ success: true, message: "Goal viewed (stub)" });
+  return sendSuccess(res, 200, "Goal viewed (stub)");
 };
 
 export default {
