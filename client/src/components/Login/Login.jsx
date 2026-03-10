@@ -156,15 +156,14 @@ const Login = ({ onLoginSuccess = null }) => {
 
       {/* Form */}
       {!success && (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email Input */}
           <FormInput
-            label="Email Address"
+            label=""
             type="email"
             id="email"
             value={email}
             onChange={handleEmailChange}
-            icon={FiMail}
             placeholder="Enter your email"
             error={emailError}
             disabled={isLoading}
@@ -172,25 +171,50 @@ const Login = ({ onLoginSuccess = null }) => {
 
           {/* Password Input */}
           <FormInput
-            label="Password"
+            label=""
             type="password"
             id="password"
             value={password}
             onChange={handlePasswordChange}
-            icon={FiLock}
-            placeholder="••••••••"
+            placeholder="Enter your password"
             error={passwordError}
             disabled={isLoading}
           />
 
           {/* Submit Button */}
           <SubmitButton
-            label="Sign In"
+            label="Continue"
             isLoading={isLoading}
-            loadingLabel="Logging in..."
+            loadingLabel="Signing in..."
             onClick={handleSubmit}
             disabled={isLoading || !!emailError || !!passwordError}
+            size="lg"
           />
+
+          {/* Account Recovery Links */}
+          <div className="border-t border-gray-200 pt-5">
+            {/* All Links in One Row */}
+            <div className="flex justify-between items-center">
+              <a 
+                href="#forgot-username" 
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+              >
+                Forgot Username?
+              </a>
+              <a 
+                href="#reset-password" 
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+              >
+                Reset Password
+              </a>
+              <a 
+                href="#forgot-password" 
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+              >
+                Forgot Password?
+              </a>
+            </div>
+          </div>
         </form>
       )}
     </AuthLayout>
