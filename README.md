@@ -3,6 +3,7 @@
 A cloud-based enterprise solution for comprehensive HR operations management with Indian statutory compliance.
 
 ## Core Modules
+
 - Employee Management
 - Attendance Management
 - Leave Management
@@ -11,6 +12,7 @@ A cloud-based enterprise solution for comprehensive HR operations management wit
 - Reporting & Analytics
 
 ## Technology Stack
+
 - **Frontend:** React
 - **Backend:** Node.js
 - **Database:** MongoDB
@@ -18,6 +20,7 @@ A cloud-based enterprise solution for comprehensive HR operations management wit
 - **Authentication:** JWT with Role-Based Access Control
 
 ## Security & Compliance
+
 - AES-256 encryption for sensitive data
 - HTTPS enforced
 - Role-based access control
@@ -26,7 +29,28 @@ A cloud-based enterprise solution for comprehensive HR operations management wit
 - India-compliant payroll processing (EPF, ESI, TDS, Form 16)
 
 ## Deployment
+
 - Frontend: Vercel
 - Backend: AWS EC2 / Railway
 - Database: AWS RDS PostgreSQL
 - Monitoring: CloudWatch
+
+## Backend Testing ⚙️
+
+The server includes Jest + Supertest tests for permission middleware and
+authentication. To run them:
+
+1. `cd server`
+2. Install dev dependencies:
+   ```bash
+   npm install --save-dev jest supertest
+   ```
+3. Ensure `JWT_SECRET` is set (tests default to `test-secret`).
+4. Execute:
+   ```bash
+   npm test
+   ```
+
+The tests iterate every permission associated with `SUPER_ADMIN`,
+`HR_ADMIN`, `MANAGER` and `EMPLOYEE` and confirm the `permissionGuard`
+middleware allows or denies accordingly.
