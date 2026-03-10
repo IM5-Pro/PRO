@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { FiUsers, FiSearch, FiFilter, FiPlus, FiMail, FiPhone, FiBriefcase, FiMapPin, FiMoreVertical } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const Employees = () => {
   const { colors, resolvedTheme } = useTheme();

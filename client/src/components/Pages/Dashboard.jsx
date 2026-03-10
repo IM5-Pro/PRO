@@ -6,7 +6,7 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar } from 'react-icons/fi';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const Dashboard = () => {
   const { colors } = useTheme();

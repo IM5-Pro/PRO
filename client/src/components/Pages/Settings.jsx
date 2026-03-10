@@ -8,7 +8,7 @@ import { FiSettings, FiBell, FiLock, FiEye, FiEyeOff, FiToggleRight, FiToggleLef
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const SettingsPage = () => {
   const { colors } = useTheme();

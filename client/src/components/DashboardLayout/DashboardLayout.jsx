@@ -6,7 +6,7 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import SidebarNav from '../SidebarNav/SidebarNav';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const DashboardLayout = ({ children }) => {
   const { colors } = useTheme();

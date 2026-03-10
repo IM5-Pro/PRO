@@ -220,9 +220,12 @@ export const roles = [
         p.startsWith("employee.") ||
         p.startsWith("leave.") ||
         p.startsWith("attendance.") ||
-        p === "payroll.view" ||
-        p === "payroll.process" ||
+        p.startsWith("department.") ||
+        p.startsWith("payroll.") ||
+        p.startsWith("performance.") ||
+        p.startsWith("document.") ||
         p.startsWith("report.") ||
+        p.startsWith("recruitment.") ||
         p === "user.create",
     ),
   },
@@ -232,9 +235,31 @@ export const roles = [
     permissions: [
       "employee.view_team",
       "attendance.view_team",
+      "leave.view_own",
+      "leave.view_team",
       "leave.approve",
       "leave.reject",
-      ...permissionsList.filter((p) => p.startsWith("performance.")),
+      "department.read",
+      "department.list",
+      "recruitment.update_job",
+      "recruitment.view_jobs",
+      "recruitment.schedule_interview",
+      "recruitment.update_interview",
+      "recruitment.reject_candidate",
+      // manager performance rights
+      "performance.update_review",
+      "performance.view_review",
+      "performance.approve_review",
+      "performance.reject_review",
+      "performance.goal_create",
+      "performance.goal_update",
+      "performance.goal_assign",
+      "performance.goal_view",
+      // document permissions for managers
+      "document.view",
+      "document.download",
+      "document.share",
+      // managers get no payroll permissions per matrix
     ],
   },
   {
@@ -249,6 +274,15 @@ export const roles = [
       "payroll.view_own",
       "document.upload",
       "document.view",
+      "recruitment.view_jobs",
+      "recruitment.apply_candidate",
+      // employee performance
+      "performance.view_review",
+      "performance.submit_review",
+      "performance.goal_view",
+      // employee document
+      "document.view",
+      "document.download",
     ],
   },
 ];

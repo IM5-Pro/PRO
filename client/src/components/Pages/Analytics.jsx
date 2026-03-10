@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { FiBarChart2, FiTrendingUp, FiUsers, FiTarget, FiCalendar, FiDownload, FiFilter } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const Analytics = () => {
   const { colors } = useTheme();
