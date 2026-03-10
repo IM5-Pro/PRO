@@ -1,12 +1,33 @@
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import Role from "../models/Role.js";
-import Permission from "../models/Permission.js"; // ensure mongoose registers the Permission schema
+import Permission from "../models/Permission.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
+import { validateRegisterSuperAdmin, validateLogin } from "../utils/validators.js";
 
 const registerSuperAdmin = async (req, res) => {
   try {
+    // Validate request body
+    const validation = validateRegisterSuperAdmin(req.body);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validation.errors,
+      });
+    }
+
     const { email, password } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered",
+        errors: { email: "This email is already in use" },
+      });
+    }
 
     const hash = await bcrypt.hash(password, 10);
 
@@ -21,63 +42,93 @@ const registerSuperAdmin = async (req, res) => {
       { upsert: true, new: true },
     );
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Super admin registered successfully",
       data: user,
     });
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Register error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: err.message,
+    });
   }
 };
 
 const login = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    // Validate request body
+    const validation = validateLogin(req.body);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validation.errors,
+      });
+    }
 
-  const user = await User.findOne({ email });
+    const { email, password } = req.body;
 
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
+    const user = await User.findOne({ email });
 
-  const valid = await bcrypt.compare(password, user.password);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
 
-  if (!valid) {
-    return res.status(401).json({ message: "Invalid password" });
-  }
+    const valid = await bcrypt.compare(password, user.password);
 
-  // fetch role document to get permissions
-  const roleDoc = await Role.findOne({ name: user.role }).populate(
-    "permissions",
-  );
-  const permissions = roleDoc ? roleDoc.permissions.map((p) => p.name) : [];
+    if (!valid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
 
-  const tokenUser = {
-    id: user._id,
-    role: user.role,
-    permissions,
-  };
+    // fetch role document to get permissions
+    const roleDoc = await Role.findOne({ name: user.role }).populate(
+      "permissions",
+    );
+    const permissions = roleDoc ? roleDoc.permissions.map((p) => p.name) : [];
 
-  const accessToken = generateAccessToken(tokenUser);
-  const refreshToken = generateRefreshToken(user);
+    const tokenUser = {
+      id: user._id,
+      role: user.role,
+      permissions,
+    };
 
-  user.refreshToken = refreshToken;
-  await user.save();
+    const accessToken = generateAccessToken(tokenUser);
+    const refreshToken = generateRefreshToken(user);
 
-  res.json({
-    success: true,
-    message: "Login successful",
-    data: {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        permissions,
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+          permissions,
+        },
       },
-    },
-  });
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: err.message,
+    });
+  }
 };
 
 // Logout: invalidate refresh token
