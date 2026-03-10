@@ -165,7 +165,7 @@ const Login = ({ onLoginSuccess = null }) => {
             value={email}
             onChange={handleEmailChange}
             icon={FiMail}
-            placeholder="user@company.com"
+            placeholder="Enter your email"
             error={emailError}
             disabled={isLoading}
           />

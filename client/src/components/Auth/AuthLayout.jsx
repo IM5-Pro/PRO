@@ -28,9 +28,7 @@ import loginBg from '../../assets/ispace-bg.png';
 const AuthLayout = ({
   children,
   title = 'HRMS',
-  subtitle = 'Human Resource Management System',
-  emoji = '👔',
-  footerText = '© 2024-2026 HRMS System. All rights reserved.',
+  footerText = '© 2025-2026 HRMS System. All rights reserved.',
 }) => {
   return (
     // full-screen background image with form overlay on the right
@@ -40,17 +38,23 @@ const AuthLayout = ({
     >
       <div className="w-full max-w-md mr-4 md:mr-12 lg:mr-20 xl:mr-32">
         {/* Header */}
-       
 
         {/* Content */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white/20 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent text-center drop-shadow-lg mb-2">
+            {title}
+          </h1>
+          <h2 className="text-lg text-black text-center mb-8 drop-shadow-md">
+            Sign In
+          </h2>
           {children}
+          <p className="text-center text-black/90 text-sm mt-8 drop-shadow-md">
+            {footerText}
+          </p>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-white/90 text-sm mt-8 drop-shadow-md">
-          {footerText}
-        </p>
+
       </div>
     </div>
   );
