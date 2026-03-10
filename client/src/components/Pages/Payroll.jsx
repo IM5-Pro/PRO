@@ -6,7 +6,7 @@
 import React from 'react';
 import { FiDollarSign, FiDownload } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const Payroll = () => {
   const { colors } = useTheme();

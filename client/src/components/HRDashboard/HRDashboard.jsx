@@ -26,7 +26,7 @@ import LetterTemplates from '../Pages/HR/LetterTemplates';
 import AdminPanelConfig from '../Pages/HR/AdminPanelConfig';
 import Workflows from '../Pages/HR/Workflows';
 import MeetingRoom from '../Pages/HR/MeetingRoom';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 /**
  * Validation constants for user data
@@ -369,7 +369,9 @@ const HRDashboard = () => {
                 <div className="text-white text-lg">Loading...</div>
               </div>
             ) : (
-              renderPageContent()
+              <div className="rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 overflow-hidden">
+                {renderPageContent()}
+              </div>
             )}
           </div>
         </main>

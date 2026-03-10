@@ -127,28 +127,28 @@ const AttendanceSheet = () => {
   const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="w-full bg-white rounded-xl shadow-lg p-6">
+    <div className="w-full card animate-fadeInUp">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-2">
           {/* Navigation Buttons */}
           <button
             onClick={previousMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-lg transition-all transform hover:scale-110 active:scale-95"
             title="Previous month"
           >
-            <FiChevronLeft size={20} className="text-gray-600" />
+            <FiChevronLeft size={20} />
           </button>
           <button
             onClick={nextMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-lg transition-all transform hover:scale-110 active:scale-95"
             title="Next month"
           >
-            <FiChevronRight size={20} className="text-gray-600" />
+            <FiChevronRight size={20} />
           </button>
           <button
             onClick={goToToday}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
+            className="px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-sm font-medium transform hover:scale-105 active:scale-95"
           >
             today
           </button>
@@ -157,35 +157,35 @@ const AttendanceSheet = () => {
         {/* Month/Year Display */}
         <h2 className="text-2xl font-bold text-gray-800">{monthYear}</h2>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
           {/* View Options */}
           <div className="flex gap-2">
             <button
               onClick={() => setViewType('month')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 active:scale-95 ${
                 viewType === 'month'
-                  ? 'bg-blue-100 text-blue-600 border-2 border-blue-600'
-                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-300'
+                  ? 'bg-blue-600 text-white border-2 border-blue-500 shadow-lg shadow-blue-500/30'
+                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-400 hover:bg-gray-50'
               }`}
             >
               month
             </button>
             <button
               onClick={() => setViewType('week')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 active:scale-95 ${
                 viewType === 'week'
-                  ? 'bg-blue-100 text-blue-600 border-2 border-blue-600'
-                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-300'
+                  ? 'bg-blue-600 text-white border-2 border-blue-500 shadow-lg shadow-blue-500/30'
+                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-400 hover:bg-gray-50'
               }`}
             >
               week
             </button>
             <button
               onClick={() => setViewType('day')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 active:scale-95 ${
                 viewType === 'day'
-                  ? 'bg-blue-100 text-blue-600 border-2 border-blue-600'
-                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-300'
+                  ? 'bg-blue-600 text-white border-2 border-blue-500 shadow-lg shadow-blue-500/30'
+                  : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-400 hover:bg-gray-50'
               }`}
             >
               day
@@ -193,8 +193,8 @@ const AttendanceSheet = () => {
           </div>
 
           {/* Sync Button */}
-          <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-            <FiRefreshCw size={18} />
+          <button className="btn-success flex items-center gap-2 animate-scaleUp">
+            <FiRefreshCw size={18} className="animate-bounce-soft" />
             Sync Attendance
           </button>
         </div>
@@ -202,11 +202,11 @@ const AttendanceSheet = () => {
 
       {/* Calendar */}
       {viewType === 'month' && (
-        <div>
+        <div className="animate-fadeInUp">
           {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-0 mb-0 bg-blue-600 rounded-t-lg overflow-hidden">
+          <div className="grid grid-cols-7 gap-0 mb-0 header-blue overflow-hidden">
             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-              <div key={day} className="bg-blue-600 text-white font-bold p-4 text-center">
+              <div key={day} className="bg-gradient-to-b from-blue-600 to-blue-700 text-white p-4 text-center text-sm">
                 {day}
               </div>
             ))}
@@ -215,7 +215,7 @@ const AttendanceSheet = () => {
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-0 border border-gray-200">
             {days.map((day, idx) => (
-              <div key={idx} className="border-r border-b border-gray-200 last:border-r-0">
+              <div key={idx} className="border-r border-b border-gray-200 last:border-r-0 hover:shadow-inner transition-all duration-300">
                 <DayCell day={day} />
               </div>
             ))}
@@ -224,21 +224,21 @@ const AttendanceSheet = () => {
       )}
 
       {/* Legend */}
-      <div className="mt-6 flex flex-wrap gap-6 pt-6 border-t border-gray-200">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-amber-700 rounded"></div>
+      <div className={`mt-6 flex flex-wrap gap-6 pt-6 border-t border-gray-200 animate-slideInDown`}>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-amber-700 rounded shadow"></div>
           <span className="text-sm text-gray-600">Shift</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 rounded"></div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-blue-500 rounded shadow"></div>
           <span className="text-sm text-gray-600">Hours Logged</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-500 rounded"></div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-red-500 rounded shadow"></div>
           <span className="text-sm text-gray-600">Weekly Off</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-lime-400 rounded"></div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-lime-400 rounded shadow"></div>
           <span className="text-sm text-gray-600">Break Time</span>
         </div>
       </div>

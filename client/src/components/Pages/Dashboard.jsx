@@ -6,7 +6,7 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar } from 'react-icons/fi';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 const Dashboard = () => {
   const { colors } = useTheme();
@@ -59,7 +59,7 @@ const Dashboard = () => {
       style={{ backgroundImage: `url(${bgImage})` }}
     >
       {/* Header */}
-      <div className="glass rounded-2xl p-6 mb-8 backdrop-blur-xl">
+      <div className="glass rounded-2xl p-6 mb-8 backdrop-blur-xl animate-slideInDown">
         <div className="flex items-center justify-between">
           <div>
             <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
@@ -67,7 +67,7 @@ const Dashboard = () => {
             </h1>
             <p className={colors.text.tertiary}>Here's your dashboard overview for today</p>
           </div>
-          <div className="text-right hidden md:block">
+          <div className="text-right hidden md:block animate-bounce-soft">
             <p className={`${colors.text.tertiary} text-sm`}>Today</p>
             <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
@@ -81,16 +81,17 @@ const Dashboard = () => {
           return (
             <div
               key={idx}
-              className={`group glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1`}
+              style={{ animationDelay: `${idx * 0.1}s` }}
+              className={`group stat-card animate-fadeInUp hover-lift`}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} text-white`}>
+                <div className={`icon-box bg-gradient-to-br ${card.color} text-white`}>
                   <Icon size={24} />
                 </div>
-                <span className="text-green-400 text-xs font-semibold">{card.change}</span>
+                <span className="badge badge-success">{card.change}</span>
               </div>
 
-              <p className={`${colors.text.tertiary} text-sm font-medium mb-1`}>{card.title}</p>
+              <p className={`${colors.text.tertiary} text-sm font-medium mb-2`}>{card.title}</p>
               <div className="flex items-baseline gap-2">
                 <p className={`text-3xl font-bold ${colors.text.primary}`}>{card.value}</p>
                 <p className={colors.text.tertiary}>{card.unit}</p>

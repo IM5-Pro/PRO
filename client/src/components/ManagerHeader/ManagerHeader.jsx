@@ -77,13 +77,13 @@ const ManagerHeader = ({
           {/* Search Input */}
           <div className="hidden md:flex flex-1 max-w-md relative group">
             <FiSearch
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 group-focus-within:text-blue-700 transition-colors"
               size={18}
             />
             <input
               type="text"
               placeholder="Search anything..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all shadow-md font-medium"
               aria-label="Search"
             />
           </div>

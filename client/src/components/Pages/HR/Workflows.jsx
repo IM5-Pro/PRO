@@ -81,23 +81,17 @@ const Workflows = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   );
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-            🔄 Workflows & Approvals
-          </h1>
-          <p className={colors.text.tertiary}>Manage workflow templates and approval processes</p>
-        </div>
-        <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2">
-          <FiPlus size={20} />
-          New Workflow
-        </button>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
+        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+          🔄 Workflows & Approvals
+        </h1>
+        <p className="text-slate-600">Manage workflow templates and approval processes</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} mb-8 p-2 flex gap-2`}>
+      <div className="card mb-8 p-2 flex gap-2 animate-slideInRight" style={{ animationDelay: '0.1s' }}>
         {['templates', 'active'].map((tab) => (
           <button
             key={tab}

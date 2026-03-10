@@ -17,7 +17,7 @@ import TeamStatsCard from '../TeamStatsCard/TeamStatsCard';
 import TimingsChart from '../TimingsChart/TimingsChart';
 import TeamScheduleCalendar from '../TeamScheduleCalendar/TeamScheduleCalendar';
 import BookMeeting from '../BookMeeting/BookMeeting';
-import bgImage from '../../assets/ispace-bg.png';
+import bgImage from '../../assets/Background.png';
 
 /**
  * ManagerDashboard Component

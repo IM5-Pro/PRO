@@ -48,13 +48,13 @@ const HRPayroll = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   );
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
+        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
           💰 Payroll Management
         </h1>
-        <p className={colors.text.tertiary}>Manage salary structures and payroll processing</p>
+        <p className="text-slate-600">Manage salary structures and payroll processing</p>
       </div>
 
       {/* Summary Cards */}
@@ -65,39 +65,39 @@ const HRPayroll = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
           { label: 'Net Payable', value: `₹${payrollSummary.netPayable.toLocaleString()}`, icon: '✅', color: 'from-blue-500 to-cyan-500' },
           { label: 'Employees', value: payrollSummary.employees, icon: '👥', color: 'from-purple-500 to-pink-500' },
         ].map((card, idx) => (
-          <div key={idx} className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`${colors.text.tertiary} text-sm`}>{card.label}</p>
-                <p className={`${colors.text.primary} text-2xl font-bold mt-2`}>{card.value}</p>
-              </div>
-              <span className="text-4xl">{card.icon}</span>
+          <div key={idx} className="stat-card animate-fadeInUp hover-lift" style={{ animationDelay: `${idx * 0.1}s` }}>
+            <div className={`icon-box bg-gradient-to-br ${card.color} text-white`}>
+              <span className="text-2xl">{card.icon}</span>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">{card.label}</p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">{card.value}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Payroll Runs */}
-      <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 mb-8`}>
-        <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Recent Payroll Runs</h2>
+      <div className="card animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Recent Payroll Runs</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className={`border-b ${colors.border.secondary}`}>
-                <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Month</th>
-                <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Status</th>
-                <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Processed</th>
-                <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Amount</th>
-                <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Date</th>
-                <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Action</th>
+              <tr className="border-b-2 border-gray-200">
+                <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Month</th>
+                <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Status</th>
+                <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Processed</th>
+                <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Amount</th>
+                <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Date</th>
+                <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Action</th>
               </tr>
             </thead>
             <tbody>
               {payrollRuns.map((run) => (
-                <tr key={run.id} className={`border-b ${colors.border.secondary} hover:bg-slate-700/50`}>
-                  <td className={`py-3 px-4 ${colors.text.primary} font-medium`}>{run.month}</td>
-                  <td className={`py-3 px-4`}>
-                    <span className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs font-medium">{run.status}</span>
+                <tr key={run.id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors duration-200">
+                  <td className="py-3 px-4 text-gray-800 font-medium">{run.month}</td>
+                  <td className="py-3 px-4">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">{run.status}</span>
                   </td>
                   <td className={`py-3 px-4 ${colors.text.secondary}`}>{run.processed}</td>
                   <td className={`py-3 px-4 ${colors.text.secondary} font-semibold`}>₹{run.amount}</td>
