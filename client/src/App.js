@@ -126,43 +126,51 @@ const AppContent = () => {
    */
   return (
     <ProtectedRoute requiredRole="employee">
-      <DashboardLayout>
-        <Routes>
-          {/* ============================================================
-              PUNCH IN/OUT ROUTE
-              ============================================================ */}
-          <Route path="/punch" element={<PunchInOut />} />
+      <Routes>
+        {/* ============================================================
+            PUNCH IN/OUT ROUTE - Full Screen (No Header/Sidebar)
+            ============================================================ */}
+        <Route path="/punch" element={<PunchInOut />} />
 
-          {/* ============================================================
-              MAIN DASHBOARD PAGES - EMPLOYEE
-              ============================================================ */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/announcements" element={<Announcements />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/leave-management" element={<LeaveManagement />} />
-          <Route path="/performance" element={<Performance />} />
-          <Route path="/profile" element={<EmployeeProfile />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/team" element={<TeamCollaboration />} />
-          <Route path="/payroll" element={<Payroll />} />
+        {/* ============================================================
+            ALL OTHER EMPLOYEE ROUTES - With Header & Sidebar
+            ============================================================ */}
+        <Route
+          path="/*"
+          element={
+            <DashboardLayout>
+              <Routes>
+                {/* ============================================================
+                    MAIN DASHBOARD PAGES - EMPLOYEE
+                    ============================================================ */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/announcements" element={<Announcements />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/leave-management" element={<LeaveManagement />} />
+                <Route path="/performance" element={<Performance />} />
+                <Route path="/profile" element={<EmployeeProfile />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/team" element={<TeamCollaboration />} />
+                <Route path="/payroll" element={<Payroll />} />
 
-          {/* ============================================================
-              SIDEBAR NAVIGATION PAGES - EMPLOYEE
-              ============================================================ */}
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/leaves" element={<Leaves />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/settings" element={<Settings />} />
+                {/* ============================================================
+                    SIDEBAR NAVIGATION PAGES - EMPLOYEE
+                    ============================================================ */}
+                <Route path="/employees" element={<Employees />} />
+                <Route path="/leaves" element={<Leaves />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/settings" element={<Settings />} />
 
-          {/* ============================================================
-              DEFAULT & FALLBACK ROUTES
-              ============================================================ */}
-          {/* when an employee hits the root we send them to their dashboard
-              (previously the code redirected to /hrDashboard which was wrong) */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </DashboardLayout>
+                {/* ============================================================
+                    DEFAULT & FALLBACK ROUTES
+                    ============================================================ */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </DashboardLayout>
+          }
+        />
+      </Routes>
     </ProtectedRoute>
   );
 };

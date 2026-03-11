@@ -110,6 +110,8 @@ const PunchInOut = () => {
    * Handle skip action - go directly to dashboard
    */
   const handleSkip = () => {
+    // Mark that user has seen punch screen today to prevent forced redirect
+    localStorage.setItem('hasPunchedInToday', 'true');
     navigate('/dashboard');
   };
 

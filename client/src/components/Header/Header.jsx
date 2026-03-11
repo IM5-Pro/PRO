@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { FiBell, FiChevronDown, FiSearch } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiBell, FiChevronDown, FiSearch, FiSquare, FiPlay } from 'react-icons/fi';
 
 /**
  * Header Component
@@ -15,7 +16,15 @@ import { FiBell, FiChevronDown, FiSearch } from 'react-icons/fi';
 const Header = ({ user = { name: 'John Doe', email: 'john@example.com', avatar: '🧑' } }) => {
   // State for dropdown menu visibility
   const [showDropdown, setShowDropdown] = useState(false);
-  const [notifications, setNotifications] = useState(3);
+  const [notifications] = useState(3);
+
+  // punch state
+  const navigate = useNavigate();
+  const isPunchedIn = localStorage.getItem('isPunchedIn') === 'true';
+
+  const handlePunchAction = () => {
+    navigate('/punch');
+  };
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-20">
@@ -33,8 +42,31 @@ const Header = ({ user = { name: 'John Doe', email: 'john@example.com', avatar: 
           </div>
         </div>
 
-        {/* Right Section - Notifications and User Profile */}
-        <div className="flex items-center space-x-6 ml-6">
+        {/* Right Section - Punch button, notifications and User Profile */}
+        <div className="flex items-center space-x-4 ml-6">
+          {/* Punch In/Out Button */}
+          <button
+            onClick={handlePunchAction}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 ${
+              isPunchedIn
+                ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
+                : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+            }`}
+            title={isPunchedIn ? 'Click to punch out for the day' : 'Click to punch in for the day'}
+          >
+            {isPunchedIn ? (
+              <>
+                <FiSquare size={18} />
+                <span className="text-sm font-semibold hidden sm:inline">Punch Out</span>
+              </>
+            ) : (
+              <>
+                <FiPlay size={18} />
+                <span className="text-sm font-semibold hidden sm:inline">Punch In</span>
+              </>
+            )}
+          </button>
+
           {/* Notification Bell */}
           <button
             className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
