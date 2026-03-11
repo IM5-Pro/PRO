@@ -116,9 +116,9 @@ const Login = ({ onLoginSuccess = null }) => {
       setPassword('');
 
       // push the user off the login route so AppContent can render the
-      // appropriate dashboard for their role. we navigate to the root
-      // because AppContent handles role‑based routing on '/'.
-      navigate('/', { replace: true });
+      // appropriate dashboard for their role. we navigate to the punch page
+      // because users need to punch in/out first.
+      navigate('/punch', { replace: true });
 
       // Call success callback (legacy prop, still supported)
       if (onLoginSuccess) {

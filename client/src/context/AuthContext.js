@@ -152,6 +152,9 @@ export const AuthProvider = ({ children }) => {
     try {
       localStorage.removeItem('user');
       localStorage.removeItem('authToken');
+      localStorage.removeItem('isPunchedIn');
+      localStorage.removeItem('punchInTime');
+      localStorage.removeItem('hasPunchedInToday');
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
