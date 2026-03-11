@@ -1,7 +1,7 @@
 import express from "express";
 import departmentController from "../controllers/DepartmentController.js";
 import authGuard from "../middleware/authGuard.js";
-import permissionGuard from "../middleware/permissionGuard.js";
+import { permissionGuard } from "../middleware/permissionGuard.js";
 
 const router = express.Router();
 
@@ -9,7 +9,7 @@ const router = express.Router();
 router.post(
   "/",
   authGuard,
-  permissionGuard("department.create"),
+  permissionGuard("department", "create"),
   departmentController.createDepartment,
 );
 
@@ -17,7 +17,7 @@ router.post(
 router.get(
   "/",
   authGuard,
-  permissionGuard("department.list"),
+  permissionGuard("department", "list"),
   departmentController.getDepartments,
 );
 
@@ -25,7 +25,7 @@ router.get(
 router.get(
   "/:id",
   authGuard,
-  permissionGuard("department.read"),
+  permissionGuard("department", "read"),
   departmentController.readDepartment,
 );
 
@@ -33,7 +33,7 @@ router.get(
 router.put(
   "/:id",
   authGuard,
-  permissionGuard("department.update"),
+  permissionGuard("department", "update"),
   departmentController.updateDepartment,
 );
 
@@ -41,7 +41,7 @@ router.put(
 router.delete(
   "/:id",
   authGuard,
-  permissionGuard("department.delete"),
+  permissionGuard("department", "delete"),
   departmentController.deleteDepartment,
 );
 
@@ -49,7 +49,7 @@ router.delete(
 router.patch(
   "/:id/assign-manager",
   authGuard,
-  permissionGuard("department.assign_manager"),
+  permissionGuard("department", "assign_manager"),
   departmentController.assignManager,
 );
 
