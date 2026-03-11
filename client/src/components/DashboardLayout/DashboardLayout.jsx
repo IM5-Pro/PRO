@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 import SidebarNav from '../SidebarNav/SidebarNav';
 import Header from '../Header/Header';
 import bgImage from '../../assets/Background.png';

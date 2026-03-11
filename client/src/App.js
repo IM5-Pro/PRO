@@ -89,9 +89,9 @@ const AppContent = () => {
   // hasPunchedInToday allows punch out without forced return to punch screen
   const isPunchedIn = localStorage.getItem('isPunchedIn') === 'true';
   const hasPunchedInToday = localStorage.getItem('hasPunchedInToday') === 'true';
-  const shouldRedirectToPunch = location.pathname !== '/punch' && !isPunchedIn && !hasPunchedInToday && location.pathname !== '/login';
-
-  if (shouldRedirectToPunch) {
+  
+  // For employee role, check punch status
+  if (!isPunchedIn && !hasPunchedInToday && user?.role === 'employee' && location.pathname !== '/punch') {
     return <Navigate to="/punch" replace />;
   }
 

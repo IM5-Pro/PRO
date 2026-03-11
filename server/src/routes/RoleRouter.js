@@ -5,8 +5,8 @@ import * as roleController from "../controllers/RoleController.js";
 
 const router = express.Router();
 
-// All role management endpoints require Super Admin
-const superAdminOnly = [authGuard, roleGuard("SUPER_ADMIN")];
+// All role management endpoints require Super Admin or HR Admin
+const superAdminOnly = [authGuard, roleGuard("SUPER_ADMIN", "HR_ADMIN")];
 
 /**
  * List all roles
