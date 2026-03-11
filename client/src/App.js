@@ -30,6 +30,7 @@ import Analytics from './components/Pages/Analytics';
 
 import ManagerDashboard from './components/ManagerDashboard/ManagerDashboard';
 import HRDashboard from './components/HRDashboard/HRDashboard';
+import PunchInOut from './components/PunchInOut/PunchInOut';
 
 /**
  * AppContent Component
@@ -84,6 +85,16 @@ const AppContent = () => {
   // AUTHENTICATED - ROLE-BASED DASHBOARD ROUTING
   // ============================================================================
 
+  // Check if user needs to punch in/out first (only on initial login)
+  // hasPunchedInToday allows punch out without forced return to punch screen
+  const isPunchedIn = localStorage.getItem('isPunchedIn') === 'true';
+  const hasPunchedInToday = localStorage.getItem('hasPunchedInToday') === 'true';
+  const shouldRedirectToPunch = location.pathname !== '/punch' && !isPunchedIn && !hasPunchedInToday && location.pathname !== '/login';
+
+  if (shouldRedirectToPunch) {
+    return <Navigate to="/punch" replace />;
+  }
+
   /**
    * HR/ADMIN DASHBOARD
    * Full HR management system with 10 modules
@@ -117,6 +128,11 @@ const AppContent = () => {
     <ProtectedRoute requiredRole="employee">
       <DashboardLayout>
         <Routes>
+          {/* ============================================================
+              PUNCH IN/OUT ROUTE
+              ============================================================ */}
+          <Route path="/punch" element={<PunchInOut />} />
+
           {/* ============================================================
               MAIN DASHBOARD PAGES - EMPLOYEE
               ============================================================ */}
