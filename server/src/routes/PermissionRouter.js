@@ -5,8 +5,8 @@ import * as permissionController from "../controllers/PermissionController.js";
 
 const router = express.Router();
 
-// All permission management endpoints require Super Admin
-const superAdminOnly = [authGuard, roleGuard("SUPER_ADMIN")];
+// All permission management endpoints require Super Admin or HR Admin
+const superAdminOnly = [authGuard, roleGuard("SUPER_ADMIN", "HR_ADMIN")];
 
 /**
  * List all permissions

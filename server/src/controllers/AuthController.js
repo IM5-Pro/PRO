@@ -3,7 +3,7 @@ import User from "../models/User.js";
 import Role from "../models/Role.js";
 import Permission from "../models/Permission.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
-import { validateRegisterSuperAdmin, validateLogin } from "../utils/validators.js";
+import { validateRegisterSuperAdmin, validateLogin, validateCreateUser } from "../utils/validators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 
 const registerSuperAdmin = async (req, res) => {
@@ -38,6 +38,44 @@ const registerSuperAdmin = async (req, res) => {
     return sendSuccess(res, 201, "Super admin registered successfully", { data: user });
   } catch (err) {
     console.error("Register error:", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+// HR admin creation (Super/Admin or existing HR Admin can perform)
+const registerHrAdmin = async (req, res) => {
+  try {
+    // validation leverages createUser rules but disallows SUPER_ADMIN
+    const validation = validateCreateUser(req.body);
+    if (!validation.isValid) {
+      return sendError(res, 400, "Validation failed", validation.errors);
+    }
+
+    // ensure caller is permitted (roleGuard on route should handle this too)
+    if (req.user.role !== "SUPER_ADMIN" && req.user.role !== "HR_ADMIN") {
+      return sendError(res, 403, "Access denied");
+    }
+
+    const { email, password, firstName, lastName } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return sendError(res, 409, "Email already registered", { email: "This email is already in use" });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      email,
+      password: hash,
+      role: "HR_ADMIN",
+      firstName: firstName || "",
+      lastName: lastName || "",
+    });
+
+    return sendSuccess(res, 201, "HR admin created successfully", { data: user });
+  } catch (err) {
+    console.error("Register HR admin error:", err);
     return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
@@ -209,6 +247,7 @@ const sessionTerminate = async (req, res) => {
 
 export default {
   registerSuperAdmin,
+  registerHrAdmin,
   login,
   logout,
   refreshToken,
