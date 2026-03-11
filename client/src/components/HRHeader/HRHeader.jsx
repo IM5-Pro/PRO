@@ -263,7 +263,7 @@ const HRHeader = ({
   // ============================================================================
 
   return (
-    <header className="sticky top-0 z-40 glass-dark border-b border-transparent shadow-lg will-change-transform">
+    <header className="sticky top-0 z-40 bg-white/15 backdrop-blur-xl border-b border-white/40 shadow-md will-change-transform">
       <div className="flex items-center justify-between px-4 md:px-8 py-4 gap-4">
         {/* ========================================
             LEFT SECTION - SEARCH
@@ -273,7 +273,7 @@ const HRHeader = ({
           <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-md">
             <div className="relative group w-full">
               <FiSearch
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-300"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-700 group-focus-within:text-blue-700 transition-colors duration-300"
                 size={18}
               />
               <input
@@ -281,7 +281,7 @@ const HRHeader = ({
                 placeholder="Search employees, leaves, payroll..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 text-slate-100 placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                className="w-full pl-10 pr-4 py-3 bg-white border-2 border-slate-400 text-slate-900 placeholder-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300 shadow-lg font-medium"
                 aria-label="Search HR system"
                 maxLength={VALIDATION_RULES.SEARCH_MAX_LENGTH}
               />
@@ -290,13 +290,13 @@ const HRHeader = ({
 
           {/* Greeting Text - Mobile */}
           <div className="md:hidden">
-            <p className="text-sm font-semibold text-slate-100">{greeting}, {user.name?.split(' ')[0]}!</p>
-            <p className="text-xs text-slate-400">{formattedDate}</p>
+            <p className="text-sm font-semibold text-slate-800">{greeting}, {user.name?.split(' ')[0]}!</p>
+            <p className="text-xs text-slate-600">{formattedDate}</p>
           </div>
 
           {/* Greeting Text - Desktop */}
           <div className="hidden md:block">
-            <p className="text-sm font-semibold text-slate-100">
+            <p className="text-sm font-semibold text-slate-800">
               {greeting}, {user.name}!
             </p>
           </div>
@@ -308,11 +308,11 @@ const HRHeader = ({
         <div className="flex items-center gap-3 md:gap-6">
           {/* Current Time - Desktop Only */}
           <div
-            className="hidden lg:flex flex-col items-end text-slate-300"
+            className="hidden lg:flex flex-col items-end text-slate-700"
             title={formattedDate}
           >
             <p className="text-sm font-semibold">{formattedTime}</p>
-            <p className="text-xs text-slate-400">{formattedDate}</p>
+            <p className="text-xs text-slate-600">{formattedDate}</p>
           </div>
 
           {/* Notification Bell */}
@@ -320,7 +320,7 @@ const HRHeader = ({
             <button
               data-menu-trigger="notifications"
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-slate-300 hover:text-slate-100 hover:bg-slate-700 rounded-lg transition-all duration-300"
+              className="relative p-2 text-slate-700 hover:text-slate-900 hover:bg-white/30 rounded-lg transition-all duration-300"
               aria-label={`Notifications (${notificationCount} unread)`}
               title={`${notificationCount} new notifications`}
             >
@@ -340,17 +340,17 @@ const HRHeader = ({
             {/* Notifications Dropdown */}
             {showNotifications && (
               <div
-                className="absolute right-0 mt-3 w-80 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-50 top-full"
+                className="absolute right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl z-50 top-full"
                 role="dialog"
                 aria-label="Notifications"
               >
-                <div className="p-4 border-b border-slate-700">
+                <div className="p-4 border-b border-slate-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-slate-100 font-semibold">Notifications</h3>
+                    <h3 className="text-slate-800 font-semibold">Notifications</h3>
                     {notificationCount > 0 && (
                       <button
                         onClick={handleClearNotifications}
-                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                        className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
                       >
                         Clear all
                       </button>
@@ -362,14 +362,14 @@ const HRHeader = ({
                   {notificationCount > 0 ? (
                     <div className="space-y-3">
                       {[...Array(notificationCount)].map((_, idx) => (
-                        <div key={idx} className="p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors cursor-pointer">
-                          <p className="text-sm text-slate-100">Notification {idx + 1}</p>
-                          <p className="text-xs text-slate-400 mt-1">Just now</p>
+                        <div key={idx} className="p-3 bg-slate-100/80 rounded-lg hover:bg-slate-200/80 transition-colors cursor-pointer border border-slate-200">
+                          <p className="text-sm text-slate-800">Notification {idx + 1}</p>
+                          <p className="text-xs text-slate-600 mt-1">Just now</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-400 text-center text-sm">No new notifications</p>
+                    <p className="text-slate-500 text-center text-sm">No new notifications</p>
                   )}
                 </div>
               </div>
@@ -381,7 +381,7 @@ const HRHeader = ({
             <button
               data-menu-trigger="profile"
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-slate-700 rounded-lg transition-all duration-300"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-white/30 rounded-lg transition-all duration-300"
               aria-label="User profile menu"
               aria-expanded={showProfileMenu}
             >
@@ -396,7 +396,7 @@ const HRHeader = ({
               {/* Dropdown Arrow */}
               <FiChevronDown
                 size={18}
-                className={`text-slate-300 transition-transform duration-300 hidden md:block ${
+                className={`text-slate-700 transition-transform duration-300 hidden md:block ${
                   showProfileMenu ? 'rotate-180' : ''
                 }`}
               />
@@ -405,16 +405,16 @@ const HRHeader = ({
             {/* Profile Dropdown Menu */}
             {showProfileMenu && (
               <div
-                className="absolute right-0 mt-3 w-64 glass border border-slate-700 rounded-lg shadow-2xl z-50 top-full"
+                className="absolute right-0 mt-3 w-64 bg-white/95 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl z-50 top-full"
                 role="menu"
                 aria-label="Profile menu"
               >
                 {/* User Info */}
-                <div className="p-4 border-b border-slate-700">
-                  <p className="text-slate-100 font-semibold">{user.name}</p>
-                  <p className="text-xs text-slate-400 mt-1">{user.email}</p>
+                <div className="p-4 border-b border-slate-200">
+                  <p className="text-slate-800 font-semibold">{user.name}</p>
+                  <p className="text-xs text-slate-600 mt-1">{user.email}</p>
                   <div className="mt-2">
-                    <span className="inline-block px-2 py-1 bg-blue-600/20 text-blue-300 text-xs rounded font-medium">
+                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded font-medium">
                       {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || 'User'}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ const HRHeader = ({
                 <div className="p-2">
                   <button
                     onClick={() => handleProfileMenuClick('profile')}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-slate-300 hover:text-slate-100 hover:bg-slate-700 rounded-lg transition-all duration-300"
+                    className="w-full flex items-center gap-3 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-300"
                     role="menuitem"
                   >
                     <FiUser size={18} />
@@ -433,18 +433,18 @@ const HRHeader = ({
 
                   <button
                     onClick={() => handleProfileMenuClick('settings')}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-slate-300 hover:text-slate-100 hover:bg-slate-700 rounded-lg transition-all duration-300"
+                    className="w-full flex items-center gap-3 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-300"
                     role="menuitem"
                   >
                     <FiSettings size={18} />
                     <span>Settings</span>
                   </button>
 
-                  <div className="border-t border-slate-700 my-2" />
+                  <div className="border-t border-slate-200 my-2" />
 
                   <button
                     onClick={() => handleProfileMenuClick('logout')}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-300"
+                    className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-300"
                     role="menuitem"
                   >
                     <FiLogOut size={18} />

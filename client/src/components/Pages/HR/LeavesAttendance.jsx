@@ -146,25 +146,26 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
   // ============================================================================
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
+        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
           📅 Leaves & Attendance
         </h1>
-        <p className={colors.text.tertiary}>Manage leaves and track attendance records</p>
+        <p className="text-slate-600">Manage leaves and track attendance records</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} mb-8 p-2 flex gap-2`}>
+      <div className="card mb-8 p-2 flex gap-2 animate-slideInRight"
+        style={{ animationDelay: '0.1s' }}>
         {['overview', 'requests', 'attendance', 'balance'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-6 py-2 rounded-lg font-semibold transition-all duration-300 ${
               activeTab === tab
-                ? 'bg-blue-600 text-white'
-                : `${colors.text.tertiary} hover:${colors.text.primary} hover:bg-slate-700/50`
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
