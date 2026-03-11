@@ -30,6 +30,7 @@ import Analytics from './components/Pages/Analytics';
 
 import ManagerDashboard from './components/ManagerDashboard/ManagerDashboard';
 import HRDashboard from './components/HRDashboard/HRDashboard';
+import PunchInOut from './components/PunchInOut/PunchInOut';
 
 /**
  * AppContent Component
@@ -84,6 +85,16 @@ const AppContent = () => {
   // AUTHENTICATED - ROLE-BASED DASHBOARD ROUTING
   // ============================================================================
 
+  // Check if user needs to punch in/out first (only on initial login)
+  // hasPunchedInToday allows punch out without forced return to punch screen
+  const isPunchedIn = localStorage.getItem('isPunchedIn') === 'true';
+  const hasPunchedInToday = localStorage.getItem('hasPunchedInToday') === 'true';
+  
+  // For employee role, check punch status
+  if (!isPunchedIn && !hasPunchedInToday && user?.role === 'employee' && location.pathname !== '/punch') {
+    return <Navigate to="/punch" replace />;
+  }
+
   /**
    * HR/ADMIN DASHBOARD
    * Full HR management system with 10 modules
@@ -115,38 +126,51 @@ const AppContent = () => {
    */
   return (
     <ProtectedRoute requiredRole="employee">
-      <DashboardLayout>
-        <Routes>
-          {/* ============================================================
-              MAIN DASHBOARD PAGES - EMPLOYEE
-              ============================================================ */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/announcements" element={<Announcements />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/leave-management" element={<LeaveManagement />} />
-          <Route path="/performance" element={<Performance />} />
-          <Route path="/profile" element={<EmployeeProfile />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/team" element={<TeamCollaboration />} />
-          <Route path="/payroll" element={<Payroll />} />
+      <Routes>
+        {/* ============================================================
+            PUNCH IN/OUT ROUTE - Full Screen (No Header/Sidebar)
+            ============================================================ */}
+        <Route path="/punch" element={<PunchInOut />} />
 
-          {/* ============================================================
-              SIDEBAR NAVIGATION PAGES - EMPLOYEE
-              ============================================================ */}
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/leaves" element={<Leaves />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/settings" element={<Settings />} />
+        {/* ============================================================
+            ALL OTHER EMPLOYEE ROUTES - With Header & Sidebar
+            ============================================================ */}
+        <Route
+          path="/*"
+          element={
+            <DashboardLayout>
+              <Routes>
+                {/* ============================================================
+                    MAIN DASHBOARD PAGES - EMPLOYEE
+                    ============================================================ */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/announcements" element={<Announcements />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/leave-management" element={<LeaveManagement />} />
+                <Route path="/performance" element={<Performance />} />
+                <Route path="/profile" element={<EmployeeProfile />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/team" element={<TeamCollaboration />} />
+                <Route path="/payroll" element={<Payroll />} />
 
-          {/* ============================================================
-              DEFAULT & FALLBACK ROUTES
-              ============================================================ */}
-          {/* when an employee hits the root we send them to their dashboard
-              (previously the code redirected to /hrDashboard which was wrong) */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </DashboardLayout>
+                {/* ============================================================
+                    SIDEBAR NAVIGATION PAGES - EMPLOYEE
+                    ============================================================ */}
+                <Route path="/employees" element={<Employees />} />
+                <Route path="/leaves" element={<Leaves />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/settings" element={<Settings />} />
+
+                {/* ============================================================
+                    DEFAULT & FALLBACK ROUTES
+                    ============================================================ */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </DashboardLayout>
+          }
+        />
+      </Routes>
     </ProtectedRoute>
   );
 };

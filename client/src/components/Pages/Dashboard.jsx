@@ -67,9 +67,12 @@ const Dashboard = () => {
             </h1>
             <p className={colors.text.tertiary}>Here's your dashboard overview for today</p>
           </div>
-          <div className="text-right hidden md:block animate-bounce-soft">
-            <p className={`${colors.text.tertiary} text-sm`}>Today</p>
-            <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden md:block">
+              <p className={`${colors.text.tertiary} text-sm`}>Today</p>
+              <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+            {/* Punch Button */}
           </div>
         </div>
       </div>

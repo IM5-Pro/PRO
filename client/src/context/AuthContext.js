@@ -128,6 +128,12 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(mockUser));
       localStorage.setItem('authToken', mockToken);
 
+      // Clear punch-related flags on fresh login
+      localStorage.removeItem('isPunchedIn');
+      localStorage.removeItem('punchInTime');
+      localStorage.removeItem('hasPunchedInToday');
+      localStorage.removeItem('dailyWorkingHours');
+
       setUser(mockUser);
       setIsAuthenticated(true);
 
@@ -152,6 +158,13 @@ export const AuthProvider = ({ children }) => {
     try {
       localStorage.removeItem('user');
       localStorage.removeItem('authToken');
+      
+      // Clear punch-related data on logout
+      localStorage.removeItem('isPunchedIn');
+      localStorage.removeItem('punchInTime');
+      localStorage.removeItem('hasPunchedInToday');
+      localStorage.removeItem('dailyWorkingHours');
+      
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
