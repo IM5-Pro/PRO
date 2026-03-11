@@ -1,7 +1,7 @@
 import express from "express";
 import payrollController from "../controllers/PayrollController.js";
 import authGuard from "../middleware/authGuard.js";
-import permissionGuard from "../middleware/permissionGuard.js";
+import {permissionGuard} from "../middleware/permissionGuard.js";
 
 const router = express.Router();
 

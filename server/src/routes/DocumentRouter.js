@@ -1,7 +1,7 @@
 import express from "express";
 import documentController from "../controllers/DocumentController.js";
 import authGuard from "../middleware/authGuard.js";
-import permissionGuard from "../middleware/permissionGuard.js";
+import {permissionGuard} from "../middleware/permissionGuard.js";
 
 const router = express.Router();
 
