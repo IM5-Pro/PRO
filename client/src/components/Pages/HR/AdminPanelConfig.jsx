@@ -36,23 +36,23 @@ const AdminPanelConfig = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
+        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
           🔧 Admin Panel Configuration
         </h1>
-        <p className={colors.text.tertiary}>Configure system settings and admin preferences</p>
+        <p className="text-slate-600">Configure system settings and admin preferences</p>
       </div>
 
       {/* System Health */}
       <div className="mb-8">
-        <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>System Health</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">System Health</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {systemHealth.map((item) => (
-            <div key={item.name} className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6`}>
+            <div key={item.name} className="card animate-fadeInUp hover-lift">
               <div className="flex items-center justify-between mb-3">
-                <p className={`${colors.text.primary} font-semibold`}>{item.name}</p>
+                <p className="text-gray-800 font-semibold">{item.name}</p>
                 <span
                   className={`text-xs font-medium px-2 py-1 rounded ${
                     item.status === 'Healthy'

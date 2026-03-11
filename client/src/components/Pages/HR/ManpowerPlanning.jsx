@@ -147,9 +147,9 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
   // ============================================================================
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 rounded-2xl p-6 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10">
         <div>
           <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
             📊 Manpower Planning

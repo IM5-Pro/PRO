@@ -58,13 +58,13 @@ const ExitClearance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) 
   );
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient.primary} p-6 md:p-8`}>
+    <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
+        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
           🚪 Exit Clearance Department
         </h1>
-        <p className={colors.text.tertiary}>Manage employee separation and exit clearance</p>
+        <p className="text-slate-600">Manage employee separation and exit clearance</p>
       </div>
 
       {/* Status Summary */}
@@ -74,13 +74,13 @@ const ExitClearance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) 
           { label: 'In Progress', value: exitRequests.filter((r) => r.status === 'In Progress').length, icon: <FiAlertCircle />, color: 'from-blue-500 to-cyan-500' },
           { label: 'Completed', value: exitRequests.filter((r) => r.status === 'Completed').length, icon: <FiCheckCircle />, color: 'from-green-500 to-emerald-500' },
         ].map((stat, idx) => (
-          <div key={idx} className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`${colors.text.tertiary} text-sm`}>{stat.label}</p>
-                <p className={`${colors.text.primary} text-3xl font-bold mt-2`}>{stat.value}</p>
-              </div>
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white`}>{stat.icon}</div>
+          <div key={idx} className="stat-card animate-fadeInUp hover-lift" style={{ animationDelay: `${idx * 0.1}s` }}>
+            <div className={`icon-box bg-gradient-to-br ${stat.color} text-white`}>
+              {stat.icon}
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">{stat.label}</p>
+              <p className="text-3xl font-bold text-gray-800 mt-1">{stat.value}</p>
             </div>
           </div>
         ))}

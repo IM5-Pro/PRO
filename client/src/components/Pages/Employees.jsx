@@ -73,16 +73,11 @@ const Employees = () => {
     >
       {/* Header */}
       <div className="glass rounded-2xl p-6 mb-8 backdrop-blur-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-              <FiUsers className="w-10 h-10" /> Employees
-            </h1>
-            <p className={colors.text.tertiary}>Manage and view all employees</p>
-          </div>
-          <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2">
-            <FiPlus size={20} /> Add Employee
-          </button>
+        <div>
+          <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+            <FiUsers className="w-10 h-10" /> Employees
+          </h1>
+          <p className={colors.text.tertiary}>Manage and view all employees</p>
         </div>
       </div>
 
