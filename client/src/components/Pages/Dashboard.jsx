@@ -3,26 +3,13 @@
  * Main employee dashboard with overview cards and activity feed
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar, FiSquare, FiPlay } from 'react-icons/fi';
-import bgImage from '../../assets/ispace-bg.png';
+import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar } from 'react-icons/fi';
+import bgImage from '../../assets/Background.png';
 
 const Dashboard = () => {
   const { colors } = useTheme();
-  const navigate = useNavigate();
-  const [isPunchingOut, setIsPunchingOut] = useState(false);
-
-  // Check punch status
-  const isPunchedIn = localStorage.getItem('isPunchedIn') === 'true';
-
-  /**
-   * Handle punch action - navigate to punch page
-   */
-  const handlePunchAction = () => {
-    navigate('/punch');
-  };
 
   const statsCards = [
     {
@@ -80,34 +67,9 @@ const Dashboard = () => {
             </h1>
             <p className={colors.text.tertiary}>Here's your dashboard overview for today</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden md:block">
-              <p className={`${colors.text.tertiary} text-sm`}>Today</p>
-              <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-            </div>
-            {/* Punch Button */}
-            <button
-              onClick={handlePunchAction}
-              disabled={isPunchingOut}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isPunchedIn
-                  ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
-                  : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-              }`}
-              title={isPunchedIn ? 'Click to punch out for the day' : 'Click to punch in for the day'}
-            >
-              {isPunchedIn ? (
-                <>
-                  <FiSquare size={18} />
-                  <span className="text-sm font-semibold hidden sm:inline">Punch Out</span>
-                </>
-              ) : (
-                <>
-                  <FiPlay size={18} />
-                  <span className="text-sm font-semibold hidden sm:inline">Punch In</span>
-                </>
-              )}
-            </button>
+          <div className="text-right hidden md:block animate-bounce-soft">
+            <p className={`${colors.text.tertiary} text-sm`}>Today</p>
+            <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
         </div>
       </div>
