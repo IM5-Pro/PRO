@@ -11,6 +11,38 @@ import bgImage from '../../assets/Background.png';
 const Leaves = () => {
   const { colors } = useTheme();
   const [showModal, setShowModal] = useState(false);
+  const [leaveRequests, setLeaveRequests] = useState([
+    {
+      id: 1,
+      type: 'Annual Leave',
+      startDate: '2026-03-15',
+      endDate: '2026-03-20',
+      days: 6,
+      reason: 'Family vacation',
+      status: 'approved',
+      approvedBy: 'John Manager'
+    },
+    {
+      id: 2,
+      type: 'Casual Leave',
+      startDate: '2026-03-10',
+      endDate: '2026-03-10',
+      days: 1,
+      reason: 'Personal work',
+      status: 'pending',
+      approvedBy: '-'
+    },
+    {
+      id: 3,
+      type: 'Sick Leave',
+      startDate: '2026-02-28',
+      endDate: '2026-02-28',
+      days: 1,
+      reason: 'Medical appointment',
+      status: 'approved',
+      approvedBy: 'John Manager'
+    }
+  ]);
 
   const leaveBalance = [
     {
@@ -47,38 +79,20 @@ const Leaves = () => {
     }
   ];
 
-  const leaveRequests = [
-    {
-      id: 1,
-      type: 'Annual Leave',
-      startDate: '2026-03-15',
-      endDate: '2026-03-20',
-      days: 6,
-      reason: 'Family vacation',
-      status: 'approved',
-      approvedBy: 'John Manager'
-    },
-    {
-      id: 2,
-      type: 'Casual Leave',
-      startDate: '2026-03-10',
-      endDate: '2026-03-10',
-      days: 1,
-      reason: 'Personal work',
-      status: 'pending',
-      approvedBy: '-'
-    },
-    {
-      id: 3,
-      type: 'Sick Leave',
-      startDate: '2026-02-28',
-      endDate: '2026-02-28',
-      days: 1,
-      reason: 'Medical appointment',
-      status: 'approved',
-      approvedBy: 'John Manager'
-    }
-  ];
+  const handleLeaveRequestSubmit = (event) => {
+    event.preventDefault();
+    setShowModal(false);
+  };
+
+  const handleLeaveAction = (requestId, status) => {
+    setLeaveRequests((previousRequests) =>
+      previousRequests.map((request) =>
+        request.id === requestId
+          ? { ...request, status, approvedBy: status === 'approved' ? 'Self Action' : request.approvedBy }
+          : request
+      )
+    );
+  };
 
   const statusColors = {
     approved: 'from-green-500 to-emerald-500',
@@ -151,7 +165,7 @@ const Leaves = () => {
         <div className={`glass rounded-2xl border p-8 max-w-md w-full shadow-2xl`}>
             <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Request Leave</h2>
 
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleLeaveRequestSubmit}>
               <div>
                 <label className={`block ${colors.text.primary} font-medium mb-2 text-sm`}>Leave Type</label>
                 <select className={`w-full px-4 py-3 bg-slate-700/50 border ${colors.border.secondary} rounded-lg ${colors.text.primary} focus:outline-none focus:border-blue-500 transition-all duration-300`}>
@@ -225,10 +239,16 @@ const Leaves = () => {
 
               {request.status === 'pending' && (
                 <div className="flex gap-2 pt-3 border-t border-slate-700/50">
-                  <button className="flex-1 py-2 px-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors duration-300 text-sm font-medium flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => handleLeaveAction(request.id, 'approved')}
+                    className="flex-1 py-2 px-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors duration-300 text-sm font-medium flex items-center justify-center gap-2"
+                  >
                     <FiCheck size={16} /> Approve
                   </button>
-                  <button className="flex-1 py-2 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors duration-300 text-sm font-medium flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => handleLeaveAction(request.id, 'rejected')}
+                    className="flex-1 py-2 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors duration-300 text-sm font-medium flex items-center justify-center gap-2"
+                  >
                     <FiX size={16} /> Reject
                   </button>
                 </div>
