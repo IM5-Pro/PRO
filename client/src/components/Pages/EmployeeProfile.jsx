@@ -1,8 +1,3 @@
-/**
- * EmployeeProfile Page
- * Employee personal and professional information
- */
-
 import React, { useState } from 'react';
 import { FiUser, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
