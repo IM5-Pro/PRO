@@ -23,7 +23,6 @@ const EmployeeProfile = () => {
     bio: 'Passionate full-stack developer with 6+ years of experience building scalable web applications.',
     avatar: '👨‍💼'
   };
-
   const [profile, setProfile] = useState(initialProfile);
   const [draftProfile, setDraftProfile] = useState(initialProfile);
 
