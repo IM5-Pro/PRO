@@ -14,7 +14,7 @@ const DashboardLayout = ({ children }) => {
   return (
     <div
       className="flex min-h-screen bg-cover bg-center bg-fixed"
-      style={{ backgroundImage: `url(${bgImage})` }}
+      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
     >
       {/* Sidebar */}
       <SidebarNav />

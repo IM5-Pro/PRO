@@ -338,7 +338,7 @@ const HRDashboard = () => {
   return (
     <div
       className="flex h-screen bg-cover bg-center bg-fixed overflow-hidden"
-      style={{ backgroundImage: `url(${bgImage})` }}
+      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
     >
       {/* ========================================
           SIDEBAR NAVIGATION

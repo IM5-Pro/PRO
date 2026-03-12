@@ -36,7 +36,7 @@ const SettingsPage = () => {
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
-      style={{ backgroundImage: `url(${bgImage})` }}
+      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
     >
       {/* Header */}
       <div className="mb-8">
