@@ -12,6 +12,26 @@ const Reports = () => {
   const { colors } = useTheme();
   const [period, setPeriod] = useState('monthly');
 
+  const handleDownload = (report) => {
+    const fileContent = [
+      `Report: ${report.name}`,
+      `Type: ${report.type}`,
+      `Period: ${report.period}`,
+      `Generated: ${report.date}`,
+      `File Size: ${report.size}`
+    ].join('\n');
+
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${report.name.toLowerCase().replace(/\s+/g, '-')}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
   const reports = [
     { name: 'Monthly Performance Report', type: 'Performance', period: 'November 2024', date: '2024-12-01', size: '2.4 MB' },
     { name: 'Attendance Summary', type: 'Attendance', period: 'November 2024', date: '2024-12-01', size: '1.8 MB' },
@@ -81,7 +101,10 @@ const Reports = () => {
                   <td className={`px-4 py-3 ${colors.text.tertiary}`}>{report.date}</td>
                   <td className={`px-4 py-3 ${colors.text.tertiary}`}>{report.size}</td>
                   <td className="px-4 py-3 text-center">
-                    <button className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-300 transform hover:scale-110 active:scale-95 inline-flex">
+                    <button
+                      onClick={() => handleDownload(report)}
+                      className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-300 transform hover:scale-110 active:scale-95 inline-flex"
+                    >
                       <FiDownload size={18} />
                     </button>
                   </td>

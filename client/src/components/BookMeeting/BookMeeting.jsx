@@ -179,7 +179,7 @@ const BookMeeting = ({
   };
 
   return (
-    <div className="card w-full max-w-md">
+    <div className="card w-full">
       {/* Header */}
       <h2 className="text-xl font-bold text-gray-800 mb-6">Book 1 on 1</h2>
 

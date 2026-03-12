@@ -4,12 +4,14 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiUsers, FiSearch, FiFilter, FiPlus, FiMail, FiPhone, FiBriefcase, FiMapPin, FiMoreVertical } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
 import bgImage from '../../assets/Background.png';
 
 const Employees = () => {
   const { colors, resolvedTheme } = useTheme();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
 
@@ -66,6 +68,17 @@ const Employees = () => {
 
   const departments = ['all', 'Product', 'Engineering', 'Design', 'Quality', 'Marketing'];
 
+  const filteredEmployees = employees.filter((employee) => {
+    const matchesSearch =
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.position.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesDepartment = filterDept === 'all' || employee.department === filterDept;
+
+    return matchesSearch && matchesDepartment;
+  });
+
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
@@ -114,7 +127,7 @@ const Employees = () => {
 
       {/* Employees Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {employees.map((employee) => (
+        {filteredEmployees.map((employee) => (
           <div
             key={employee.id}
             className={`group glass rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
@@ -130,7 +143,10 @@ const Employees = () => {
                   <p className={colors.text.tertiary}>{employee.position}</p>
                 </div>
               </div>
-              <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors duration-300">
+              <button
+                onClick={() => navigate('/profile')}
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors duration-300"
+              >
                 <FiMoreVertical className="text-slate-400 hover:text-white" size={20} />
               </button>
             </div>
@@ -172,10 +188,16 @@ const Employees = () => {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3">
-              <button className="py-2 px-4 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all duration-300 text-sm font-medium">
+              <button
+                onClick={() => navigate('/profile')}
+                className="py-2 px-4 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all duration-300 text-sm font-medium"
+              >
                 View Profile
               </button>
-              <button className="py-2 px-4 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-all duration-300 text-sm font-medium">
+              <button
+                onClick={() => navigate('/profile')}
+                className="py-2 px-4 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-all duration-300 text-sm font-medium"
+              >
                 Edit
               </button>
             </div>

@@ -126,7 +126,7 @@ const TimingsChart = ({
   };
 
   return (
-    <div className="card w-full h-full flex flex-col">
+    <div className="card w-full flex flex-col">
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex-1">

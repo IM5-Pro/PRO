@@ -12,6 +12,28 @@ const Analytics = () => {
   const { colors } = useTheme();
   const [period, setPeriod] = useState('monthly');
 
+  const handleExport = () => {
+    const header = 'Metric,Value,Change\n';
+    const metricRows = metrics
+      .map((metric) => `${metric.title},${metric.value},${metric.change}`)
+      .join('\n');
+    const sectionBreak = '\n\nDepartment,Employees,Productivity\n';
+    const departmentRows = departmentData
+      .map((department) => `${department.name},${department.employees},${department.productivity}%`)
+      .join('\n');
+
+    const csv = `${header}${metricRows}${sectionBreak}${departmentRows}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `analytics-${period}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
   const metrics = [
     {
       title: 'Total Employees',
@@ -84,7 +106,10 @@ const Analytics = () => {
             </select>
           </div>
 
-          <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
+          >
             <FiDownload size={20} /> Export
           </button>
         </div>
