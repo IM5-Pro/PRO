@@ -53,6 +53,7 @@ const TeamStatsCard = ({
   teamName = 'My Teams',
   periodLabel = 'From 4-10 Sep, 2023',
   stats = DEFAULT_STATS,
+  compact = false,
   onFilter = () => {},
 }) => {
   /**
@@ -91,11 +92,11 @@ const TeamStatsCard = ({
   };
 
   return (
-    <div className="card w-full h-full flex flex-col">
+    <div className="card w-full flex flex-col">
       {/* Header Section */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
-          <h2 className="text-xl font-bold text-gray-800">{teamName}</h2>
+          <h2 className={`${compact ? 'text-lg' : 'text-xl'} font-bold text-gray-800`}>{teamName}</h2>
           <p className="text-xs text-gray-500 mt-1">{periodLabel}</p>
         </div>
 
@@ -111,16 +112,16 @@ const TeamStatsCard = ({
       </div>
 
       {/* Chart Section */}
-      <div className="flex-1 flex items-center justify-center mb-4">
-        <div className="w-full h-64">
+      <div className="flex items-center justify-center mb-4">
+        <div className={`w-full ${compact ? 'h-48 md:h-52' : 'h-64'}`}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={stats}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={100}
+                innerRadius={compact ? 44 : 60}
+                outerRadius={compact ? 76 : 100}
                 paddingAngle={2}
                 dataKey="value"
                 labelLine={false}
@@ -147,12 +148,12 @@ const TeamStatsCard = ({
       </div>
 
       {/* Legend Section */}
-      <div className="border-t border-gray-200 pt-4">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="border-t border-gray-200 pt-3">
+        <div className={`grid grid-cols-2 ${compact ? 'gap-2' : 'gap-3'}`}>
           {stats.map((stat, index) => (
             <div
               key={index}
-              className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              className={`flex items-center gap-2 ${compact ? 'p-1.5' : 'p-2'} bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200`}
             >
               {/* Color Indicator */}
               <div
@@ -163,7 +164,7 @@ const TeamStatsCard = ({
               {/* Stat Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-600 truncate">{stat.name}</p>
-                <p className="text-sm font-bold text-gray-800">{stat.value}%</p>
+                <p className={`${compact ? 'text-xs' : 'text-sm'} font-bold text-gray-800`}>{stat.value}%</p>
               </div>
             </div>
           ))}

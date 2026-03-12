@@ -10,7 +10,7 @@
  * <HRDashboard />
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -154,6 +154,13 @@ const HRDashboard = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [notificationCount, setNotificationCount] = useState(3);
   const [isLoading, setIsLoading] = useState(false);
+  const contentScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [currentPage]);
 
   // ============================================================================
   // USER DATA WITH FALLBACKS
@@ -362,7 +369,7 @@ const HRDashboard = () => {
         />
 
         {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-auto">
+        <main ref={contentScrollRef} className="flex-1 overflow-auto">
           <div className="p-4 md:p-8">
             {isLoading ? (
               <div className="flex items-center justify-center h-96">

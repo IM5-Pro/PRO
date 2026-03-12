@@ -49,7 +49,7 @@ const SidebarNav = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen border-r-2 z-40 transition-all duration-300 glass ${
+        className={`fixed left-0 top-0 h-screen border-r-2 z-30 transition-all duration-300 glass ${
           isOpen ? 'w-64' : 'w-0 md:w-64'
         } overflow-hidden md:translate-x-0 ${!isOpen && 'md:w-64'}`}
       >

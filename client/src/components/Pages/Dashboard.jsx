@@ -4,12 +4,14 @@
  */
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar } from 'react-icons/fi';
 import bgImage from '../../assets/Background.png';
 
 const Dashboard = () => {
   const { colors } = useTheme();
+  const navigate = useNavigate();
 
   const statsCards = [
     {
@@ -47,10 +49,18 @@ const Dashboard = () => {
   ];
 
   const recentActivity = [
-    { title: 'Leave Request Approved', desc: 'Your leave for Dec 20-25 has been approved', time: '2 hours ago', icon: '✅' },
-    { title: 'New Task Assigned', desc: 'UI Redesign Phase 2 assigned by Sarah', time: '4 hours ago', icon: '📋' },
-    { title: 'Performance Review', desc: 'Q4 performance review completed', time: '1 day ago', icon: '⭐' },
-    { title: 'Team Meeting', desc: 'Sprint planning meeting at 2:00 PM', time: '1 day ago', icon: '📞' }
+    { title: 'Leave Request Approved', desc: 'Your leave for Dec 20-25 has been approved', time: '2 hours ago', icon: '✅', path: '/leaves' },
+    { title: 'New Task Assigned', desc: 'UI Redesign Phase 2 assigned by Sarah', time: '4 hours ago', icon: '📋', path: '/team' },
+    { title: 'Performance Review', desc: 'Q4 performance review completed', time: '1 day ago', icon: '⭐', path: '/performance' },
+    { title: 'Team Meeting', desc: 'Sprint planning meeting at 2:00 PM', time: '1 day ago', icon: '📞', path: '/team' }
+  ];
+
+  const quickActions = [
+    { label: 'Check In', icon: '⏱️', path: '/attendance' },
+    { label: 'Request Leave', icon: '📅', path: '/leaves' },
+    { label: 'Book Meeting', icon: '📞', path: '/team' },
+    { label: 'View Report', icon: '📊', path: '/reports' },
+    { label: 'Submit Attendance', icon: '✅', path: '/attendance' }
   ];
 
   return (
@@ -67,9 +77,12 @@ const Dashboard = () => {
             </h1>
             <p className={colors.text.tertiary}>Here's your dashboard overview for today</p>
           </div>
-          <div className="text-right hidden md:block animate-bounce-soft">
-            <p className={`${colors.text.tertiary} text-sm`}>Today</p>
-            <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden md:block">
+              <p className={`${colors.text.tertiary} text-sm`}>Today</p>
+              <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+            {/* Punch Button */}
           </div>
         </div>
       </div>
@@ -112,6 +125,7 @@ const Dashboard = () => {
               {recentActivity.map((activity, idx) => (
                 <div
                   key={idx}
+                  onClick={() => navigate(activity.path)}
                   className={`flex items-start gap-4 p-4 bg-white/10 border border-white/20 rounded-xl hover:border-white/40 transition-all duration-300 group/item cursor-pointer`}
                 >
                   <div className="text-3xl mt-1">{activity.icon}</div>
@@ -130,7 +144,10 @@ const Dashboard = () => {
               ))}
             </div>
 
-            <button className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95">
+            <button
+              onClick={() => navigate('/announcements')}
+              className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+            >
               View All Activity
             </button>
           </div>
@@ -142,15 +159,10 @@ const Dashboard = () => {
             <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Quick Actions</h2>
 
             <div className="space-y-3">
-              {[
-                { label: 'Check In', icon: '⏱️' },
-                { label: 'Request Leave', icon: '📅' },
-                { label: 'Book Meeting', icon: '📞' },
-                { label: 'View Report', icon: '📊' },
-                { label: 'Submit Attendance', icon: '✅' }
-              ].map((action, idx) => (
+              {quickActions.map((action, idx) => (
                 <button
                   key={idx}
+                  onClick={() => navigate(action.path)}
                   className={`w-full flex items-center gap-3 px-4 py-3 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-xl ${colors.text.tertiary} hover:${colors.text.primary} hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:border-blue-500/50 transition-all duration-300 font-medium`}
                 >
                   <span className="text-lg">{action.icon}</span>

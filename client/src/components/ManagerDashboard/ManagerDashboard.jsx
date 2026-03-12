@@ -8,7 +8,7 @@
  * <ManagerDashboard />
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ManagerSidebar from '../ManagerSidebar/ManagerSidebar';
@@ -17,6 +17,8 @@ import TeamStatsCard from '../TeamStatsCard/TeamStatsCard';
 import TimingsChart from '../TimingsChart/TimingsChart';
 import TeamScheduleCalendar from '../TeamScheduleCalendar/TeamScheduleCalendar';
 import BookMeeting from '../BookMeeting/BookMeeting';
+import ManagerActionCenter from './ManagerActionCenter';
+import ManagerSidebarPageContent from './ManagerSidebarPages';
 import bgImage from '../../assets/Background.png';
 
 /**
@@ -60,14 +62,62 @@ const ManagerDashboard = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedTeamMember, setSelectedTeamMember] = useState(DEFAULT_TEAM_MEMBERS[0]);
   const [selectedScheduleMember, setSelectedScheduleMember] = useState(DEFAULT_TEAM_MEMBERS[0]);
+  const contentScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [currentPage]);
 
   /**
    * Handle navigation between different pages
    * @param {string} pageId - ID of the page to navigate to
    */
   const handleNavigation = (pageId) => {
-    console.log(`Navigating to: ${pageId}`);
     setCurrentPage(pageId);
+  };
+
+  const ACTION_PAGE_MAP = {
+    'Invite Member': 'users',
+    'Create Role Group': 'users',
+    'Export Users': 'users',
+    'Review Permissions': 'users',
+    'Create Checklist': 'checklist',
+    'Assign Task': 'checklist',
+    'Mark Complete': 'checklist',
+    'Download Report': 'checklist',
+    'Approve Batch': 'leaves',
+    'Create Leave Policy': 'leaves',
+    'Export Ledger': 'leaves',
+    'Set Team Calendar': 'leaves',
+    'Run Validation': 'payroll',
+    'Review Exceptions': 'payroll',
+    'Download Paysheet': 'payroll',
+    'Notify Team': 'messages',
+    'Create Job Requisition': 'recruit',
+    'Schedule Interviews': 'recruit',
+    'Move Candidate Stage': 'recruit',
+    'Generate Hiring Report': 'recruit',
+    'Start Broadcast': 'messages',
+    'Pin Update': 'messages',
+    'Create Channel': 'messages',
+    'Archive Thread': 'messages',
+    'Create Support Ticket': 'help',
+    'Chat with Support': 'help',
+    'Open Documentation': 'help',
+    'Share Feedback': 'help',
+    'Update Preferences': 'settings',
+    'Manage Integrations': 'settings',
+    'Review Audit Log': 'settings',
+    'Reset Defaults': 'settings',
+  };
+
+  const handlePageAction = (actionName) => {
+    const targetPage = ACTION_PAGE_MAP[actionName];
+    if (targetPage) {
+      setCurrentPage(targetPage);
+    }
   };
 
   /**
@@ -76,12 +126,10 @@ const ManagerDashboard = () => {
    */
   const handleProfileAction = (action) => {
     if (action === 'logout') {
-      console.log('User logging out...');
       logout(); // Call logout from auth context
       navigate('/login');
     } else if (action === 'profile') {
-      console.log('Opening user profile...');
-      alert('Profile page would open here');
+      setCurrentPage('settings');
     }
   };
 
@@ -103,47 +151,51 @@ const ManagerDashboard = () => {
     switch (currentPage) {
       case 'dashboard':
         return (
-          <div className="space-y-8">
+          <div className="w-full bg-transparent p-6 md:p-8 space-y-6">
             {/* Welcome Section */}
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                Good afternoon, {CURRENT_MANAGER.name}! 👋
-              </h1>
-              <p className="text-gray-600 mt-2">
+            <div className="flex items-center justify-between rounded-2xl p-6 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
+                  Good afternoon, {CURRENT_MANAGER.name}! 👋
+                </h1>
+                <p className="text-slate-600 mt-2">
                 You have 2 leave request pending.
-              </p>
+                </p>
+              </div>
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column - Team Stats and Timings */}
-              <div className="lg:col-span-2 space-y-8">
-                {/* Team Stats Card */}
-                <TeamStatsCard
-                  teamName="My Teams"
-                  periodLabel="From 4-10 Sep, 2023"
-                  onFilter={() => console.log('Filter clicked')}
-                />
+            <div className="space-y-6">
+              {/* Top Row - Team Stats + Book Meeting */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                <div className="xl:col-span-8">
+                  <TeamStatsCard
+                    teamName="My Teams"
+                    periodLabel="From 4-10 Sep, 2023"
+                    compact
+                    onFilter={() => handleNavigation('users')}
+                  />
+                </div>
 
-                {/* Timings Chart */}
-                <TimingsChart
-                  selectedMember={selectedTeamMember}
-                  onMemberSelect={setSelectedTeamMember}
-                  period="This Week"
-                  onFilter={() => console.log('Timings filter clicked')}
-                />
+                <div className="xl:col-span-4 w-full">
+                  <BookMeeting
+                    onBooking={handleMeetingBooked}
+                  />
+                </div>
               </div>
 
-              {/* Right Column - Book Meeting */}
-              <div className="lg:col-span-1">
-                <BookMeeting
-                  onBooking={handleMeetingBooked}
-                />
-              </div>
-            </div>
+              {/* Second Row - Action Center (between Team and Timings) */}
+              <ManagerActionCenter onNavigate={handleNavigation} />
 
-            {/* Full Width - Team Schedule Calendar */}
-            <div>
+              {/* Third Row - Timings full width */}
+              <TimingsChart
+                selectedMember={selectedTeamMember}
+                onMemberSelect={setSelectedTeamMember}
+                period="This Week"
+                onFilter={() => handleNavigation('checklist')}
+              />
+
+              {/* Fourth Row - Team Schedule full width */}
               <TeamScheduleCalendar
                 selectedMember={selectedScheduleMember}
                 onMemberSelect={setSelectedScheduleMember}
@@ -153,74 +205,22 @@ const ManagerDashboard = () => {
         );
 
       case 'users':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Users Management</h2>
-            <p className="text-gray-600">User management page coming soon...</p>
-          </div>
-        );
-
       case 'checklist':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Team Checklist</h2>
-            <p className="text-gray-600">Task checklist page coming soon...</p>
-          </div>
-        );
-
       case 'leaves':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Leave Management</h2>
-            <p className="text-gray-600">Leave management page coming soon...</p>
-          </div>
-        );
-
       case 'payroll':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Payroll</h2>
-            <p className="text-gray-600">Payroll page coming soon...</p>
-          </div>
-        );
-
       case 'recruit':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Recruitment</h2>
-            <p className="text-gray-600">Recruitment page coming soon...</p>
-          </div>
-        );
-
       case 'messages':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Messages</h2>
-            <p className="text-gray-600">Messages page coming soon...</p>
-          </div>
-        );
-
       case 'help':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Help & Support</h2>
-            <p className="text-gray-600">Help page coming soon...</p>
-          </div>
-        );
-
       case 'settings':
-        return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Settings</h2>
-            <p className="text-gray-600">Settings page coming soon...</p>
-          </div>
-        );
+        return <ManagerSidebarPageContent pageId={currentPage} onAction={handlePageAction} />;
 
       default:
         return (
-          <div className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Page Not Found</h2>
-            <p className="text-gray-600">The requested page does not exist.</p>
+          <div className="min-h-screen bg-transparent p-6 md:p-8">
+            <div className="bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 rounded-2xl shadow-xl shadow-slate-900/10 p-6">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Page Not Found</h2>
+              <p className="text-slate-600">The requested page does not exist.</p>
+            </div>
           </div>
         );
     }
@@ -246,9 +246,11 @@ const ManagerDashboard = () => {
         />
 
         {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-auto">
+        <main ref={contentScrollRef} className="flex-1 overflow-auto">
           <div className="p-4 md:p-8">
-            {renderPageContent()}
+            <div className="rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 overflow-hidden">
+              {renderPageContent()}
+            </div>
           </div>
         </main>
       </div>

@@ -1,8 +1,3 @@
-/**
- * EmployeeProfile Page
- * Employee personal and professional information
- */
-
 import React, { useState } from 'react';
 import { FiUser, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
@@ -12,7 +7,7 @@ const EmployeeProfile = () => {
   const { colors } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
 
-  const profile = {
+  const initialProfile = {
     name: 'John Doe',
     position: 'Senior Frontend Developer',
     department: 'Engineering',
@@ -22,6 +17,31 @@ const EmployeeProfile = () => {
     joinDate: '2022-01-15',
     bio: 'Passionate full-stack developer with 6+ years of experience building scalable web applications.',
     avatar: '👨‍💼'
+  };
+  const [profile, setProfile] = useState(initialProfile);
+  const [draftProfile, setDraftProfile] = useState(initialProfile);
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setDraftProfile(profile);
+      setIsEditing(false);
+      return;
+    }
+
+    setDraftProfile(profile);
+    setIsEditing(true);
+  };
+
+  const handleDraftChange = (field, value) => {
+    setDraftProfile((previousProfile) => ({
+      ...previousProfile,
+      [field]: value
+    }));
+  };
+
+  const handleSaveChanges = () => {
+    setProfile(draftProfile);
+    setIsEditing(false);
   };
 
   return (
@@ -39,7 +59,7 @@ const EmployeeProfile = () => {
         </div>
 
         <button
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={handleEditToggle}
           className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2"
         >
           {isEditing ? (
@@ -75,7 +95,8 @@ const EmployeeProfile = () => {
             {isEditing ? (
               <input
                 type="text"
-                defaultValue={profile.name}
+                  value={draftProfile.name}
+                  onChange={(event) => handleDraftChange('name', event.target.value)}
                 className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
               />
             ) : (
@@ -88,7 +109,8 @@ const EmployeeProfile = () => {
             {isEditing ? (
               <input
                 type="text"
-                defaultValue={profile.position}
+                  value={draftProfile.position}
+                  onChange={(event) => handleDraftChange('position', event.target.value)}
                 className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
               />
             ) : (
@@ -101,7 +123,8 @@ const EmployeeProfile = () => {
             {isEditing ? (
               <input
                 type="email"
-                defaultValue={profile.email}
+                  value={draftProfile.email}
+                  onChange={(event) => handleDraftChange('email', event.target.value)}
                 className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
               />
             ) : (
@@ -114,7 +137,8 @@ const EmployeeProfile = () => {
             {isEditing ? (
               <input
                 type="tel"
-                defaultValue={profile.phone}
+                  value={draftProfile.phone}
+                  onChange={(event) => handleDraftChange('phone', event.target.value)}
                 className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
               />
             ) : (
@@ -127,7 +151,8 @@ const EmployeeProfile = () => {
             {isEditing ? (
               <input
                 type="text"
-                defaultValue={profile.department}
+                  value={draftProfile.department}
+                  onChange={(event) => handleDraftChange('department', event.target.value)}
                 className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
               />
             ) : (
@@ -140,7 +165,8 @@ const EmployeeProfile = () => {
             {isEditing ? (
               <input
                 type="text"
-                defaultValue={profile.location}
+                  value={draftProfile.location}
+                  onChange={(event) => handleDraftChange('location', event.target.value)}
                 className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
               />
             ) : (
@@ -154,7 +180,8 @@ const EmployeeProfile = () => {
           <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Bio</label>
           {isEditing ? (
             <textarea
-              defaultValue={profile.bio}
+              value={draftProfile.bio}
+              onChange={(event) => handleDraftChange('bio', event.target.value)}
               className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none`}
               rows="4"
             ></textarea>
@@ -165,7 +192,10 @@ const EmployeeProfile = () => {
 
         {/* Save Button */}
         {isEditing && (
-          <button className="mt-6 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2">
+          <button
+            onClick={handleSaveChanges}
+            className="mt-6 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2"
+          >
             <FiSave size={20} /> Save Changes
           </button>
         )}
