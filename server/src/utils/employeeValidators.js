@@ -48,6 +48,10 @@ const validateEmployeeData = (body, isUpdate = false) => {
     errors.managerID = "Manager ID must be a string";
   }
 
+  if (body.managerId && typeof body.managerId !== "string") {
+    errors.managerId = "Manager ID must be a string";
+  }
+
   if (body.salary && typeof body.salary !== "number") {
     errors.salary = "Salary must be a number";
   } else if (body.salary < 0) {
@@ -66,8 +70,30 @@ const validateEmployeeData = (body, isUpdate = false) => {
     errors.joinDate = "Invalid date format";
   }
 
-  if (body.address && typeof body.address !== "string") {
-    errors.address = "Address must be a string";
+  if (
+    body.address &&
+    typeof body.address !== "string" &&
+    typeof body.address !== "object"
+  ) {
+    errors.address = "Address must be a string or object";
+  }
+
+  if (body.address && typeof body.address === "object") {
+    const allowedAddressFields = ["street", "city", "state", "country", "zipCode"];
+    for (const key of Object.keys(body.address)) {
+      if (!allowedAddressFields.includes(key)) {
+        errors.address = "Address contains invalid fields";
+        break;
+      }
+    }
+  }
+
+  if (body.emergencyContact && typeof body.emergencyContact !== "object") {
+    errors.emergencyContact = "Emergency contact must be an object";
+  }
+
+  if (body.emergencyContact?.phone && !/^\d{10,15}$/.test(String(body.emergencyContact.phone))) {
+    errors.emergencyContactPhone = "Emergency contact phone must be 10-15 digits";
   }
 
   if (body.city && typeof body.city !== "string") {

@@ -1,5 +1,54 @@
 import mongoose from "mongoose";
 
+const attendanceLocationSchema = new mongoose.Schema(
+  {
+    latitude: {
+      type: Number,
+      default: null,
+      min: -90,
+      max: 90,
+    },
+    longitude: {
+      type: Number,
+      default: null,
+      min: -180,
+      max: 180,
+    },
+    ipAddress: {
+      type: String,
+      default: "",
+    },
+    device: {
+      type: String,
+      default: "",
+    },
+    label: {
+      type: String,
+      default: "",
+    },
+  },
+  { _id: false },
+);
+
+const attendanceBreakSchema = new mongoose.Schema(
+  {
+    start: {
+      type: Date,
+      required: true,
+    },
+    end: {
+      type: Date,
+      default: null,
+    },
+    durationMinutes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  { _id: false },
+);
+
 const attendanceSchema = new mongoose.Schema(
   {
     // Employee reference
@@ -15,8 +64,8 @@ const attendanceSchema = new mongoose.Schema(
       default: null,
     },
     checkInLocation: {
-      type: String,
-      default: "Office",
+      type: attendanceLocationSchema,
+      default: () => ({ label: "Office" }),
     },
 
     // Check-out details
@@ -25,8 +74,8 @@ const attendanceSchema = new mongoose.Schema(
       default: null,
     },
     checkOutLocation: {
-      type: String,
-      default: "Office",
+      type: attendanceLocationSchema,
+      default: () => ({ label: "Office" }),
     },
 
     // Attendance date
@@ -47,6 +96,17 @@ const attendanceSchema = new mongoose.Schema(
     workingHours: {
       type: Number,
       default: 0,
+    },
+
+    // Break tracking
+    breaks: {
+      type: [attendanceBreakSchema],
+      default: [],
+    },
+    breakDurationMinutes: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
     // Shift details

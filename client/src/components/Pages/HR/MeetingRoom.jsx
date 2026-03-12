@@ -168,11 +168,30 @@ const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) =>
   return (
     <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
-        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-          📞 Meeting Room Management
-        </h1>
-        <p className="text-slate-600">Book and manage meeting rooms</p>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+            📞 Meeting Room Management
+          </h1>
+          <p className="text-slate-600">Book and manage meeting rooms</p>
+        </div>
+
+        <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 bg-white/70">
+            <FiCalendar size={16} className="text-slate-600" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent text-sm text-slate-700 outline-none"
+            />
+          </div>
+
+          <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold transition-all duration-300">
+            <FiPlus size={16} />
+            New Booking
+          </button>
+        </div>
       </div>
 
       {/* Available Rooms */}
@@ -223,7 +242,7 @@ const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) =>
               {/* Bookings Today */}
               <div className="space-y-2">
                 {room.bookings.map((booking) => (
-                  <div key={booking.id} className={`flex items-center justify-between p-2 ${colors.bg.tertiary}/30 rounded`}>
+                  <div key={booking.id} className={`flex items-center justify-between p-2 bg-slate-100/30 rounded`}>
                     <div className="flex-1">
                       <p className={`${colors.text.primary} text-sm font-medium`}>{booking.title}</p>
                       <p className={`${colors.text.muted} text-xs`}>{booking.time}</p>
@@ -249,7 +268,7 @@ const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) =>
           {myBookings.map((booking) => (
             <div
               key={booking.id}
-              className={`flex items-center justify-between p-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-lg hover:${colors.bg.tertiary}/50 transition-all`}
+              className={`flex items-center justify-between p-4 bg-slate-100/30 border ${colors.border.secondary} rounded-lg hover:bg-slate-200/50 transition-all`}
             >
               <div>
                 <p className={`${colors.text.primary} font-semibold`}>{booking.roomName}</p>

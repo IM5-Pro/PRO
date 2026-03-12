@@ -7,6 +7,28 @@ import {
   validateBulkEmployeeData,
 } from "../utils/employeeValidators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
+import {
+  bulkImportEmployees,
+  changeEmployeeManager,
+  createEmployeeWithAudit,
+  getCurrentSalary,
+  listEmployeesWithPagination,
+} from "../services/employeeService.js";
+import { generateSignedDocumentUrl } from "../utils/documentSigner.js";
+
+const resolveCurrentEmployee = async (userId) => {
+  let employee = await Employee.findById(userId)
+    .populate("managerID", "firstName lastName email designation")
+    .populate("managerId", "firstName lastName email designation");
+
+  if (!employee) {
+    employee = await Employee.findOne({ createdBy: userId })
+      .populate("managerID", "firstName lastName email designation")
+      .populate("managerId", "firstName lastName email designation");
+  }
+
+  return employee;
+};
 
 /**
  * Create new employee (HR_ADMIN, SUPER_ADMIN only)
@@ -18,45 +40,19 @@ const createEmployee = async (req, res) => {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
-    const { email, firstName, lastName, department, designation, salary, managerID, joinDate, dateOfBirth } = req.body;
-
-    // Check if employee with same email exists
-    const existingEmployee = await Employee.findOne({ email });
-    if (existingEmployee) {
-      return sendError(res, 409, "Employee with this email already exists");
-    }
-
-    const employee = await Employee.create({
-      email,
-      firstName,
-      lastName,
-      department: department || "",
-      designation: designation || "",
-      salary: salary || 0,
-      managerID: managerID || null,
-      joinDate: joinDate || new Date(),
-      dateOfBirth: dateOfBirth || null,
-      isActive: true,
-      createdBy: req.user.id,
+    const employee = await createEmployeeWithAudit({
+      body: req.body,
+      actorId: req.user.id,
     });
 
-    // Log action
-    await AuditLog.create({
-      userId: req.user.id,
-      action: "employee.create",
-      entityType: "Employee",
-      entityId: employee._id,
-      description: `Created employee: ${firstName} ${lastName}`,
-      changes: employee.toObject(),
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Employee created successfully",
+    return sendSuccess(res, 201, "Employee created successfully", {
       data: employee,
     });
   } catch (err) {
     console.error("Create employee error:", err);
+    if (err.statusCode) {
+      return sendError(res, err.statusCode, err.message);
+    }
     return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
@@ -66,43 +62,15 @@ const createEmployee = async (req, res) => {
  */
 const listEmployees = async (req, res) => {
   try {
-    const { page = 1, limit = 10, department, designation, isActive } = req.query;
-    const userRole = req.user.role;
-    const userId = req.user.id;
+    const result = await listEmployeesWithPagination({
+      role: req.user.role,
+      userId: req.user.id,
+      queryParams: req.query,
+    });
 
-    let query = {};
-
-    // Role-based filtering
-    if (userRole === "MANAGER") {
-      // Managers see only their team
-      query.managerID = userId;
-    }
-
-    // Additional filters
-    if (department) query.department = department;
-    if (designation) query.designation = designation;
-    if (isActive !== undefined) query.isActive = isActive === "true";
-
-    const skip = (page - 1) * limit;
-
-    const employees = await Employee.find(query)
-      .select("-documents")
-      .limit(parseInt(limit))
-      .skip(skip)
-      .sort({ firstName: 1 });
-
-    const total = await Employee.countDocuments(query);
-
-    res.status(200).json({
-      success: true,
-      message: "Employees retrieved successfully",
-      data: employees,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit),
-      },
+    return sendSuccess(res, 200, "Employees retrieved successfully", {
+      data: result.employees,
+      pagination: result.pagination,
     });
   } catch (err) {
     console.error("List employees error:", err);
@@ -136,7 +104,8 @@ const readEmployee = async (req, res) => {
       return sendError(res, 403, "You can only view your own employee record");
     }
 
-    if (userRole === "MANAGER" && employee.managerID.toString() !== userId) {
+    const employeeManagerId = employee.managerId || employee.managerID;
+    if (userRole === "MANAGER" && employeeManagerId?.toString() !== userId) {
       return sendError(res, 403, "You can only view your team members");
     }
 
@@ -147,6 +116,106 @@ const readEmployee = async (req, res) => {
     });
   } catch (err) {
     console.error("Read employee error:", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+/**
+ * View my own profile
+ */
+const myProfile = async (req, res) => {
+  try {
+    const employee = await resolveCurrentEmployee(req.user.id);
+    if (!employee) {
+      return sendError(res, 404, "Employee profile not found for current user");
+    }
+
+    return sendSuccess(res, 200, "Profile retrieved successfully", {
+      data: employee,
+    });
+  } catch (err) {
+    console.error("My profile error:", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+/**
+ * View direct reports of current manager
+ */
+const myTeam = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, isActive } = req.query;
+    const skip = (Number.parseInt(page, 10) - 1) * Number.parseInt(limit, 10);
+
+    const selfEmployee = await resolveCurrentEmployee(req.user.id);
+    const managerIdentifiers = [req.user.id];
+    if (selfEmployee?._id) {
+      managerIdentifiers.push(selfEmployee._id);
+    }
+
+    const filter = {
+      $or: [
+        { managerID: { $in: managerIdentifiers } },
+        { managerId: { $in: managerIdentifiers } },
+      ],
+    };
+
+    if (isActive !== undefined) {
+      filter.isActive = isActive === "true";
+    }
+
+    const [teamMembers, total] = await Promise.all([
+      Employee.find(filter)
+        .select("firstName lastName email designation department status isActive managerID managerId")
+        .sort({ firstName: 1 })
+        .skip(skip)
+        .limit(Number.parseInt(limit, 10)),
+      Employee.countDocuments(filter),
+    ]);
+
+    return sendSuccess(res, 200, "Team members retrieved successfully", {
+      data: teamMembers,
+      pagination: {
+        page: Number.parseInt(page, 10),
+        limit: Number.parseInt(limit, 10),
+        total,
+        pages: Math.ceil(total / Number.parseInt(limit, 10)),
+      },
+    });
+  } catch (err) {
+    console.error("My team error:", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+/**
+ * View current employee's manager
+ */
+const myManager = async (req, res) => {
+  try {
+    const selfEmployee = await resolveCurrentEmployee(req.user.id);
+    if (!selfEmployee) {
+      return sendError(res, 404, "Employee profile not found for current user");
+    }
+
+    const managerRef = selfEmployee.managerId || selfEmployee.managerID;
+    if (!managerRef) {
+      return sendError(res, 404, "Manager not assigned");
+    }
+
+    const manager = await Employee.findById(managerRef)
+      .select("firstName lastName email designation department status isActive")
+      .lean();
+
+    if (!manager) {
+      return sendError(res, 404, "Manager not found");
+    }
+
+    return sendSuccess(res, 200, "Manager retrieved successfully", {
+      data: manager,
+    });
+  } catch (err) {
+    console.error("My manager error:", err);
     return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
@@ -353,7 +422,8 @@ const viewProfile = async (req, res) => {
       });
     }
 
-    if (userRole === "MANAGER" && employee.managerID?.toString() !== userId) {
+    const employeeManagerId = employee.managerId || employee.managerID;
+    if (userRole === "MANAGER" && employeeManagerId?.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "You can only view your team members' profiles",
@@ -384,9 +454,11 @@ const updateProfile = async (req, res) => {
     const allowedFields = [
       "phoneNumber",
       "address",
+      "addressLine",
       "city",
       "state",
       "zipCode",
+      "emergencyContact",
     ];
 
     // Filter to allow only certain fields
@@ -396,6 +468,17 @@ const updateProfile = async (req, res) => {
         updateData[field] = req.body[field];
       }
     });
+
+    if (typeof req.body.address === "string") {
+      updateData.addressLine = req.body.address;
+      updateData.address = {
+        street: req.body.address,
+        city: req.body.city || "",
+        state: req.body.state || "",
+        country: "",
+        zipCode: req.body.zipCode || "",
+      };
+    }
 
     const employee = await Employee.findById(employeeId);
     if (!employee) {
@@ -552,7 +635,7 @@ const changeDesignation = async (req, res) => {
 const changeManager = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const { managerID } = req.body;
+    const managerID = req.body.managerID || req.body.managerId;
 
     if (!employeeId || !managerID) {
       return res.status(400).json({
@@ -561,53 +644,21 @@ const changeManager = async (req, res) => {
       });
     }
 
-    const employee = await Employee.findById(employeeId);
-    if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: "Employee not found",
-      });
-    }
-
-    const newManager = await Employee.findById(managerID);
-    if (!newManager) {
-      return res.status(404).json({
-        success: false,
-        message: "Manager not found",
-      });
-    }
-
-    const oldManager = employee.managerID;
-    const updatedEmployee = await Employee.findByIdAndUpdate(
+    const updatedEmployee = await changeEmployeeManager({
       employeeId,
-      { managerID },
-      { new: true }
-    );
-
-    // Log action
-    await AuditLog.create({
-      userId: req.user.id,
-      action: "employee.change_manager",
-      entityType: "Employee",
-      entityId: employeeId,
-      description: `Changed manager for ${employee.firstName} ${employee.lastName}`,
-      changes: {
-        managerID: { old: oldManager, new: managerID },
-      },
+      managerID,
+      actorId: req.user.id,
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Manager changed successfully",
+    return sendSuccess(res, 200, "Manager changed successfully", {
       data: updatedEmployee,
     });
   } catch (err) {
     console.error("Change manager error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    if (err.statusCode) {
+      return sendError(res, err.statusCode, err.message);
+    }
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -716,10 +767,11 @@ const downloadDocument = async (req, res) => {
       description: `Downloaded ${document.documentType}`,
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Document retrieved successfully",
-      data: document,
+    return sendSuccess(res, 200, "Document retrieved successfully", {
+      data: {
+        ...document.toObject(),
+        downloadUrl: generateSignedDocumentUrl(document.fileUrl),
+      },
     });
   } catch (err) {
     console.error("Download document error:", err);
@@ -740,7 +792,7 @@ const viewSalary = async (req, res) => {
     const userRole = req.user.role;
     const userId = req.user.id;
 
-    const employee = await Employee.findById(employeeId).select("firstName lastName email salary");
+    const { employee, salaryRecord } = await getCurrentSalary({ employeeId });
 
     if (!employee) {
       return res.status(404).json({
@@ -761,7 +813,7 @@ const viewSalary = async (req, res) => {
       // Manager can view only their team
       const managerCheckEmployee = await Employee.findOne({
         _id: employeeId,
-        managerID: userId,
+        $or: [{ managerID: userId }, { managerId: userId }],
       });
       if (!managerCheckEmployee) {
         return res.status(403).json({
@@ -780,10 +832,16 @@ const viewSalary = async (req, res) => {
       description: `Viewed salary for ${employee.firstName} ${employee.lastName}`,
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Salary retrieved successfully",
-      data: employee,
+    return sendSuccess(res, 200, "Salary retrieved successfully", {
+      data: {
+        employeeId: employee._id,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        salary: salaryRecord?.amount ?? employee.salary ?? 0,
+        currency: salaryRecord?.currency || "INR",
+        effectiveFrom: salaryRecord?.effectiveFrom || null,
+      },
     });
   } catch (err) {
     console.error("View salary error:", err);
@@ -820,7 +878,8 @@ const viewHistory = async (req, res) => {
       });
     }
 
-    if (userRole === "MANAGER" && employee.managerID?.toString() !== userId) {
+    const employeeManagerId = employee.managerId || employee.managerID;
+    if (userRole === "MANAGER" && employeeManagerId?.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "You can only view your team members' history",
@@ -866,65 +925,22 @@ const bulkImport = async (req, res) => {
       });
     }
 
-    const created = [];
-    const failed = [];
-
-    for (let i = 0; i < employees.length; i++) {
-      try {
-        const emp = employees[i];
-
-        // Check if employee exists
-        const existing = await Employee.findOne({ email: emp.email });
-        if (existing) {
-          failed.push({
-            rowNumber: i + 1,
-            email: emp.email,
-            error: "Employee already exists",
-          });
-          continue;
-        }
-
-        const newEmployee = await Employee.create({
-          ...emp,
-          isActive: true,
-          createdBy: req.user.id,
-        });
-
-        created.push(newEmployee);
-      } catch (err) {
-        failed.push({
-          rowNumber: i + 1,
-          error: err.message,
-        });
-      }
-    }
-
-    // Log action
-    await AuditLog.create({
-      userId: req.user.id,
-      action: "employee.import",
-      entityType: "Employee",
-      description: `Bulk imported ${created.length} employees`,
-      changes: { created: created.length, failed: failed.length },
+    const { createdEmployees, failedRows } = await bulkImportEmployees({
+      employees,
+      actorId: req.user.id,
     });
 
-    res.status(200).json({
-      success: true,
-      message: `Imported ${created.length} employees`,
+    return sendSuccess(res, 200, `Imported ${createdEmployees.length} employees`, {
       data: {
-        created: created.length,
-        failed: failed.length,
-        createdEmployees: created,
-        failedRows: failed,
+        created: createdEmployees.length,
+        failed: failedRows.length,
+        createdEmployees,
+        failedRows,
       },
     });
   } catch (err) {
     console.error("Bulk import error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -1077,6 +1093,9 @@ const convertToCSV = (employees) => {
 export {
   createEmployee,
   listEmployees,
+  myProfile,
+  myTeam,
+  myManager,
   readEmployee,
   updateEmployee,
   deactivateEmployee,

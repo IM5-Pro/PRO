@@ -108,6 +108,28 @@ const ROLE_PERMISSIONS = {
       export: true,
     },
 
+    // Payroll
+    payroll: {
+      create: true,
+      process: true,
+      approve: true,
+      reject: true,
+      generate_slips: true,
+      view_own: true,
+      view_all: true,
+      download_slip: true,
+      export: true,
+      update_salary: true,
+      view_salary_structure: true,
+      update_salary_structure: true,
+      tax_calculate: true,
+      tax_update: true,
+      bonus_add: true,
+      deduction_add: true,
+      lock: true,
+      unlock: true,
+    },
+
     // Designation Management
     designation: {
       create: true,
@@ -220,6 +242,28 @@ const ROLE_PERMISSIONS = {
     audit_logs: {
       view: false, // Cannot view audit logs
       export: false,
+    },
+
+    // Payroll
+    payroll: {
+      create: true,
+      process: true,
+      approve: true,
+      reject: true,
+      generate_slips: true,
+      view_own: true,
+      view_all: true,
+      download_slip: true,
+      export: true,
+      update_salary: true,
+      view_salary_structure: true,
+      update_salary_structure: true,
+      tax_calculate: true,
+      tax_update: true,
+      bonus_add: true,
+      deduction_add: true,
+      lock: true,
+      unlock: true,
     },
 
     // Designation Management
@@ -336,6 +380,28 @@ const ROLE_PERMISSIONS = {
       export: false,
     },
 
+    // Payroll
+    payroll: {
+      create: false,
+      process: false,
+      approve: false,
+      reject: false,
+      generate_slips: false,
+      view_own: false,
+      view_all: false,
+      download_slip: false,
+      export: false,
+      update_salary: false,
+      view_salary_structure: false,
+      update_salary_structure: false,
+      tax_calculate: false,
+      tax_update: false,
+      bonus_add: false,
+      deduction_add: false,
+      lock: false,
+      unlock: false,
+    },
+
     // Designation Management
     designation: {
       create: false,
@@ -450,6 +516,28 @@ const ROLE_PERMISSIONS = {
       export: false,
     },
 
+    // Payroll
+    payroll: {
+      create: false,
+      process: false,
+      approve: false,
+      reject: false,
+      generate_slips: false,
+      view_own: true,
+      view_all: false,
+      download_slip: true,
+      export: false,
+      update_salary: false,
+      view_salary_structure: false,
+      update_salary_structure: false,
+      tax_calculate: false,
+      tax_update: false,
+      bonus_add: false,
+      deduction_add: false,
+      lock: false,
+      unlock: false,
+    },
+
     // Designation Management
     designation: {
       create: false,
@@ -458,6 +546,45 @@ const ROLE_PERMISSIONS = {
       delete: false,
       list: false,
       assign: false,
+    },
+  },
+
+  FINANCE: {
+    users: {},
+    employees: {},
+    roles: {},
+    permissions: {},
+    attendance: {},
+    leaves: {},
+    reports: {
+      view: true,
+      export: true,
+      generate: false,
+    },
+    audit_logs: {
+      view: false,
+      export: false,
+    },
+    designation: {},
+    payroll: {
+      create: false,
+      process: false,
+      approve: true,
+      reject: true,
+      generate_slips: false,
+      view_own: true,
+      view_all: true,
+      download_slip: true,
+      export: true,
+      update_salary: false,
+      view_salary_structure: false,
+      update_salary_structure: false,
+      tax_calculate: true,
+      tax_update: false,
+      bonus_add: false,
+      deduction_add: false,
+      lock: false,
+      unlock: false,
     },
   },
 };

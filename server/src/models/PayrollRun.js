@@ -6,9 +6,13 @@ const payrollRunSchema = new mongoose.Schema(
     totalPayout: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["DRAFT", "PROCESSED", "PAID"],
+      enum: ["DRAFT", "PROCESSED", "PAID", "LOCKED"],
       default: "DRAFT",
     },
+    rejectionReason: { type: String, default: "" },
+    processedAt: { type: Date },
+    approvedAt: { type: Date },
+    lockedAt: { type: Date },
   },
   { timestamps: true },
 );

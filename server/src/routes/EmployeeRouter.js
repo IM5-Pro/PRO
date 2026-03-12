@@ -69,14 +69,36 @@ router.get(
  */
 
 /**
- * Get employee details
- * GET /api/employees/:employeeId
+ * View own profile (safe static route)
+ * GET /api/employees/me/profile
  */
 router.get(
-  "/:employeeId",
+  "/me/profile",
   authGuard,
   roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
-  employeeController.readEmployee
+  employeeController.myProfile
+);
+
+/**
+ * View my manager
+ * GET /api/employees/me/manager
+ */
+router.get(
+  "/me/manager",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  employeeController.myManager
+);
+
+/**
+ * View my team
+ * GET /api/employees/my-team
+ */
+router.get(
+  "/my-team",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER"),
+  employeeController.myTeam
 );
 
 /**
@@ -112,7 +134,7 @@ router.get(
 router.put(
   "/profile/update",
   authGuard,
-  roleGuard("EMPLOYEE"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
   employeeController.updateProfile
 );
 
@@ -229,6 +251,17 @@ router.put(
   authGuard,
   roleGuard("SUPER_ADMIN", "HR_ADMIN"),
   employeeController.activateEmployee
+);
+
+/**
+ * Get employee details
+ * GET /api/employees/:employeeId
+ */
+router.get(
+  "/:employeeId",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  employeeController.readEmployee
 );
 
 export default router;

@@ -63,7 +63,7 @@ const LoadingSpinner = ({
   // Full page variant
   if (variant === 'fullpage') {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
+      <div className="app-loading-bg flex items-center justify-center h-screen bg-gray-100">
         <div className="text-center">
           <div className="inline-block">
             <div

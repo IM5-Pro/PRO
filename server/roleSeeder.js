@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import RolesConst from "./src/constants/roles.js";
+import { fileURLToPath } from "url";
 import Role from "./src/models/Role.js";
 import Permission from "./src/models/Permission.js";
 
@@ -209,12 +209,14 @@ export const roles = [
   {
     name: "SUPER_ADMIN",
     description: "Super Administrator with full system access",
+    roleVersion: 1,
     permissions: [...permissionsList],
   },
   {
     name: "HR_ADMIN",
     description:
       "HR Administrator can manage employees and managers (may create users)",
+    roleVersion: 1,
     permissions: permissionsList.filter(
       (p) =>
         p.startsWith("employee.") ||
@@ -232,6 +234,7 @@ export const roles = [
   {
     name: "MANAGER",
     description: "Manager can view employees but cannot create users",
+    roleVersion: 1,
     permissions: [
       "employee.view_team",
       "attendance.view_team",
@@ -265,6 +268,7 @@ export const roles = [
   {
     name: "EMPLOYEE",
     description: "Employee with basic access",
+    roleVersion: 1,
     permissions: [
       "employee.view_profile",
       "attendance.checkin",
@@ -287,6 +291,51 @@ export const roles = [
   },
 ];
 
+const SYSTEM_MODULES = new Set([
+  "auth",
+  "role",
+  "permission",
+  "config",
+  "auditlog",
+  "system",
+]);
+
+const MODULE_GROUPS = {
+  auth: "Authentication",
+  user: "User Management",
+  role: "Role Management",
+  permission: "Permission Management",
+  employee: "Employee",
+  department: "Department",
+  designation: "Designation",
+  attendance: "Attendance",
+  leave: "Leave",
+  payroll: "Payroll",
+  recruitment: "Recruitment",
+  performance: "Performance",
+  document: "Document",
+  notification: "Notification",
+  report: "Reports",
+  config: "System Configuration",
+  auditlog: "Audit Logs",
+  system: "System",
+};
+
+const toPermissionDoc = (name) => {
+  const [module = "general", ...actionParts] = name.split(".");
+  const action = actionParts.join("_") || "access";
+
+  const description = `${action.replace(/_/g, " ")} ${module} permission`;
+
+  return {
+    name,
+    module,
+    description: description.charAt(0).toUpperCase() + description.slice(1),
+    isSystem: SYSTEM_MODULES.has(module),
+    group: MODULE_GROUPS[module] || "General",
+  };
+};
+
 const seedRoles = async () => {
   try {
     // Connect to MongoDB
@@ -296,46 +345,43 @@ const seedRoles = async () => {
 
     console.log("Connected to MongoDB");
 
-    // Clear existing permissions & roles
-    await Permission.deleteMany({});
-    await Role.deleteMany({});
-    console.log("Cleared existing permissions and roles");
+    // Upsert all permissions in bulk (safe for production, no destructive delete)
+    const permissionOperations = permissionsList.map((name) => ({
+      updateOne: {
+        filter: { name },
+        update: { $set: toPermissionDoc(name) },
+        upsert: true,
+      },
+    }));
 
-    // create permissions first
-    const createdPerms = [];
-    for (const name of permissionsList) {
-      try {
-        const p = new Permission({ name });
-        await p.save();
-        createdPerms.push(p);
-      } catch (err) {
-        if (err.code === 11000) continue;
-        else throw err;
-      }
-    }
-    const idMap = Object.fromEntries(createdPerms.map((p) => [p.name, p._id]));
+    await Permission.bulkWrite(permissionOperations, { ordered: false });
 
-    // now roles with reference ids
-    for (const roleData of roles) {
-      try {
-        const roleDoc = new Role({
-          name: roleData.name,
-          description: roleData.description,
-          permissions: (roleData.permissions || [])
-            .map((n) => idMap[n])
-            .filter(Boolean),
-        });
-        await roleDoc.save();
-        console.log(`Role ${roleData.name} created successfully`);
-      } catch (error) {
-        if (error.code === 11000) {
-          console.log(`Role ${roleData.name} already exists, skipping...`);
-        } else {
-          throw error;
-        }
-      }
-    }
+    const allPermissions = await Permission.find({
+      name: { $in: permissionsList },
+    }).select("_id name");
+    const idMap = Object.fromEntries(allPermissions.map((permission) => [permission.name, permission._id]));
 
+    // Upsert roles in bulk and refresh mapped permission references
+    const roleOperations = roles.map((roleData) => ({
+      updateOne: {
+        filter: { name: roleData.name },
+        update: {
+          $set: {
+            description: roleData.description,
+            roleVersion: roleData.roleVersion || 1,
+            permissions: (roleData.permissions || [])
+              .map((name) => idMap[name])
+              .filter(Boolean),
+          },
+        },
+        upsert: true,
+      },
+    }));
+
+    await Role.bulkWrite(roleOperations, { ordered: false });
+
+    console.log(`Permissions upserted: ${permissionOperations.length}`);
+    console.log(`Roles upserted: ${roleOperations.length}`);
     console.log("Role seeding completed successfully");
   } catch (error) {
     console.error("Error seeding roles:", error);
@@ -346,9 +392,9 @@ const seedRoles = async () => {
   }
 };
 
-// run the seeder only if this module is the main script
-// (index.js already calls it after DB connection)
-if (process.env.NODE_ENV !== "test") {
+// run the seeder only when executed directly (not when imported)
+const isDirectRun = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (isDirectRun && process.env.NODE_ENV !== "test") {
   seedRoles();
 }
 

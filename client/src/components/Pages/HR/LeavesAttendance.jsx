@@ -209,7 +209,7 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
             {leaveRequests.map((req) => (
               <div
                 key={req.id}
-                className={`flex items-center justify-between p-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-xl hover:${colors.bg.tertiary}/50 transition-all`}
+                className={`flex items-center justify-between p-4 bg-slate-100/30 border ${colors.border.secondary} rounded-xl hover:bg-slate-200/50 transition-all`}
               >
                 <div className="flex-1">
                   <p className={`${colors.text.primary} font-semibold`}>{req.employee}</p>

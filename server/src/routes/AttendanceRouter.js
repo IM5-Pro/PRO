@@ -2,9 +2,12 @@ import express from "express";
 import {
   checkIn,
   checkOut,
+  startBreak,
+  endBreak,
   viewOwn,
   viewTeam,
   viewAll,
+  monthlySummary,
   editAttendance,
   deleteAttendance,
   bulkUpload,
@@ -28,6 +31,14 @@ router.use(authGuard);
  */
 router.post("/check-in", checkIn);
 router.post("/check-out", checkOut);
+router.post("/checkin", checkIn);
+router.post("/checkout", checkOut);
+
+/**
+ * Break tracking: Employee only
+ */
+router.post("/break/start", startBreak);
+router.post("/break/end", endBreak);
 
 /**
  * View Own: All roles
@@ -50,6 +61,12 @@ router.get(
   "/all",
   permissionGuard("attendance", "view_all"),
   viewAll
+);
+
+router.get(
+  "/monthly-summary",
+  permissionGuard("attendance", "view_team"),
+  monthlySummary
 );
 
 /**

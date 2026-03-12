@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { FiBell, FiFilter, FiFlag } from 'react-icons/fi';
-import bgImage from '../../assets/Background.png';
 
 const Announcements = () => {
   const [pinned, setPinned] = useState({ 0: true });
@@ -67,8 +66,7 @@ const Announcements = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

@@ -19,6 +19,13 @@ router.post(
   payrollController.processPayroll,
 );
 
+router.post(
+  "/:runId/process",
+  authGuard,
+  permissionGuard("payroll.process"),
+  payrollController.processPayroll,
+);
+
 router.patch(
   "/:id/approve",
   authGuard,
@@ -35,6 +42,13 @@ router.patch(
 
 router.post(
   "/generate-slips",
+  authGuard,
+  permissionGuard("payroll.generate_slips"),
+  payrollController.generateSlips,
+);
+
+router.post(
+  "/:runId/generate-slips",
   authGuard,
   permissionGuard("payroll.generate_slips"),
   payrollController.generateSlips,
@@ -68,6 +82,13 @@ router.get(
   payrollController.exportPayroll,
 );
 
+router.get(
+  "/:runId/export",
+  authGuard,
+  permissionGuard("payroll.export"),
+  payrollController.exportPayroll,
+);
+
 router.patch(
   "/salary/:id",
   authGuard,
@@ -84,6 +105,13 @@ router.get(
 
 router.patch(
   "/structure",
+  authGuard,
+  permissionGuard("payroll.update_salary_structure"),
+  payrollController.updateSalaryStructure,
+);
+
+router.patch(
+  "/structure/:templateId",
   authGuard,
   permissionGuard("payroll.update_salary_structure"),
   payrollController.updateSalaryStructure,
@@ -125,7 +153,21 @@ router.patch(
 );
 
 router.patch(
+  "/:runId/lock",
+  authGuard,
+  permissionGuard("payroll.lock"),
+  payrollController.lockPayroll,
+);
+
+router.patch(
   "/unlock",
+  authGuard,
+  permissionGuard("payroll.unlock"),
+  payrollController.unlockPayroll,
+);
+
+router.patch(
+  "/:runId/unlock",
   authGuard,
   permissionGuard("payroll.unlock"),
   payrollController.unlockPayroll,

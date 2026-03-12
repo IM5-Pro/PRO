@@ -56,7 +56,7 @@ const Sidebar = ({ onNavigate }) => {
 
       {/* Sidebar Container */}
       <div
-        className={`fixed md:static left-0 top-0 h-screen w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white shadow-lg transform transition-transform duration-300 ${
+        className={`fixed md:static left-0 top-0 h-screen w-64 bg-slate-900 text-white shadow-lg transform transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } z-40`}
       >

@@ -269,7 +269,7 @@ code {
 
   /* Text gradient */
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent;
   }
 
   /* Elevated shadow */
@@ -281,11 +281,29 @@ code {
 @layer components {
 }
 
-.from-slate-800 {
-  --tw-gradient-from: #1e293b var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(30 41 59 / 0) …           /* 0 % opacity */
-  …
+/* Enterprise visual consistency for app pages (excludes login/auth screens). */
+.app-shell,
+.app-shell .bg-gradient-to-br.from-slate-50.to-slate-100,
+.app-loading-bg,
+.app-punch-bg {
+  background: linear-gradient(
+    rgba(255, 255, 255, 0.92),
+    rgba(255, 255, 255, 0.92)
+  ),
+  url('./assets/Background.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
-.to-slate-700 {
-  --tw-gradient-to: #080925 …
+
+.app-shell .shadow-lg,
+.app-shell .shadow-xl,
+.app-shell .shadow-2xl {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+.app-shell .hover\:shadow-lg:hover,
+.app-shell .hover\:shadow-xl:hover,
+.app-shell .hover\:shadow-2xl:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }

@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { FiClock, FiCheckCircle, FiXCircle, FiLogIn, FiLogOut } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
 import AttendanceSheet from '../AttendanceSheet/AttendanceSheet';
-import bgImage from '../../assets/Background.png';
 
 const Attendance = () => {
   const { colors, isDark } = useTheme();
@@ -36,8 +35,7 @@ const Attendance = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
     >
       {/* Header with Punch Status */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6 animate-slideInDown">

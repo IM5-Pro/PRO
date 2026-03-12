@@ -72,11 +72,18 @@ const LetterTemplates = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }
   return (
     <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
-        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-          📄 Letter Templates
-        </h1>
-        <p className="text-slate-600">Manage letter templates for HR correspondence</p>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+            📄 Letter Templates
+          </h1>
+          <p className="text-slate-600">Manage letter templates for HR correspondence</p>
+        </div>
+
+        <button className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold transition-all duration-300">
+          <FiPlus size={16} />
+          Add Template
+        </button>
       </div>
 
       {/* Grid of Templates */}
@@ -97,7 +104,7 @@ const LetterTemplates = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }
 
             <p className={`${colors.text.tertiary} text-sm mb-4 min-h-10`}>{template.description}</p>
 
-            <div className={`flex items-center justify-between py-3 border-t border-t-${colors.border.secondary}`}>
+            <div className={`flex items-center justify-between py-3 border-t ${colors.border.secondary}`}>
               <div className={`${colors.text.muted} text-xs`}>Used {template.usageCount} times</div>
               <div className="flex gap-2">
                 <button className="p-2 rounded-lg hover:bg-slate-700 transition-colors group/btn" title="Preview">

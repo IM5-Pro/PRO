@@ -2,8 +2,17 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    email: { type: String, unique: true, required: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      lowercase: true,
+      trim: true,
+    },
     password: { type: String, required: true },
+    firstName: { type: String, default: "", trim: true },
+    lastName: { type: String, default: "", trim: true },
     role: String,
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     createdBy: {
@@ -12,8 +21,12 @@ const userSchema = new mongoose.Schema(
     },
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
-    refreshToken: { type: String },
+    refreshTokenHash: { type: String },
     refreshTokenExpiresAt: { type: Date },
+    passwordResetTokenHash: { type: String },
+    passwordResetTokenExpiresAt: { type: Date },
+    failedLoginAttempts: { type: Number, default: 0 },
+    lockedUntil: { type: Date },
   },
   { timestamps: true },
 );
@@ -21,5 +34,6 @@ const userSchema = new mongoose.Schema(
 // Index for better query performance
 userSchema.index({ role: 1 });
 userSchema.index({ createdBy: 1 });
+userSchema.index({ passwordResetTokenExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model("User", userSchema);

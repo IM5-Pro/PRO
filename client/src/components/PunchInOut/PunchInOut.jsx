@@ -150,12 +150,15 @@ const PunchInOut = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div className="app-punch-bg min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div
+        className="max-w-md w-full bg-white rounded-2xl overflow-hidden"
+        style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white text-center">
+        <div className="bg-blue-600 p-6 text-white text-center">
           <h1 className="text-2xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h1>
-          <p className="text-blue-100">Please punch in to start your workday</p>
+          <p className="text-blue-50">Please punch in to start your workday</p>
         </div>
 
         {/* Time Display */}

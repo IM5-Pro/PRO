@@ -85,7 +85,7 @@ const Masters = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {departments.map((dept) => (
-              <div key={dept.id} className={`p-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-lg hover:${colors.bg.tertiary}/50 transition-all`}>
+              <div key={dept.id} className={`p-4 bg-slate-100/30 border ${colors.border.secondary} rounded-lg hover:bg-slate-200/50 transition-all`}>
                 <div className="flex justify-between items-start">
                   <div>
                     <p className={`${colors.text.primary} font-semibold`}>{dept.name}</p>
@@ -165,7 +165,7 @@ const Masters = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {employeeCategories.map((cat) => (
-              <div key={cat.id} className={`p-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-lg hover:${colors.bg.tertiary}/50 transition-all`}>
+              <div key={cat.id} className={`p-4 bg-slate-100/30 border ${colors.border.secondary} rounded-lg hover:bg-slate-200/50 transition-all`}>
                 <div className="flex justify-between items-start">
                   <div>
                     <p className={`${colors.text.primary} font-semibold`}>{cat.name}</p>

@@ -63,11 +63,11 @@ const AppContent = () => {
   // ============================================================================
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="app-loading-bg flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
           <div className="inline-block">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-white text-lg font-semibold">Loading...</p>
+            <p className="text-slate-700 text-lg font-semibold">Loading...</p>
           </div>
         </div>
       </div>

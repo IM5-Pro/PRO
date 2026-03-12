@@ -64,11 +64,11 @@ const ManagerSidebar = ({ currentPage = 'dashboard', onNavigate = () => {} }) =>
           onClick={() => handleMenuClick(item.id)}
           className={`
             w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left
-            transition-colors duration-200
+            border transition-all duration-200
             ${
               isActive
-                ? 'bg-white/30 text-slate-900'
-                : 'text-slate-700 hover:bg-white/25 hover:text-slate-900'
+                ? 'bg-blue-500 text-white border-blue-500 shadow-md font-semibold'
+                : 'border-transparent text-slate-700 hover:bg-white/25 hover:text-slate-900'
             }
           `}
           title={item.description}

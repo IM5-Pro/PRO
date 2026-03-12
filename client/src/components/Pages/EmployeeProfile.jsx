@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { FiUser, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/Background.png';
 
 const EmployeeProfile = () => {
   const { colors } = useTheme();
@@ -46,8 +45,7 @@ const EmployeeProfile = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -60,7 +58,7 @@ const EmployeeProfile = () => {
 
         <button
           onClick={handleEditToggle}
-          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2"
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2"
         >
           {isEditing ? (
             <>

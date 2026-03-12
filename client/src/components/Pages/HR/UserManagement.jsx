@@ -188,6 +188,11 @@ const HRUserManagement = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
+
+          <button className="hidden md:inline-flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold transition-all duration-300">
+            <FiPlus size={16} />
+            Add User
+          </button>
         </div>
       </div>
 

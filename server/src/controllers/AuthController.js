@@ -1,41 +1,91 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import User from "../models/User.js";
 import Role from "../models/Role.js";
-import Permission from "../models/Permission.js";
-import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
-import { validateRegisterSuperAdmin, validateLogin, validateCreateUser } from "../utils/validators.js";
+import Roles from "../constants/roles.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "../utils/jwt.js";
+import {
+  isValidEmail,
+  isValidPassword,
+  validateRegisterSuperAdmin,
+  validateLogin,
+  validateCreateUser,
+} from "../utils/validators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
+
+const BCRYPT_SALT_ROUNDS = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || "12", 10);
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCK_MINUTES = 15;
+const PASSWORD_RESET_TOKEN_TTL_MINUTES = 15;
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PASSWORD_VALIDATION_MESSAGE = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character";
+
+const normalizeEmail = (email) => {
+  if (typeof email !== "string") {
+    return "";
+  }
+  return email.toLowerCase().trim();
+};
+
+const getUserPermissions = async (roleName) => {
+  const roleDoc = await Role.findOne({ name: roleName }).populate("permissions", "name");
+  return roleDoc ? roleDoc.permissions.map((permission) => permission.name) : [];
+};
+
+const toUserResponse = (user, permissions = []) => ({
+  id: user._id,
+  email: user.email,
+  role: user.role,
+  employeeId: user.employeeId || null,
+  permissions,
+  isActive: user.isActive,
+  lastLogin: user.lastLogin,
+});
+
+const generatePasswordResetToken = () => {
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+  return { token, tokenHash };
+};
 
 const registerSuperAdmin = async (req, res) => {
   try {
+    const { email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
+
     // Validate request body
-    const validation = validateRegisterSuperAdmin(req.body);
+    const validation = validateRegisterSuperAdmin({ ...req.body, email: normalizedEmail });
     if (!validation.isValid) {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
-    const { email, password } = req.body;
-
     // Check if email already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return sendError(res, 409, "Email already registered", { email: "This email is already in use" });
     }
 
-    const hash = await bcrypt.hash(password, 10);
+    const existingSuperAdmin = await User.findOne({ role: Roles.SUPER_ADMIN });
+    if (existingSuperAdmin) {
+      return sendError(res, 403, "Super admin already exists");
+    }
 
-    // Update existing super admin or create new one
-    const user = await User.findOneAndUpdate(
-      { role: "SUPER_ADMIN" },
-      {
-        email,
-        password: hash,
-        role: "SUPER_ADMIN",
-      },
-      { upsert: true, new: true },
-    );
+    const hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-    return sendSuccess(res, 201, "Super admin registered successfully", { data: user });
+    const user = await User.create({
+      email: normalizedEmail,
+      password: hash,
+      role: Roles.SUPER_ADMIN,
+    });
+
+    return sendSuccess(res, 201, "Super admin registered successfully", {
+      data: toUserResponse(user),
+    });
   } catch (err) {
     console.error("Register error:", err);
     return sendError(res, 500, "Internal server error", { error: err.message });
@@ -46,34 +96,41 @@ const registerSuperAdmin = async (req, res) => {
 const registerHrAdmin = async (req, res) => {
   try {
     // validation leverages createUser rules but disallows SUPER_ADMIN
-    const validation = validateCreateUser(req.body);
+    const normalizedEmail = normalizeEmail(req.body.email);
+    const validation = validateCreateUser({
+      ...req.body,
+      email: normalizedEmail,
+      role: Roles.HR_ADMIN,
+    });
     if (!validation.isValid) {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
     // ensure caller is permitted (roleGuard on route should handle this too)
-    if (req.user.role !== "SUPER_ADMIN" && req.user.role !== "HR_ADMIN") {
+    if (!req.user || (req.user.role !== Roles.SUPER_ADMIN && req.user.role !== Roles.HR_ADMIN)) {
       return sendError(res, 403, "Access denied");
     }
 
-    const { email, password, firstName, lastName } = req.body;
+    const { password, firstName, lastName } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return sendError(res, 409, "Email already registered", { email: "This email is already in use" });
     }
 
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       password: hash,
-      role: "HR_ADMIN",
+      role: Roles.HR_ADMIN,
       firstName: firstName || "",
       lastName: lastName || "",
     });
 
-    return sendSuccess(res, 201, "HR admin created successfully", { data: user });
+    return sendSuccess(res, 201, "HR admin created successfully", {
+      data: toUserResponse(user),
+    });
   } catch (err) {
     console.error("Register HR admin error:", err);
     return sendError(res, 500, "Internal server error", { error: err.message });
@@ -85,57 +142,65 @@ const login = async (req, res) => {
     // Validate request body
     const validation = validateLogin(req.body);
     if (!validation.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: validation.errors,
-      });
+      return sendError(res, 400, "Validation failed", validation.errors);
     }
 
     const { email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return sendError(res, 401, "Invalid email or password");
     }
 
+    if (!user.isActive) {
+      return sendError(res, 403, "Account is disabled");
+    }
+
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      return sendError(res, 423, "Account temporarily locked due to failed login attempts");
+    }
+
     const valid = await bcrypt.compare(password, user.password);
 
     if (!valid) {
+      const nextAttempts = (user.failedLoginAttempts || 0) + 1;
+
+      if (nextAttempts >= MAX_LOGIN_ATTEMPTS) {
+        user.failedLoginAttempts = 0;
+        user.lockedUntil = new Date(Date.now() + LOGIN_LOCK_MINUTES * 60 * 1000);
+        await user.save();
+        return sendError(res, 423, "Account temporarily locked due to failed login attempts");
+      }
+
+      user.failedLoginAttempts = nextAttempts;
+      await user.save();
       return sendError(res, 401, "Invalid email or password");
     }
 
-    // fetch role document to get permissions
-    const roleDoc = await Role.findOne({ name: user.role }).populate(
-      "permissions",
-    );
-    const permissions = roleDoc ? roleDoc.permissions.map((p) => p.name) : [];
+    const permissions = await getUserPermissions(user.role);
 
-    const tokenUser = {
+    const accessToken = generateAccessToken({
       id: user._id,
       role: user.role,
-      permissions,
-    };
+      employeeId: user.employeeId || null,
+    });
+    const issuedRefreshToken = generateRefreshToken({ id: user._id });
+    const refreshTokenHash = await bcrypt.hash(issuedRefreshToken, BCRYPT_SALT_ROUNDS);
 
-    const accessToken = generateAccessToken(tokenUser);
-    const refreshToken = generateRefreshToken(user);
-
-    user.refreshToken = refreshToken;
+    user.refreshTokenHash = refreshTokenHash;
+    user.refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = undefined;
+    user.lastLogin = new Date();
     await user.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
+    return sendSuccess(res, 200, "Login successful", {
       data: {
         accessToken,
-        refreshToken,
-        user: {
-          id: user._id,
-          email: user.email,
-          role: user.role,
-          permissions,
-        },
+        refreshToken: issuedRefreshToken,
+        user: toUserResponse(user, permissions),
       },
     });
   } catch (err) {
@@ -147,31 +212,79 @@ const login = async (req, res) => {
 // Logout: invalidate refresh token
 const logout = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.user.id, {
-      $unset: { refreshToken: "" },
+    if (!req.user?.id) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
+    await User.findByIdAndUpdate(req.user.id, {
+      $unset: {
+        refreshTokenHash: "",
+        refreshTokenExpiresAt: "",
+      },
     });
+
     return sendSuccess(res, 200, "Logged out");
   } catch (err) {
-    return sendError(res, 500, "Internal server error", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
 // Refresh token: issue new access token
 const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
-    const user = await User.findOne({ refreshToken });
-    if (!user)
+    const { refreshToken: providedRefreshToken } = req.body;
+    if (!providedRefreshToken || typeof providedRefreshToken !== "string") {
+      return sendError(res, 400, "Refresh token is required");
+    }
+
+    let payload;
+    try {
+      payload = verifyRefreshToken(providedRefreshToken);
+    } catch (verifyError) {
       return sendError(res, 401, "Invalid refresh token");
-    const roleDoc = await Role.findOne({ name: user.role }).populate(
-      "permissions",
-    );
-    const permissions = roleDoc ? roleDoc.permissions.map((p) => p.name) : [];
-    const tokenUser = { id: user._id, role: user.role, permissions };
-    const accessToken = generateAccessToken(tokenUser);
-    return sendSuccess(res, 200, "Token refreshed", { accessToken });
+    }
+
+    const userId = payload.id || payload.sub;
+    const user = await User.findById(userId);
+    if (!user || !user.refreshTokenHash) {
+      return sendError(res, 401, "Invalid refresh token");
+    }
+
+    if (!user.isActive) {
+      return sendError(res, 403, "Account is disabled");
+    }
+
+    if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt < new Date()) {
+      return sendError(res, 401, "Refresh token expired");
+    }
+
+    const isTokenMatch = await bcrypt.compare(providedRefreshToken, user.refreshTokenHash);
+    if (!isTokenMatch) {
+      return sendError(res, 401, "Invalid refresh token");
+    }
+
+    const permissions = await getUserPermissions(user.role);
+    const accessToken = generateAccessToken({
+      id: user._id,
+      role: user.role,
+      employeeId: user.employeeId || null,
+    });
+    const newRefreshToken = generateRefreshToken({ id: user._id });
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, BCRYPT_SALT_ROUNDS);
+
+    user.refreshTokenHash = newRefreshTokenHash;
+    user.refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+    await user.save();
+
+    return sendSuccess(res, 200, "Token refreshed", {
+      data: {
+        accessToken,
+        refreshToken: newRefreshToken,
+        user: toUserResponse(user, permissions),
+      },
+    });
   } catch (err) {
-    return sendError(res, 500, "Internal server error", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -179,29 +292,73 @@ const refreshToken = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return sendError(res, 404, "User not found");
-    // Mock: send email
-    return sendSuccess(res, 200, "Password reset email sent");
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+      return sendError(res, 400, "A valid email is required");
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
+
+    let resetToken;
+    if (user) {
+      const resetPayload = generatePasswordResetToken();
+      resetToken = resetPayload.token;
+
+      user.passwordResetTokenHash = resetPayload.tokenHash;
+      user.passwordResetTokenExpiresAt = new Date(
+        Date.now() + PASSWORD_RESET_TOKEN_TTL_MINUTES * 60 * 1000,
+      );
+      await user.save();
+    }
+
+    const responseData = {};
+    if (resetToken && process.env.NODE_ENV !== "production") {
+      responseData.resetToken = resetToken;
+    }
+
+    return sendSuccess(res, 200, "If the email exists, a password reset link has been sent", {
+      data: responseData,
+    });
   } catch (err) {
-    return sendError(res, 500, "Internal server error", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
 // Reset password: set new password
 const resetPassword = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const hash = await bcrypt.hash(password, 10);
-    const user = await User.findOneAndUpdate(
-      { email },
-      { $set: { password: hash } },
-      { new: true },
-    );
-    if (!user) return sendError(res, 404, "User not found");
-    return sendSuccess(res, 200, "Password reset", { data: user });
+    const { resetToken, password } = req.body;
+
+    if (!resetToken || typeof resetToken !== "string") {
+      return sendError(res, 400, "Reset token is required");
+    }
+
+    if (!isValidPassword(password)) {
+      return sendError(res, 400, PASSWORD_VALIDATION_MESSAGE);
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    const user = await User.findOne({
+      passwordResetTokenHash: tokenHash,
+      passwordResetTokenExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return sendError(res, 400, "Invalid or expired reset token");
+    }
+
+    user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+    user.passwordResetTokenHash = undefined;
+    user.passwordResetTokenExpiresAt = undefined;
+    user.refreshTokenHash = undefined;
+    user.refreshTokenExpiresAt = undefined;
+    await user.save();
+
+    return sendSuccess(res, 200, "Password reset successfully");
   } catch (err) {
-    return sendError(res, 500, "Internal server error", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -209,40 +366,54 @@ const resetPassword = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return sendError(res, 400, "Old password and new password are required");
+    }
+
+    if (!isValidPassword(newPassword)) {
+      return sendError(res, 400, PASSWORD_VALIDATION_MESSAGE);
+    }
+
     const user = await User.findById(req.user.id);
     if (!user) return sendError(res, 404, "User not found");
     const valid = await bcrypt.compare(oldPassword, user.password);
-    if (!valid)
+    if (!valid) {
       return sendError(res, 401, "Invalid old password");
-    user.password = await bcrypt.hash(newPassword, 10);
+    }
+
+    user.password = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+    user.refreshTokenHash = undefined;
+    user.refreshTokenExpiresAt = undefined;
     await user.save();
     return sendSuccess(res, 200, "Password changed");
   } catch (err) {
-    return sendError(res, 500, "Internal server error", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
 // MFA enable (mock)
 const mfaEnable = async (req, res) => {
-  res.json({ success: true, message: "MFA enabled (mock)" });
+  return sendSuccess(res, 200, "MFA enabled (mock)");
 };
 
 // MFA disable (mock)
 const mfaDisable = async (req, res) => {
-  res.json({ success: true, message: "MFA disabled (mock)" });
+  return sendSuccess(res, 200, "MFA disabled (mock)");
 };
 
 // Session view (mock)
 const sessionView = async (req, res) => {
-  res.json({
-    success: true,
-    sessions: [{ id: "mock-session", user: req.user.id }],
+  return sendSuccess(res, 200, "Sessions retrieved", {
+    data: {
+      sessions: [{ id: "mock-session", user: req.user.id }],
+    },
   });
 };
 
 // Session terminate (mock)
 const sessionTerminate = async (req, res) => {
-  res.json({ success: true, message: "Session terminated (mock)" });
+  return sendSuccess(res, 200, "Session terminated (mock)");
 };
 
 export default {

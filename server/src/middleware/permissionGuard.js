@@ -1,5 +1,24 @@
 import { hasPermission } from "../config/permissions.js";
 
+const resolvePermission = (resource, action) => {
+  if (action) {
+    return { resource, action };
+  }
+
+  if (typeof resource === "string" && resource.includes(".")) {
+    const parts = resource.split(".").map((part) => part.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const resolvedAction = parts.pop();
+      return {
+        resource: parts.join("."),
+        action: resolvedAction,
+      };
+    }
+  }
+
+  return { resource, action };
+};
+
 /**
  * Permission Guard Middleware
  * Checks if user has permission for a specific resource and action
@@ -8,6 +27,8 @@ import { hasPermission } from "../config/permissions.js";
  * router.post('/employees', authGuard, permissionGuard('employees', 'create'), controller)
  */
 const permissionGuard = (resource, action) => {
+  const resolved = resolvePermission(resource, action);
+
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -18,10 +39,10 @@ const permissionGuard = (resource, action) => {
 
     const userRole = req.user.role;
 
-    if (!hasPermission(userRole, resource, action)) {
+    if (!hasPermission(userRole, resolved.resource, resolved.action)) {
       return res.status(403).json({
         success: false,
-        message: `Access Denied - ${userRole} cannot perform ${action} on ${resource}`,
+        message: `Access Denied - ${userRole} cannot perform ${resolved.action} on ${resolved.resource}`,
       });
     }
 
@@ -50,9 +71,10 @@ const multiPermissionGuard = (permissions) => {
 
     const userRole = req.user.role;
 
-    const hasAny = permissions.some((perm) =>
-      hasPermission(userRole, perm.resource, perm.action)
-    );
+    const hasAny = permissions.some((perm) => {
+      const resolved = resolvePermission(perm.resource, perm.action);
+      return hasPermission(userRole, resolved.resource, resolved.action);
+    });
 
     if (!hasAny) {
       return res.status(403).json({

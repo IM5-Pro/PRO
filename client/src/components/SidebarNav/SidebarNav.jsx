@@ -34,7 +34,7 @@ const SidebarNav = () => {
       {/* Mobile Toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 md:hidden p-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg"
+        className="fixed top-4 left-4 z-50 md:hidden p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
       >
         {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
       </button>
@@ -55,7 +55,7 @@ const SidebarNav = () => {
       >
         {/* Header */}
         <div className={`p-6 border-b-2 transition-colors duration-300 ${colors.border.primary}`}>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-slate-800">
             HRMS
           </h1>
           <p className={`text-xs mt-1 transition-colors duration-300 ${colors.text.tertiary}`}>Employee Portal</p>
@@ -72,10 +72,10 @@ const SidebarNav = () => {
                 key={idx}
                 to={item.path}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 border ${
                   active
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20'
-                    : `${colors.text.tertiary} hover:${colors.text.primary} hover:${colors.bg.tertiary}/50`
+                    ? 'bg-blue-500 text-white border-blue-500 font-semibold'
+                    : `border-transparent ${colors.text.tertiary} hover:${colors.text.primary} hover:${colors.bg.tertiary}/50`
                 }`}
               >
                 <Icon size={20} />

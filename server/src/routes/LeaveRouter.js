@@ -9,63 +9,63 @@ const router = express.Router();
 router.post(
   "/",
   authGuard,
-  permissionGuard("leave.apply"),
+  permissionGuard("leaves", "create"),
   leaveController.applyLeave,
 );
 
 router.post(
   "/cancel/:id",
   authGuard,
-  permissionGuard("leave.cancel"),
+  permissionGuard("leaves", "cancel"),
   leaveController.cancelLeave,
 );
 
 router.put(
   "/:id",
   authGuard,
-  permissionGuard("leave.update"),
+  permissionGuard("leaves", "update"),
   leaveController.updateLeave,
 );
 
 router.get(
   "/own",
   authGuard,
-  permissionGuard("leave.view_own"),
+  permissionGuard("leaves", "read"),
   leaveController.viewOwn,
 );
 
 router.get(
   "/team",
   authGuard,
-  permissionGuard("leave.view_team"),
+  permissionGuard("leaves", "list"),
   leaveController.viewTeam,
 );
 
 router.get(
   "/all",
   authGuard,
-  permissionGuard("leave.view_all"),
+  permissionGuard("leaves", "list"),
   leaveController.viewAll,
 );
 
 router.patch(
   "/:id/approve",
   authGuard,
-  permissionGuard("leave.approve"),
+  permissionGuard("leaves", "approve"),
   leaveController.approveLeave,
 );
 
 router.patch(
   "/:id/reject",
   authGuard,
-  permissionGuard("leave.reject"),
+  permissionGuard("leaves", "reject"),
   leaveController.rejectLeave,
 );
 
 router.post(
   "/bulk-approve",
   authGuard,
-  permissionGuard("leave.bulk_approve"),
+  permissionGuard("leaves", "approve"),
   leaveController.bulkApprove,
 );
 
@@ -73,28 +73,28 @@ router.post(
 router.post(
   "/policy",
   authGuard,
-  permissionGuard("leave.policy_create"),
+  permissionGuard("leaves", "create"),
   leaveController.createPolicy,
 );
 
 router.put(
   "/policy/:id",
   authGuard,
-  permissionGuard("leave.policy_update"),
+  permissionGuard("leaves", "update"),
   leaveController.updatePolicy,
 );
 
 router.delete(
   "/policy/:id",
   authGuard,
-  permissionGuard("leave.policy_delete"),
+  permissionGuard("leaves", "delete"),
   leaveController.deletePolicy,
 );
 
 router.get(
   "/policy",
   authGuard,
-  permissionGuard("leave.policy_view"),
+  permissionGuard("leaves", "read"),
   leaveController.viewPolicies,
 );
 
@@ -102,14 +102,14 @@ router.get(
 router.get(
   "/balance",
   authGuard,
-  permissionGuard("leave.balance_view"),
+  permissionGuard("leaves", "read"),
   leaveController.viewBalance,
 );
 
 router.patch(
   "/balance",
   authGuard,
-  permissionGuard("leave.balance_adjust"),
+  permissionGuard("leaves", "update"),
   leaveController.adjustBalance,
 );
 

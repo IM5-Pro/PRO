@@ -2,19 +2,46 @@
  * Attendance Validation Functions
  */
 
+const isValidLocationObject = (location) => {
+  if (!location || typeof location !== "object" || Array.isArray(location)) {
+    return false;
+  }
+
+  if (location.latitude !== undefined && typeof location.latitude !== "number") {
+    return false;
+  }
+
+  if (location.longitude !== undefined && typeof location.longitude !== "number") {
+    return false;
+  }
+
+  if (location.ipAddress !== undefined && typeof location.ipAddress !== "string") {
+    return false;
+  }
+
+  if (location.device !== undefined && typeof location.device !== "string") {
+    return false;
+  }
+
+  if (location.label !== undefined && typeof location.label !== "string") {
+    return false;
+  }
+
+  return true;
+};
+
 export const validateAttendanceCheckIn = (body) => {
   const errors = {};
   let isValid = true;
 
-  // Employee ID is required
-  if (!body.employee || typeof body.employee !== "string") {
-    errors.employee = "Valid employee ID is required";
-    isValid = false;
-  }
-
   // Check-in location is optional
-  if (body.checkInLocation && typeof body.checkInLocation !== "string") {
-    errors.checkInLocation = "Check-in location must be a string";
+  if (
+    body.checkInLocation &&
+    typeof body.checkInLocation !== "string" &&
+    !isValidLocationObject(body.checkInLocation)
+  ) {
+    errors.checkInLocation =
+      "Check-in location must be a string label or an object with latitude/longitude/ipAddress/device";
     isValid = false;
   }
 
@@ -25,15 +52,14 @@ export const validateAttendanceCheckOut = (body) => {
   const errors = {};
   let isValid = true;
 
-  // Employee ID is required
-  if (!body.employee || typeof body.employee !== "string") {
-    errors.employee = "Valid employee ID is required";
-    isValid = false;
-  }
-
   // Check-out location is optional
-  if (body.checkOutLocation && typeof body.checkOutLocation !== "string") {
-    errors.checkOutLocation = "Check-out location must be a string";
+  if (
+    body.checkOutLocation &&
+    typeof body.checkOutLocation !== "string" &&
+    !isValidLocationObject(body.checkOutLocation)
+  ) {
+    errors.checkOutLocation =
+      "Check-out location must be a string label or an object with latitude/longitude/ipAddress/device";
     isValid = false;
   }
 

@@ -19,7 +19,6 @@ import TeamScheduleCalendar from '../TeamScheduleCalendar/TeamScheduleCalendar';
 import BookMeeting from '../BookMeeting/BookMeeting';
 import ManagerActionCenter from './ManagerActionCenter';
 import ManagerSidebarPageContent from './ManagerSidebarPages';
-import bgImage from '../../assets/Background.png';
 
 /**
  * ManagerDashboard Component
@@ -228,8 +227,7 @@ const ManagerDashboard = () => {
 
   return (
     <div
-      className="flex h-screen bg-cover bg-center bg-fixed overflow-hidden"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
+      className="app-shell flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden"
     >
       {/* Sidebar */}
       <ManagerSidebar

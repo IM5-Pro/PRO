@@ -89,7 +89,7 @@ const AdminPanelConfig = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
           ].map((setting) => (
             <div
               key={setting.key}
-              className={`flex items-center justify-between p-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-lg hover:${colors.bg.tertiary}/50 transition-all`}
+              className={`flex items-center justify-between p-4 bg-slate-100/30 border ${colors.border.secondary} rounded-lg hover:bg-slate-200/50 transition-all`}
             >
               <div>
                 <p className={`${colors.text.primary} font-semibold`}>{setting.label}</p>
@@ -114,14 +114,14 @@ const AdminPanelConfig = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
       <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 mb-8`}>
         <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Backup & Maintenance</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button className={`flex items-center gap-3 px-6 py-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-lg hover:border-blue-500/50 transition-all`}>
+          <button className={`flex items-center gap-3 px-6 py-4 bg-slate-100/30 border ${colors.border.secondary} rounded-lg hover:border-blue-500/50 transition-all`}>
             <FiDownload size={20} className="text-blue-400" />
             <div className="text-left">
               <p className={`${colors.text.primary} font-semibold`}>Download Backup</p>
               <p className={`${colors.text.tertiary} text-xs`}>Last backup: 2 hours ago</p>
             </div>
           </button>
-          <button className={`flex items-center gap-3 px-6 py-4 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-lg hover:border-green-500/50 transition-all`}>
+          <button className={`flex items-center gap-3 px-6 py-4 bg-slate-100/30 border ${colors.border.secondary} rounded-lg hover:border-green-500/50 transition-all`}>
             <FiRefreshCw size={20} className="text-green-400" />
             <div className="text-left">
               <p className={`${colors.text.primary} font-semibold`}>Run Maintenance</p>

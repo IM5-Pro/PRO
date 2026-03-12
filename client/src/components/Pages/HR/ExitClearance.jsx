@@ -60,11 +60,17 @@ const ExitClearance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) 
   return (
     <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
-        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-          🚪 Exit Clearance Department
-        </h1>
-        <p className="text-slate-600">Manage employee separation and exit clearance</p>
+      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+            🚪 Exit Clearance Department
+          </h1>
+          <p className="text-slate-600">Manage employee separation and exit clearance</p>
+        </div>
+
+        <button className="hidden md:inline-flex items-center px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold transition-all duration-300">
+          Initiate Clearance
+        </button>
       </div>
 
       {/* Status Summary */}
@@ -95,7 +101,7 @@ const ExitClearance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) 
             className={`px-6 py-2 rounded-lg font-semibold transition-all duration-300 capitalize ${
               selectedStatus === status
                 ? 'bg-blue-600 text-white'
-                : `${colors.text.tertiary} hover:${colors.text.primary} hover:bg-slate-700/50`
+                : `${colors.text.tertiary} hover:text-slate-900 hover:bg-slate-200/50`
             }`}
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}

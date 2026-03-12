@@ -2,16 +2,213 @@ import Attendance from "../models/Attendance.js";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
+import Shift from "../models/Shift.js";
+import EmployeeShift from "../models/EmployeeShift.js";
+import Roles from "../constants/roles.js";
 import {
   validateAttendanceCheckIn,
   validateAttendanceCheckOut,
   validateAttendanceUpdate,
   validateAttendanceApproval,
-  validateShiftAssignment,
   validateBulkAttendanceUpload,
   validateAttendanceDateRange,
 } from "../utils/attendanceValidators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
+
+const DEFAULT_SHIFT_START = "09:00";
+const DEFAULT_SHIFT_END = "18:00";
+const DEFAULT_GRACE_PERIOD_MINUTES = 15;
+const DEFAULT_EARLY_CHECKOUT_THRESHOLD_MINUTES = 30;
+
+const getDayStart = (date = new Date()) => {
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  return day;
+};
+
+const parseTime = (timeString) => {
+  const [hour, minute] = String(timeString || "").split(":").map(Number);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    return { hour: 9, minute: 0 };
+  }
+  return { hour, minute };
+};
+
+const getDateTimeForShift = (baseDate, timeString) => {
+  const date = new Date(baseDate);
+  const { hour, minute } = parseTime(timeString);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+};
+
+const normalizeLocationPayload = (location, req, fallbackLabel = "Office") => {
+  if (typeof location === "string") {
+    return {
+      label: location,
+      ipAddress: req.ip || "",
+      device: req.headers["user-agent"] || "",
+    };
+  }
+
+  const input = location && typeof location === "object" ? location : {};
+
+  return {
+    latitude:
+      typeof input.latitude === "number" && Number.isFinite(input.latitude)
+        ? input.latitude
+        : null,
+    longitude:
+      typeof input.longitude === "number" && Number.isFinite(input.longitude)
+        ? input.longitude
+        : null,
+    ipAddress:
+      typeof input.ipAddress === "string" && input.ipAddress.trim()
+        ? input.ipAddress.trim()
+        : req.ip || "",
+    device:
+      typeof input.device === "string" && input.device.trim()
+        ? input.device.trim()
+        : req.headers["user-agent"] || "",
+    label:
+      typeof input.label === "string" && input.label.trim()
+        ? input.label.trim()
+        : fallbackLabel,
+  };
+};
+
+const getResolvedEmployeeIdFromAuth = async (req) => {
+  if (req.user?.employeeId) {
+    return req.user.employeeId;
+  }
+
+  if (!req.user?.id) {
+    return null;
+  }
+
+  const authUser = await User.findById(req.user.id).select("employeeId").lean();
+  if (authUser?.employeeId) {
+    req.user.employeeId = authUser.employeeId;
+    return authUser.employeeId;
+  }
+
+  return null;
+};
+
+const resolveShiftConfigForAttendance = async ({ employeeId, attendanceDate, attendance }) => {
+  const defaultConfig = {
+    startTime: attendance?.assignedShiftStart || DEFAULT_SHIFT_START,
+    endTime: attendance?.assignedShiftEnd || DEFAULT_SHIFT_END,
+    gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
+    earlyCheckoutThresholdMinutes: DEFAULT_EARLY_CHECKOUT_THRESHOLD_MINUTES,
+  };
+
+  const assignment = await EmployeeShift.findOne({
+    employee: employeeId,
+    isActive: true,
+    effectiveFrom: { $lte: attendanceDate },
+    $or: [{ effectiveTo: null }, { effectiveTo: { $gte: attendanceDate } }],
+  })
+    .sort({ effectiveFrom: -1 })
+    .populate("shift")
+    .lean();
+
+  if (assignment?.shift) {
+    return {
+      startTime: assignment.shift.startTime || defaultConfig.startTime,
+      endTime: assignment.shift.endTime || defaultConfig.endTime,
+      gracePeriodMinutes:
+        typeof assignment.shift.gracePeriodMinutes === "number"
+          ? assignment.shift.gracePeriodMinutes
+          : defaultConfig.gracePeriodMinutes,
+      earlyCheckoutThresholdMinutes:
+        typeof assignment.shift.earlyCheckoutThresholdMinutes === "number"
+          ? assignment.shift.earlyCheckoutThresholdMinutes
+          : defaultConfig.earlyCheckoutThresholdMinutes,
+      shiftId: assignment.shift._id,
+    };
+  }
+
+  if (attendance?.shift) {
+    const shift = await Shift.findById(attendance.shift).lean();
+    if (shift) {
+      return {
+        startTime: shift.startTime || defaultConfig.startTime,
+        endTime: shift.endTime || defaultConfig.endTime,
+        gracePeriodMinutes:
+          typeof shift.gracePeriodMinutes === "number"
+            ? shift.gracePeriodMinutes
+            : defaultConfig.gracePeriodMinutes,
+        earlyCheckoutThresholdMinutes:
+          typeof shift.earlyCheckoutThresholdMinutes === "number"
+            ? shift.earlyCheckoutThresholdMinutes
+            : defaultConfig.earlyCheckoutThresholdMinutes,
+        shiftId: shift._id,
+      };
+    }
+  }
+
+  return defaultConfig;
+};
+
+const computeBreakDuration = (breaks = [], checkoutTime = null) => {
+  let totalMinutes = 0;
+  const normalizedBreaks = breaks.map((entry) => {
+    const start = entry?.start ? new Date(entry.start) : null;
+    const fallbackEnd = checkoutTime || new Date();
+    const end = entry?.end ? new Date(entry.end) : fallbackEnd;
+
+    if (!start || Number.isNaN(start.getTime()) || !end || end < start) {
+      return {
+        start,
+        end: entry?.end || null,
+        durationMinutes: 0,
+      };
+    }
+
+    const durationMinutes = Math.round((end - start) / (1000 * 60));
+    totalMinutes += durationMinutes;
+
+    return {
+      start,
+      end,
+      durationMinutes,
+    };
+  });
+
+  return {
+    normalizedBreaks,
+    totalMinutes,
+  };
+};
+
+const deriveStatus = ({ checkInTime, checkOutTime, attendanceDate, workingHours, shiftConfig }) => {
+  const shiftStartDate = getDateTimeForShift(attendanceDate, shiftConfig.startTime);
+  const shiftEndDate = getDateTimeForShift(attendanceDate, shiftConfig.endTime);
+  const lateThreshold = new Date(
+    shiftStartDate.getTime() + shiftConfig.gracePeriodMinutes * 60 * 1000,
+  );
+  const earlyCheckoutThreshold = new Date(
+    shiftEndDate.getTime() - shiftConfig.earlyCheckoutThresholdMinutes * 60 * 1000,
+  );
+
+  const isLate = checkInTime ? checkInTime > lateThreshold : false;
+  const isEarlyCheckout = checkOutTime ? checkOutTime < earlyCheckoutThreshold : false;
+
+  let status = "Present";
+  if (typeof workingHours === "number" && workingHours < 4) {
+    status = "HalfDay";
+  } else if (isEarlyCheckout) {
+    status = "EarlyCheckout";
+  } else if (isLate) {
+    status = "Late";
+  }
+
+  return {
+    status,
+    isLate,
+    isEarlyCheckout,
+  };
+};
 
 /**
  * Check-in: Employee marks attendance (automatic)
@@ -24,7 +221,15 @@ export const checkIn = async (req, res) => {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
-    const { employee, checkInLocation = "Office" } = req.body;
+    const employee = await getResolvedEmployeeIdFromAuth(req);
+    if (!employee) {
+      return sendError(res, 403, "Employee mapping missing for authenticated user", {
+        employee: "No employee record is linked to this account",
+      });
+    }
+
+    const { checkInLocation = "Office" } = req.body;
+    const normalizedLocation = normalizeLocationPayload(checkInLocation, req);
 
     // Verify employee exists
     const employeeRecord = await Employee.findById(employee);
@@ -45,13 +250,28 @@ export const checkIn = async (req, res) => {
     });
 
     if (!attendance) {
+      const shiftConfig = await resolveShiftConfigForAttendance({
+        employeeId: employee,
+        attendanceDate: today,
+      });
+      const checkInTime = new Date();
+      const derivedStatus = deriveStatus({
+        checkInTime,
+        checkOutTime: null,
+        attendanceDate: today,
+        workingHours: null,
+        shiftConfig,
+      });
+
       // Create new attendance record
       attendance = new Attendance({
         employee,
         attendanceDate: today,
-        checkInTime: new Date(),
-        checkInLocation,
-        status: "Present",
+        checkInTime,
+        checkInLocation: normalizedLocation,
+        status: derivedStatus.status,
+        remarks: derivedStatus.isLate ? "Auto-marked late based on shift policy" : "",
+        shift: shiftConfig.shiftId || null,
         createdBy: req.user.id,
       });
     } else {
@@ -61,9 +281,27 @@ export const checkIn = async (req, res) => {
           checkIn: "You have already checked in today",
         });
       }
-      attendance.checkInTime = new Date();
-      attendance.checkInLocation = checkInLocation;
-      attendance.status = "Present";
+      const checkInTime = new Date();
+      const shiftConfig = await resolveShiftConfigForAttendance({
+        employeeId: employee,
+        attendanceDate: today,
+        attendance,
+      });
+      const derivedStatus = deriveStatus({
+        checkInTime,
+        checkOutTime: null,
+        attendanceDate: today,
+        workingHours: null,
+        shiftConfig,
+      });
+
+      attendance.checkInTime = checkInTime;
+      attendance.checkInLocation = normalizedLocation;
+      attendance.status = derivedStatus.status;
+      attendance.remarks = derivedStatus.isLate
+        ? "Auto-marked late based on shift policy"
+        : attendance.remarks;
+      attendance.shift = shiftConfig.shiftId || attendance.shift || null;
       attendance.updatedBy = req.user.id;
     }
 
@@ -75,7 +313,7 @@ export const checkIn = async (req, res) => {
       action: "CHECK_IN",
       entityType: "Attendance",
       entityId: attendance._id,
-      description: `Employee checked in at ${checkInLocation}`,
+      description: `Employee checked in at ${attendance.checkInLocation?.label || "Office"}`,
     });
 
     return sendSuccess(res, 201, "Check-in recorded successfully", attendance);
@@ -98,7 +336,15 @@ export const checkOut = async (req, res) => {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
-    const { employee, checkOutLocation = "Office" } = req.body;
+    const employee = await getResolvedEmployeeIdFromAuth(req);
+    if (!employee) {
+      return sendError(res, 403, "Employee mapping missing for authenticated user", {
+        employee: "No employee record is linked to this account",
+      });
+    }
+
+    const { checkOutLocation = "Office" } = req.body;
+    const normalizedLocation = normalizeLocationPayload(checkOutLocation, req);
 
     // Verify employee exists
     const employeeRecord = await Employee.findById(employee);
@@ -138,12 +384,39 @@ export const checkOut = async (req, res) => {
 
     // Calculate working hours
     const checkOutTime = new Date();
-    const workingHours =
+    const breakSummary = computeBreakDuration(attendance.breaks || [], checkOutTime);
+    const grossWorkingHours =
       (checkOutTime - attendance.checkInTime) / (1000 * 60 * 60);
+    const netWorkingHours = Math.max(
+      0,
+      grossWorkingHours - breakSummary.totalMinutes / 60,
+    );
+    const shiftConfig = await resolveShiftConfigForAttendance({
+      employeeId: employee,
+      attendanceDate: today,
+      attendance,
+    });
+    const derivedStatus = deriveStatus({
+      checkInTime: attendance.checkInTime,
+      checkOutTime,
+      attendanceDate: today,
+      workingHours: netWorkingHours,
+      shiftConfig,
+    });
 
     attendance.checkOutTime = checkOutTime;
-    attendance.checkOutLocation = checkOutLocation;
-    attendance.workingHours = Math.round(workingHours * 100) / 100;
+    attendance.checkOutLocation = normalizedLocation;
+    attendance.breaks = breakSummary.normalizedBreaks;
+    attendance.breakDurationMinutes = breakSummary.totalMinutes;
+    attendance.workingHours = Math.round(netWorkingHours * 100) / 100;
+    attendance.status = derivedStatus.status;
+    attendance.remarks = [
+      derivedStatus.isLate ? "Late check-in" : "",
+      derivedStatus.isEarlyCheckout ? "Early checkout" : "",
+      attendance.workingHours < 4 ? "Half-day due to low working hours" : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
     attendance.updatedBy = req.user.id;
     attendance.approvalStatus = "Approved"; // Auto-approve for check-out
 
@@ -155,7 +428,7 @@ export const checkOut = async (req, res) => {
       action: "CHECK_OUT",
       entityType: "Attendance",
       entityId: attendance._id,
-      description: `Employee checked out at ${checkOutLocation}. Working hours: ${attendance.workingHours}`,
+      description: `Employee checked out at ${attendance.checkOutLocation?.label || "Office"}. Working hours: ${attendance.workingHours}`,
     });
 
     return sendSuccess(res, 200, "Check-out recorded successfully", attendance);
@@ -168,15 +441,127 @@ export const checkOut = async (req, res) => {
 };
 
 /**
+ * Start Break: Employee starts a break during an active day
+ */
+export const startBreak = async (req, res) => {
+  try {
+    const employee = await getResolvedEmployeeIdFromAuth(req);
+    if (!employee) {
+      return sendError(res, 403, "Employee mapping missing for authenticated user", {
+        employee: "No employee record is linked to this account",
+      });
+    }
+
+    const today = getDayStart(new Date());
+    const attendance = await Attendance.findOne({
+      employee,
+      attendanceDate: today,
+      isArchived: false,
+    });
+
+    if (!attendance || !attendance.checkInTime) {
+      return sendError(res, 400, "Check-in required before starting a break", {
+        break: "Please check in first",
+      });
+    }
+
+    if (attendance.checkOutTime) {
+      return sendError(res, 409, "Cannot start break after checkout");
+    }
+
+    const latestBreak = attendance.breaks?.[attendance.breaks.length - 1];
+    if (latestBreak && !latestBreak.end) {
+      return sendError(res, 409, "A break is already in progress");
+    }
+
+    attendance.breaks.push({ start: new Date() });
+    attendance.updatedBy = req.user.id;
+    await attendance.save();
+
+    return sendSuccess(res, 200, "Break started successfully", attendance);
+  } catch (error) {
+    console.error("Start break error:", error);
+    return sendError(res, 500, "Failed to start break", {
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * End Break: Employee ends an active break
+ */
+export const endBreak = async (req, res) => {
+  try {
+    const employee = await getResolvedEmployeeIdFromAuth(req);
+    if (!employee) {
+      return sendError(res, 403, "Employee mapping missing for authenticated user", {
+        employee: "No employee record is linked to this account",
+      });
+    }
+
+    const today = getDayStart(new Date());
+    const attendance = await Attendance.findOne({
+      employee,
+      attendanceDate: today,
+      isArchived: false,
+    });
+
+    if (!attendance || !attendance.checkInTime) {
+      return sendError(res, 400, "Check-in required before ending a break", {
+        break: "Please check in first",
+      });
+    }
+
+    if (attendance.checkOutTime) {
+      return sendError(res, 409, "Cannot end break after checkout");
+    }
+
+    const latestBreakIndex = (attendance.breaks || []).length - 1;
+    if (latestBreakIndex < 0 || attendance.breaks[latestBreakIndex].end) {
+      return sendError(res, 409, "No active break found");
+    }
+
+    const breakEntry = attendance.breaks[latestBreakIndex];
+    const breakEnd = new Date();
+    const durationMinutes = Math.max(
+      0,
+      Math.round((breakEnd - new Date(breakEntry.start)) / (1000 * 60)),
+    );
+
+    attendance.breaks[latestBreakIndex].end = breakEnd;
+    attendance.breaks[latestBreakIndex].durationMinutes = durationMinutes;
+
+    const breakSummary = computeBreakDuration(attendance.breaks, null);
+    attendance.breakDurationMinutes = breakSummary.totalMinutes;
+    attendance.updatedBy = req.user.id;
+    await attendance.save();
+
+    return sendSuccess(res, 200, "Break ended successfully", attendance);
+  } catch (error) {
+    console.error("End break error:", error);
+    return sendError(res, 500, "Failed to end break", {
+      error: error.message,
+    });
+  }
+};
+
+/**
  * View Own Attendance: Employee views their own attendance
  */
 export const viewOwn = async (req, res) => {
   try {
     const { page = 1, limit = 10, startDate, endDate } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
+    const employeeId = await getResolvedEmployeeIdFromAuth(req);
+
+    if (!employeeId) {
+      return sendError(res, 403, "Employee mapping missing for authenticated user", {
+        employee: "No employee record is linked to this account",
+      });
+    }
 
     // Build query
-    let query = { employee: req.user.id, isArchived: false };
+    let query = { employee: employeeId, isArchived: false };
 
     if (startDate && endDate) {
       const validation = validateAttendanceDateRange({
@@ -231,20 +616,35 @@ export const viewTeam = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Get user's role and determine access
-    const user = await User.findById(req.user.id).populate("role");
-    const userRole = user?.role?.name;
+    const user = await User.findById(req.user.id).lean();
+    const userRole = req.user.role || user?.role;
+    const requesterEmployeeId = await getResolvedEmployeeIdFromAuth(req);
+    let managedIds = [];
 
     let query = { isArchived: false };
 
     // Manager can only see team members
-    if (userRole === "MANAGER") {
-      const managedEmployees = await Employee.find({ manager: req.user.id });
-      const managedIds = managedEmployees.map((e) => e._id);
+    if (userRole === Roles.MANAGER) {
+      if (!requesterEmployeeId) {
+        return sendError(res, 403, "Manager account is not linked to an employee");
+      }
+
+      const managedEmployees = await Employee.find({
+        $or: [
+          { manager: requesterEmployeeId },
+          { managerId: requesterEmployeeId },
+          { managerID: requesterEmployeeId },
+        ],
+      });
+      managedIds = managedEmployees.map((e) => String(e._id));
       query.employee = { $in: managedIds };
     }
 
     // HR_ADMIN and SUPER_ADMIN can see all or filtered by employee
     if (employeeId) {
+      if (userRole === Roles.MANAGER && !managedIds.includes(String(employeeId))) {
+        return sendError(res, 403, "Requested employee is not part of your team");
+      }
       query.employee = employeeId;
     }
 
@@ -350,6 +750,147 @@ export const viewAll = async (req, res) => {
   } catch (error) {
     console.error("View all attendance error:", error);
     return sendError(res, 500, "Failed to retrieve all attendance", {
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Monthly Summary: Aggregated monthly metrics for dashboards
+ */
+export const monthlySummary = async (req, res) => {
+  try {
+    const now = new Date();
+    const year = Number.parseInt(req.query.year || now.getFullYear(), 10);
+    const month = Number.parseInt(req.query.month || now.getMonth() + 1, 10);
+    const requestedEmployeeId = req.query.employeeId || null;
+
+    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+      return sendError(res, 400, "Invalid year or month");
+    }
+
+    const monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const user = await User.findById(req.user.id).lean();
+    const userRole = req.user.role || user?.role;
+    const requesterEmployeeId = await getResolvedEmployeeIdFromAuth(req);
+
+    const match = {
+      isArchived: false,
+      attendanceDate: {
+        $gte: monthStart,
+        $lte: monthEnd,
+      },
+    };
+
+    if (userRole === Roles.EMPLOYEE) {
+      if (!requesterEmployeeId) {
+        return sendError(res, 403, "Employee mapping missing for authenticated user");
+      }
+      match.employee = requesterEmployeeId;
+    } else if (userRole === Roles.MANAGER) {
+      if (!requesterEmployeeId) {
+        return sendError(res, 403, "Manager account is not linked to an employee");
+      }
+
+      const managedEmployees = await Employee.find(
+        {
+          $or: [
+            { manager: requesterEmployeeId },
+            { managerId: requesterEmployeeId },
+            { managerID: requesterEmployeeId },
+          ],
+        },
+        { _id: 1 },
+      ).lean();
+
+      const managedIds = managedEmployees.map((employee) => employee._id.toString());
+
+      if (requestedEmployeeId) {
+        if (!managedIds.includes(String(requestedEmployeeId))) {
+          return sendError(res, 403, "Requested employee is not part of your team");
+        }
+        match.employee = requestedEmployeeId;
+      } else {
+        match.employee = { $in: managedIds };
+      }
+    } else if (requestedEmployeeId) {
+      match.employee = requestedEmployeeId;
+    }
+
+    const [overall] = await Attendance.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: null,
+          totalRecords: { $sum: 1 },
+          presentCount: {
+            $sum: {
+              $cond: [{ $in: ["$status", ["Present", "Late", "EarlyCheckout"]] }, 1, 0],
+            },
+          },
+          lateCount: { $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] } },
+          earlyCheckoutCount: {
+            $sum: { $cond: [{ $eq: ["$status", "EarlyCheckout"] }, 1, 0] },
+          },
+          halfDayCount: { $sum: { $cond: [{ $eq: ["$status", "HalfDay"] }, 1, 0] } },
+          absentCount: { $sum: { $cond: [{ $eq: ["$status", "Absent"] }, 1, 0] } },
+          leaveCount: {
+            $sum: {
+              $cond: [{ $in: ["$status", ["Leave", "OnLeave"]] }, 1, 0],
+            },
+          },
+          totalWorkingHours: { $sum: "$workingHours" },
+          averageWorkingHours: { $avg: "$workingHours" },
+          totalBreakMinutes: { $sum: "$breakDurationMinutes" },
+        },
+      },
+    ]);
+
+    const dailyBreakdown = await Attendance.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$attendanceDate",
+            },
+          },
+          presentCount: {
+            $sum: {
+              $cond: [{ $in: ["$status", ["Present", "Late", "EarlyCheckout"]] }, 1, 0],
+            },
+          },
+          absentCount: { $sum: { $cond: [{ $eq: ["$status", "Absent"] }, 1, 0] } },
+          lateCount: { $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] } },
+          averageWorkingHours: { $avg: "$workingHours" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    return sendSuccess(res, 200, "Monthly summary retrieved successfully", {
+      month,
+      year,
+      summary: overall || {
+        totalRecords: 0,
+        presentCount: 0,
+        lateCount: 0,
+        earlyCheckoutCount: 0,
+        halfDayCount: 0,
+        absentCount: 0,
+        leaveCount: 0,
+        totalWorkingHours: 0,
+        averageWorkingHours: 0,
+        totalBreakMinutes: 0,
+      },
+      dailyBreakdown,
+    });
+  } catch (error) {
+    console.error("Monthly summary error:", error);
+    return sendError(res, 500, "Failed to retrieve monthly summary", {
       error: error.message,
     });
   }
@@ -507,73 +1048,87 @@ export const bulkUpload = async (req, res) => {
     }
 
     const { records } = req.body;
-    const uploadedRecords = [];
     const failedRecords = [];
 
-    for (let i = 0; i < records.length; i++) {
-      try {
-        const record = records[i];
+    const uniqueEmployeeIds = [
+      ...new Set(records.map((record) => String(record.employee))),
+    ];
 
-        // Verify employee exists
-        const employee = await Employee.findById(record.employee);
-        if (!employee) {
-          failedRecords.push({
-            index: i,
-            error: "Employee not found",
-          });
-          continue;
-        }
+    const employeeDocs = await Employee.find(
+      { _id: { $in: uniqueEmployeeIds } },
+      { _id: 1 },
+    ).lean();
+    const validEmployeeIds = new Set(employeeDocs.map((employee) => String(employee._id)));
 
-        const attendanceDate = new Date(record.attendanceDate);
-        attendanceDate.setHours(0, 0, 0, 0);
+    const operations = [];
 
-        // Check if record exists
-        let attendance = await Attendance.findOne({
-          employee: record.employee,
-          attendanceDate,
+    records.forEach((record, index) => {
+      const employeeId = String(record.employee || "");
+      if (!validEmployeeIds.has(employeeId)) {
+        failedRecords.push({
+          index,
+          error: "Employee not found",
         });
+        return;
+      }
 
-        if (attendance) {
-          // Update existing
-          attendance.status = record.status || attendance.status;
-          attendance.workingHours = record.workingHours || attendance.workingHours;
-          attendance.remarks = record.remarks || attendance.remarks;
-          attendance.updatedBy = req.user.id;
-        } else {
-          // Create new
-          attendance = new Attendance({
+      const attendanceDate = getDayStart(new Date(record.attendanceDate));
+      if (Number.isNaN(attendanceDate.getTime())) {
+        failedRecords.push({
+          index,
+          error: "Invalid attendanceDate",
+        });
+        return;
+      }
+
+      operations.push({
+        updateOne: {
+          filter: {
             employee: record.employee,
             attendanceDate,
-            status: record.status || "Present",
-            workingHours: record.workingHours || 0,
-            remarks: record.remarks || "",
-            createdBy: req.user.id,
-          });
-        }
+          },
+          update: {
+            $set: {
+              status: record.status || "Present",
+              workingHours:
+                typeof record.workingHours === "number" ? record.workingHours : 0,
+              remarks: record.remarks || "",
+              updatedBy: req.user.id,
+            },
+            $setOnInsert: {
+              employee: record.employee,
+              attendanceDate,
+              createdBy: req.user.id,
+            },
+          },
+          upsert: true,
+        },
+      });
+    });
 
-        await attendance.save();
-        uploadedRecords.push(attendance);
-      } catch (error) {
-        failedRecords.push({
-          index: i,
-          error: error.message,
-        });
-      }
-    }
+    const result = operations.length
+      ? await Attendance.bulkWrite(operations, { ordered: false })
+      : null;
+
+    const uploadedCount = operations.length;
 
     // Log action
     await AuditLog.create({
       userId: req.user.id,
       action: "BULK_UPLOAD",
       entityType: "Attendance",
-      description: `Bulk uploaded ${uploadedRecords.length} attendance records`,
+      description: `Bulk uploaded ${operations.length} attendance records via bulkWrite`,
     });
 
     return sendSuccess(res, 200, "Bulk upload completed", {
-      uploaded: uploadedRecords.length,
+      uploaded: uploadedCount,
       failed: failedRecords.length,
-      uploadedRecords,
       failedRecords,
+      bulkResult: {
+        matchedCount: result?.matchedCount || 0,
+        modifiedCount: result?.modifiedCount || 0,
+        upsertedCount: result?.upsertedCount || 0,
+      },
     });
   } catch (error) {
     console.error("Bulk upload error:", error);
@@ -589,6 +1144,11 @@ export const bulkUpload = async (req, res) => {
 export const exportAttendance = async (req, res) => {
   try {
     const { startDate, endDate, format = "json" } = req.query;
+    const normalizedFormat = String(format).toLowerCase();
+
+    if (!["json", "csv"].includes(normalizedFormat)) {
+      return sendError(res, 400, "Invalid export format. Use json or csv");
+    }
 
     let query = { isArchived: false };
 
@@ -608,33 +1168,109 @@ export const exportAttendance = async (req, res) => {
       query.attendanceDate = { $gte: start, $lte: end };
     }
 
-    const records = await Attendance.find(query)
-      .populate("employee", "firstName lastName email department designation")
-      .lean();
+    const total = await Attendance.countDocuments(query);
 
-    // Log action
+    const pipeline = [
+      { $match: query },
+      {
+        $lookup: {
+          from: "employees",
+          localField: "employee",
+          foreignField: "_id",
+          as: "employee",
+        },
+      },
+      {
+        $unwind: {
+          path: "$employee",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          attendanceDate: 1,
+          checkInTime: 1,
+          checkOutTime: 1,
+          status: 1,
+          workingHours: 1,
+          approvalStatus: 1,
+          employee: {
+            firstName: "$employee.firstName",
+            lastName: "$employee.lastName",
+            email: "$employee.email",
+            department: "$employee.department",
+            designation: "$employee.designation",
+          },
+        },
+      },
+      { $sort: { attendanceDate: -1, _id: 1 } },
+    ];
+
+    const cursor = await Attendance.aggregate(pipeline)
+      .allowDiskUse(true)
+      .cursor({ batchSize: 1000 })
+      .exec();
+
+    if (normalizedFormat === "csv") {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=attendance.csv");
+      res.write(
+        "Employee Name,Email,Department,Designation,Date,Check-in,Check-out,Status,Working Hours,Approval Status\n",
+      );
+
+      for await (const row of cursor) {
+        const employeeName = `${row.employee?.firstName || ""} ${row.employee?.lastName || ""}`.trim();
+        const csvRow = [
+          employeeName,
+          row.employee?.email || "",
+          row.employee?.department || "",
+          row.employee?.designation || "",
+          row.attendanceDate ? new Date(row.attendanceDate).toISOString() : "",
+          row.checkInTime ? new Date(row.checkInTime).toISOString() : "",
+          row.checkOutTime ? new Date(row.checkOutTime).toISOString() : "",
+          row.status || "",
+          row.workingHours ?? "",
+          row.approvalStatus || "",
+        ]
+          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(",");
+
+        res.write(`${csvRow}\n`);
+      }
+
+      res.end();
+    } else {
+      res.setHeader("Content-Type", "application/json");
+      res.write(`{"total":${total},"records":[`);
+
+      let first = true;
+      for await (const row of cursor) {
+        if (!first) {
+          res.write(",");
+        }
+        res.write(JSON.stringify(row));
+        first = false;
+      }
+
+      res.write("]}");
+      res.end();
+    }
+
     await AuditLog.create({
       userId: req.user.id,
       action: "EXPORT",
       entityType: "Attendance",
-      description: `Exported ${records.length} attendance records`,
+      description: `Exported ${total} attendance records via streaming`,
     });
 
-    if (format === "csv") {
-      // Convert to CSV
-      const csv = convertToCSV(records);
-      res.header("Content-Type", "text/csv");
-      res.header("Content-Disposition", "attachment; filename=attendance.csv");
-      return res.send(csv);
-    }
-
-    // Default to JSON
-    return sendSuccess(res, 200, "Attendance exported successfully", {
-      records,
-      total: records.length,
-    });
+    return null;
   } catch (error) {
     console.error("Export attendance error:", error);
+    if (res.headersSent) {
+      res.end();
+      return null;
+    }
     return sendError(res, 500, "Failed to export attendance", {
       error: error.message,
     });
@@ -750,14 +1386,15 @@ export const rejectAttendance = async (req, res) => {
 export const assignShift = async (req, res) => {
   try {
     const { attendanceId } = req.params;
+    const { shiftId, assignedShiftStart, assignedShiftEnd, effectiveDate } = req.body;
 
-    // Validate input
-    const validation = validateShiftAssignment(req.body);
-    if (!validation.isValid) {
-      return sendError(res, 400, "Validation failed", validation.errors);
+    if (!shiftId && (!assignedShiftStart || !assignedShiftEnd)) {
+      return sendError(
+        res,
+        400,
+        "Either shiftId or assignedShiftStart/assignedShiftEnd is required",
+      );
     }
-
-    const { assignedShiftStart, assignedShiftEnd, effectiveDate } = req.body;
 
     // Check if attendance exists
     const attendance = await Attendance.findById(attendanceId);
@@ -767,19 +1404,69 @@ export const assignShift = async (req, res) => {
       });
     }
 
+    let targetShift = null;
+    if (shiftId) {
+      targetShift = await Shift.findOne({ _id: shiftId, isActive: true });
+      if (!targetShift) {
+        return sendError(res, 404, "Shift not found", {
+          shiftId: "The requested shift does not exist or is inactive",
+        });
+      }
+    } else {
+      targetShift = await Shift.create({
+        name: `Custom ${assignedShiftStart}-${assignedShiftEnd}`,
+        startTime: assignedShiftStart,
+        endTime: assignedShiftEnd,
+        createdBy: req.user.id,
+      });
+    }
+
+    const effectiveFrom = effectiveDate ? new Date(effectiveDate) : new Date();
+    if (Number.isNaN(effectiveFrom.getTime())) {
+      return sendError(res, 400, "Invalid effectiveDate");
+    }
+
+    await EmployeeShift.updateMany(
+      {
+        employee: attendance.employee,
+        isActive: true,
+      },
+      {
+        $set: {
+          isActive: false,
+          effectiveTo: effectiveFrom,
+          updatedBy: req.user.id,
+        },
+      },
+    );
+
+    await EmployeeShift.create({
+      employee: attendance.employee,
+      shift: targetShift._id,
+      effectiveFrom,
+      isActive: true,
+      createdBy: req.user.id,
+      updatedBy: req.user.id,
+    });
+
     const changes = {
+      shift: {
+        from: attendance.shift,
+        to: targetShift._id,
+      },
       assignedShiftStart: {
         from: attendance.assignedShiftStart,
-        to: assignedShiftStart,
+        to: targetShift.startTime,
       },
       assignedShiftEnd: {
         from: attendance.assignedShiftEnd,
-        to: assignedShiftEnd,
+        to: targetShift.endTime,
       },
     };
 
-    attendance.assignedShiftStart = assignedShiftStart;
-    attendance.assignedShiftEnd = assignedShiftEnd;
+    attendance.shift = targetShift._id;
+    attendance.assignedShiftStart = targetShift.startTime;
+    attendance.assignedShiftEnd = targetShift.endTime;
     attendance.updatedBy = req.user.id;
 
     await attendance.save();
@@ -790,7 +1477,7 @@ export const assignShift = async (req, res) => {
       action: "ASSIGN_SHIFT",
       entityType: "Attendance",
       entityId: attendance._id,
-      description: `Assigned shift ${assignedShiftStart} - ${assignedShiftEnd}`,
+      description: `Assigned shift ${targetShift.name} (${targetShift.startTime} - ${targetShift.endTime})`,
       changes,
     });
 
@@ -809,11 +1496,14 @@ export const assignShift = async (req, res) => {
 export const updateShift = async (req, res) => {
   try {
     const { attendanceId } = req.params;
+    const { shiftId, assignedShiftStart, assignedShiftEnd, effectiveDate } = req.body;
 
-    // Validate input
-    const validation = validateShiftAssignment(req.body);
-    if (!validation.isValid) {
-      return sendError(res, 400, "Validation failed", validation.errors);
+    if (!shiftId && (!assignedShiftStart || !assignedShiftEnd)) {
+      return sendError(
+        res,
+        400,
+        "Either shiftId or assignedShiftStart/assignedShiftEnd is required",
+      );
     }
 
     // Check if attendance exists
@@ -824,23 +1514,67 @@ export const updateShift = async (req, res) => {
       });
     }
 
-    const changes = {};
+    let targetShift = null;
+    if (shiftId) {
+      targetShift = await Shift.findOne({ _id: shiftId, isActive: true });
+      if (!targetShift) {
+        return sendError(res, 404, "Shift not found", {
+          shiftId: "The requested shift does not exist or is inactive",
+        });
+      }
+    } else {
+      targetShift = await Shift.create({
+        name: `Custom ${assignedShiftStart}-${assignedShiftEnd}`,
+        startTime: assignedShiftStart,
+        endTime: assignedShiftEnd,
+        createdBy: req.user.id,
+      });
+    }
 
-    if (req.body.assignedShiftStart && req.body.assignedShiftStart !== attendance.assignedShiftStart) {
-      changes.assignedShiftStart = {
+    const effectiveFrom = effectiveDate ? new Date(effectiveDate) : new Date();
+    if (Number.isNaN(effectiveFrom.getTime())) {
+      return sendError(res, 400, "Invalid effectiveDate");
+    }
+
+    const activeAssignment = await EmployeeShift.findOne({
+      employee: attendance.employee,
+      isActive: true,
+    }).sort({ effectiveFrom: -1 });
+
+    const changes = {
+      shift: {
+        from: attendance.shift,
+        to: targetShift._id,
+      },
+      assignedShiftStart: {
         from: attendance.assignedShiftStart,
-        to: req.body.assignedShiftStart,
-      };
-      attendance.assignedShiftStart = req.body.assignedShiftStart;
+        to: targetShift.startTime,
+      },
+      assignedShiftEnd: {
+        from: attendance.assignedShiftEnd,
+        to: targetShift.endTime,
+      },
+    };
+
+    if (activeAssignment) {
+      activeAssignment.shift = targetShift._id;
+      activeAssignment.effectiveFrom = effectiveFrom;
+      activeAssignment.updatedBy = req.user.id;
+      await activeAssignment.save();
+    } else {
+      await EmployeeShift.create({
+        employee: attendance.employee,
+        shift: targetShift._id,
+        effectiveFrom,
+        isActive: true,
+        createdBy: req.user.id,
+        updatedBy: req.user.id,
+      });
     }
 
-    if (req.body.assignedShiftEnd && req.body.assignedShiftEnd !== attendance.assignedShiftEnd) {
-      changes.assignedShiftEnd = {
-        from: attendance.assignedShiftEnd,
-        to: req.body.assignedShiftEnd,
-      };
-      attendance.assignedShiftEnd = req.body.assignedShiftEnd;
-    }
+    attendance.shift = targetShift._id;
+    attendance.assignedShiftStart = targetShift.startTime;
+    attendance.assignedShiftEnd = targetShift.endTime;
 
     attendance.updatedBy = req.user.id;
     await attendance.save();
@@ -851,7 +1585,7 @@ export const updateShift = async (req, res) => {
       action: "UPDATE_SHIFT",
       entityType: "Attendance",
       entityId: attendance._id,
-      description: `Updated shift to ${req.body.assignedShiftStart} - ${req.body.assignedShiftEnd}`,
+      description: `Updated shift to ${targetShift.name} (${targetShift.startTime} - ${targetShift.endTime})`,
       changes,
     });
 
@@ -883,18 +1617,32 @@ export const deleteShift = async (req, res) => {
       shift: { from: attendance.shift, to: null },
       assignedShiftStart: {
         from: attendance.assignedShiftStart,
-        to: "09:00",
+        to: DEFAULT_SHIFT_START,
       },
       assignedShiftEnd: {
         from: attendance.assignedShiftEnd,
-        to: "18:00",
+        to: DEFAULT_SHIFT_END,
       },
     };
 
+    await EmployeeShift.updateMany(
+      {
+        employee: attendance.employee,
+        isActive: true,
+      },
+      {
+        $set: {
+          isActive: false,
+          effectiveTo: new Date(),
+          updatedBy: req.user.id,
+        },
+      },
+    );
+
     // Reset to default shift
     attendance.shift = null;
-    attendance.assignedShiftStart = "09:00";
-    attendance.assignedShiftEnd = "18:00";
+    attendance.assignedShiftStart = DEFAULT_SHIFT_START;
+    attendance.assignedShiftEnd = DEFAULT_SHIFT_END;
     attendance.updatedBy = req.user.id;
 
     await attendance.save();
@@ -917,45 +1665,3 @@ export const deleteShift = async (req, res) => {
     });
   }
 };
-
-/**
- * Helper function to convert records to CSV
- */
-function convertToCSV(records) {
-  if (!records || records.length === 0) {
-    return "No records";
-  }
-
-  const headers = [
-    "Employee Name",
-    "Email",
-    "Department",
-    "Designation",
-    "Date",
-    "Check-in",
-    "Check-out",
-    "Status",
-    "Working Hours",
-    "Approval Status",
-  ];
-
-  const rows = records.map((r) => [
-    `${r.employee?.firstName} ${r.employee?.lastName}`,
-    r.employee?.email,
-    r.employee?.department,
-    r.employee?.designation,
-    r.attendanceDate?.toLocaleDateString(),
-    r.checkInTime?.toLocaleTimeString(),
-    r.checkOutTime?.toLocaleTimeString(),
-    r.status,
-    r.workingHours,
-    r.approvalStatus,
-  ]);
-
-  const csvContent = [
-    headers.join(","),
-    ...rows.map((row) => row.map((cell) => `"${cell || ""}"`).join(",")),
-  ].join("\n");
-
-  return csvContent;
-}

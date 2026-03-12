@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { FiFileText, FiDownload, FiCalendar } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/Background.png';
 
 const Reports = () => {
   const { colors } = useTheme();
@@ -42,8 +41,7 @@ const Reports = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -103,7 +101,7 @@ const Reports = () => {
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => handleDownload(report)}
-                      className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-300 transform hover:scale-110 active:scale-95 inline-flex"
+                      className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300 transform hover:scale-110 active:scale-95 inline-flex"
                     >
                       <FiDownload size={18} />
                     </button>

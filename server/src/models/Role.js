@@ -9,6 +9,11 @@ const roleSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  roleVersion: {
+    type: Number,
+    default: 1,
+    min: 1,
+  },
   // list of permissions assigned to this role
   permissions: [
     {

@@ -12,13 +12,18 @@ const isValidEmail = (email) => {
 
 /**
  * Validate password strength
- * Requirements: min 6 chars, at least 1 number
+ * Requirements: min 8 chars, uppercase, lowercase, number, special char
  */
 const isValidPassword = (password) => {
-  if (!password || password.length < 6) {
+  if (!password || password.length < 8) {
     return false;
   }
-  return /\d/.test(password); // at least one number
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  return hasUppercase && hasLowercase && hasNumber && hasSpecial;
 };
 
 /**
@@ -48,7 +53,7 @@ const validateRegisterSuperAdmin = (body) => {
   if (!body.password || typeof body.password !== "string") {
     errors.password = "Password is required and must be a string";
   } else if (!isValidPassword(body.password)) {
-    errors.password = "Password must be at least 6 characters with at least 1 number";
+    errors.password = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character";
   }
 
   return {
@@ -96,7 +101,7 @@ const validateCreateUser = (body) => {
   if (!body.password || typeof body.password !== "string") {
     errors.password = "Password is required and must be a string";
   } else if (!isValidPassword(body.password)) {
-    errors.password = "Password must be at least 6 characters with at least 1 number";
+    errors.password = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character";
   }
 
   // Validate role

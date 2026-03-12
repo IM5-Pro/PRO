@@ -6,7 +6,6 @@
 import React from 'react';
 import { FiUsers, FiMessageSquare, FiBriefcase } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
-import bgImage from '../../assets/Background.png';
 
 const TeamCollaboration = () => {
   const { colors } = useTheme();
@@ -34,8 +33,7 @@ const TeamCollaboration = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
     >
       {/* Header */}
       <div>
@@ -121,7 +119,7 @@ const TeamCollaboration = () => {
             ))}
           </div>
 
-          <button className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95">
+          <button className="w-full mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95">
             View All Messages
           </button>
         </div>

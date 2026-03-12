@@ -7,7 +7,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar } from 'react-icons/fi';
-import bgImage from '../../assets/Background.png';
 
 const Dashboard = () => {
   const { colors } = useTheme();
@@ -65,8 +64,7 @@ const Dashboard = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed p-6 md:p-8"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
     >
       {/* Header */}
       <div className="glass rounded-2xl p-6 mb-8 backdrop-blur-xl animate-slideInDown">
@@ -146,7 +144,7 @@ const Dashboard = () => {
 
             <button
               onClick={() => navigate('/announcements')}
-              className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+              className="w-full mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
             >
               View All Activity
             </button>
@@ -163,7 +161,7 @@ const Dashboard = () => {
                 <button
                   key={idx}
                   onClick={() => navigate(action.path)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-xl ${colors.text.tertiary} hover:${colors.text.primary} hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:border-blue-500/50 transition-all duration-300 font-medium`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-xl ${colors.text.tertiary} hover:${colors.text.primary} hover:bg-slate-200/50 hover:border-slate-400 transition-all duration-300 font-medium`}
                 >
                   <span className="text-lg">{action.icon}</span>
                   <span>{action.label}</span>

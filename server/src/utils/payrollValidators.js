@@ -14,25 +14,39 @@ export const validatePayrollRun = (data) => {
 export const validatePayrollDetail = (data) => {
   const errors = {};
 
-  if (!data.payrollRunId || data.payrollRunId.trim().length === 0) {
-    errors.payrollRunId = "Payroll run ID is required";
-  }
+  const nonNegativeFields = ["basicSalary", "tax", "pf", "esi"];
 
-  if (!data.employeeId || data.employeeId.trim().length === 0) {
-    errors.employeeId = "Employee ID is required";
-  }
+  nonNegativeFields.forEach((field) => {
+    if (data[field] !== undefined && (typeof data[field] !== "number" || data[field] < 0)) {
+      errors[field] = `${field} must be a non-negative number`;
+    }
+  });
 
-  if (data.grossSalary === undefined || data.grossSalary < 0) {
-    errors.grossSalary = "Gross salary must be a non-negative number";
-  }
+  const componentCollections = ["earnings", "bonuses", "deductions"];
 
-  if (data.deductions === undefined || data.deductions < 0) {
-    errors.deductions = "Deductions must be a non-negative number";
-  }
+  componentCollections.forEach((field) => {
+    if (data[field] !== undefined && !Array.isArray(data[field])) {
+      errors[field] = `${field} must be an array`;
+      return;
+    }
 
-  if (data.netSalary === undefined || data.netSalary < 0) {
-    errors.netSalary = "Net salary must be a non-negative number";
-  }
+    if (Array.isArray(data[field])) {
+      data[field].forEach((component, index) => {
+        if (!component || typeof component !== "object") {
+          errors[`${field}[${index}]`] = "Component must be an object";
+          return;
+        }
+
+        if (!component.type || String(component.type).trim().length === 0) {
+          errors[`${field}[${index}].type`] = "Component type is required";
+        }
+
+        if (component.amount === undefined || typeof component.amount !== "number" || component.amount < 0) {
+          errors[`${field}[${index}].amount`] = "Component amount must be a non-negative number";
+        }
+      });
+    }
+  });
 
   return {
     isValid: Object.keys(errors).length === 0,

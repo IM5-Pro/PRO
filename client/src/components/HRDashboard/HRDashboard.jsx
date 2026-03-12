@@ -16,6 +16,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import HRSidebar from '../HRSidebar/HRSidebar';
 import HRHeader from '../HRHeader/HRHeader';
+import DashboardOverview from '../Pages/HR/DashboardOverview';
 import ManpowerPlanning from '../Pages/HR/ManpowerPlanning';
 import HRUserManagement from '../Pages/HR/UserManagement';
 import LeavesAttendance from '../Pages/HR/LeavesAttendance';
@@ -26,7 +27,6 @@ import LetterTemplates from '../Pages/HR/LetterTemplates';
 import AdminPanelConfig from '../Pages/HR/AdminPanelConfig';
 import Workflows from '../Pages/HR/Workflows';
 import MeetingRoom from '../Pages/HR/MeetingRoom';
-import bgImage from '../../assets/Background.png';
 
 /**
  * Validation constants for user data
@@ -47,7 +47,7 @@ const PAGE_CONFIGS = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    component: ManpowerPlanning,
+    component: DashboardOverview,
     icon: '📊',
     category: 'overview',
     description: 'HR dashboard overview',
@@ -334,6 +334,7 @@ const HRDashboard = () => {
         user={CURRENT_HR_USER}
         onUserUpdate={handleUserDataUpdate}
         pageConfig={pageConfig}
+        onNavigate={handleNavigation}
       />
     );
   }, [currentPage, colors, handleNavigation, CURRENT_HR_USER, handleUserDataUpdate]);
@@ -343,10 +344,7 @@ const HRDashboard = () => {
   // ============================================================================
 
   return (
-    <div
-      className="flex h-screen bg-cover bg-center bg-fixed overflow-hidden"
-      style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)), url(${bgImage})` }}
-    >
+    <div className="app-shell flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
       {/* ========================================
           SIDEBAR NAVIGATION
           ======================================== */}
@@ -376,7 +374,10 @@ const HRDashboard = () => {
                 <div className="text-white text-lg">Loading...</div>
               </div>
             ) : (
-              <div className="rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 overflow-hidden">
+              <div
+                className="rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 overflow-hidden"
+                style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
+              >
                 {renderPageContent()}
               </div>
             )}

@@ -158,6 +158,13 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
             Workforce forecasting and strategic planning dashboard
           </p>
         </div>
+
+        <button
+          onClick={() => handlePlanningSubmit({ source: 'quick-action' })}
+          className="hidden md:inline-flex items-center px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold transition-all duration-300"
+        >
+          Create Workforce Plan
+        </button>
       </div>
 
       {/* Stats Cards Grid */}
@@ -165,7 +172,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
         {statsCards.map((card) => (
           <div
             key={card.id}
-            className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:${colors.border.secondary} transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
+            className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:border-slate-400 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} text-white`}>
@@ -194,7 +201,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
         {/* Department Statistics */}
         <div className="lg:col-span-2">
           <div
-            className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:${colors.border.secondary} transition-all duration-300`}
+            className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:border-slate-400 transition-all duration-300`}
           >
             <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>
               Department Overview
@@ -269,7 +276,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
               ].map((action, idx) => (
                 <button
                   key={idx}
-                  className={`w-full flex items-center gap-3 px-4 py-3 ${colors.bg.tertiary}/30 border ${colors.border.secondary} rounded-xl ${colors.text.tertiary} hover:${colors.text.primary} hover:bg-gradient-to-r hover:from-blue-600/20 hover:to-purple-600/20 hover:border-blue-500/50 transition-all duration-300 font-medium`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 bg-slate-100/30 border ${colors.border.secondary} rounded-xl ${colors.text.tertiary} hover:text-slate-900 hover:bg-slate-200/50 hover:border-slate-400 transition-all duration-300 font-medium`}
                 >
                   <span className="text-lg">{action.icon}</span>
                   <span>{action.label}</span>

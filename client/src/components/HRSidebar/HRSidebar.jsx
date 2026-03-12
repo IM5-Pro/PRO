@@ -55,6 +55,11 @@ const HRSidebar = ({ currentPage = 'dashboard', onNavigate = () => {}, pageConfi
     return groups;
   }, [pageConfigs]);
 
+  const currentPageLabel = useMemo(() => {
+    const currentConfig = pageConfigs.find((page) => page.id === currentPage);
+    return currentConfig?.label || 'Dashboard';
+  }, [currentPage, pageConfigs]);
+
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
@@ -126,11 +131,11 @@ const HRSidebar = ({ currentPage = 'dashboard', onNavigate = () => {}, pageConfi
           onClick={() => handleMenuClick(item.id)}
           className={`
             w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left
-            transition-colors duration-200
+            border transition-all duration-200
             ${
               isActive
-                ? 'bg-white/30 text-slate-900'
-                : 'text-slate-700 hover:bg-white/25 hover:text-slate-900'
+                ? 'bg-blue-500 text-white border-blue-500 shadow-md font-semibold'
+                : 'border-transparent text-slate-700 hover:bg-white/25 hover:text-slate-900'
             }
           `}
           title={item.description}
@@ -210,6 +215,9 @@ const HRSidebar = ({ currentPage = 'dashboard', onNavigate = () => {}, pageConfi
         <div className="p-6 border-b border-white/40">
           <h1 className="text-2xl font-bold">HRMS</h1>
           <p className="text-slate-600 text-sm">HR Portal</p>
+          <p className="mt-3 text-xs text-slate-700 bg-white/40 border border-white/50 rounded-md px-2 py-1 inline-block">
+            Current: {currentPageLabel}
+          </p>
         </div>
 
         {/* ========================================

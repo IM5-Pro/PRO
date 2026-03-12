@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { verifyAccessToken } from "../utils/jwt.js";
 
 const authGuard = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -8,8 +8,8 @@ const authGuard = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const decoded = verifyAccessToken(token);
+    req.user = { ...decoded, id: decoded.id || decoded.sub };
 
     next();
   } catch (err) {
