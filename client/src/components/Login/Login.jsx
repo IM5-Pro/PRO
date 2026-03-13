@@ -51,9 +51,9 @@ const Login = ({ onLoginSuccess = null }) => {
     if (!emailValue.trim()) {
       return 'Email is required';
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[A-Za-z0-9._%+-]+@ispace\.com$/i;
     if (!emailRegex.test(emailValue)) {
-      return 'Invalid email format';
+      return 'Email must be a valid @ispace.com address';
     }
     return '';
   };

@@ -26,9 +26,15 @@ import { FiMenu, FiX } from 'react-icons/fi';
  * @param {string} props.currentPage - Currently active page ID
  * @param {Function} props.onNavigate - Callback function when menu item is clicked (pageId: string) => void
  * @param {Array<Object>} props.pageConfigs - Array of page configuration objects
+ * @param {string} [props.portalLabel] - Portal subtitle text
  * @returns {JSX.Element} Sidebar component with navigation items and responsive mobile toggle
  */
-const HRSidebar = ({ currentPage = 'dashboard', onNavigate = () => {}, pageConfigs = [] }) => {
+const HRSidebar = ({
+  currentPage = 'dashboard',
+  onNavigate = () => {},
+  pageConfigs = [],
+  portalLabel = 'HR Portal',
+}) => {
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
@@ -214,7 +220,7 @@ const HRSidebar = ({ currentPage = 'dashboard', onNavigate = () => {}, pageConfi
             ======================================== */}
         <div className="p-6 border-b border-white/40">
           <h1 className="text-2xl font-bold">HRMS</h1>
-          <p className="text-slate-600 text-sm">HR Portal</p>
+          <p className="text-slate-600 text-sm">{portalLabel}</p>
           <p className="mt-3 text-xs text-slate-700 bg-white/40 border border-white/50 rounded-md px-2 py-1 inline-block">
             Current: {currentPageLabel}
           </p>

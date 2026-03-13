@@ -35,14 +35,14 @@ const VALIDATION_RULES = {
  * @param {string} props.user.name - User's full name
  * @param {string} props.user.email - User's email address
  * @param {string} props.user.avatar - User's avatar emoji or URL
- * @param {string} props.user.role - User's role (admin, hr, manager, employee)
+ * @param {string} props.user.role - User's role (super_admin, hr_admin, manager, employee)
  * @param {Function} props.onProfileClick - Callback when profile actions are clicked
  * @param {number} props.notificationCount - Number of unread notifications
  * @param {Function} props.onClearNotifications - Callback to clear notifications
  * @returns {JSX.Element} Header component with all controls and menus
  */
 const HRHeader = ({
-  user = { name: 'HR Admin', email: 'hr@company.com', avatar: '👨‍💼', role: 'hr' },
+  user = { name: 'HR Admin', email: 'hr@company.com', avatar: '👨‍💼', role: 'hr_admin' },
   onProfileClick = () => {},
   notificationCount = 0,
   onClearNotifications = () => {},

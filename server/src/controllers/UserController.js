@@ -1,21 +1,52 @@
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
+import Employee from "../models/Employee.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 
 const createUser = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const {
+      email,
+      password,
+      role,
+      firstName,
+      lastName,
+      employeeId,
+    } = req.body;
+
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedRole = String(role || "").trim().toUpperCase();
 
     const creatorRole = req.user.role;
 
+    if (!normalizedEmail || !password || !normalizedRole) {
+      return sendError(res, 400, "Email, password, and role are required");
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return sendError(res, 409, "User already exists with this email");
+    }
+
+    let linkedEmployee = null;
+    if (employeeId) {
+      linkedEmployee = await Employee.findById(employeeId)
+        .select("_id email firstName lastName")
+        .lean();
+
+      if (!linkedEmployee) {
+        return sendError(res, 404, "Linked employee not found");
+      }
+    }
+
     if (creatorRole === "SUPER_ADMIN") {
-      if (!["HR_ADMIN", "MANAGER", "EMPLOYEE"].includes(role)) {
+      if (!["HR_ADMIN", "MANAGER", "EMPLOYEE"].includes(normalizedRole)) {
         return sendError(res, 403, "Invalid role creation");
       }
     }
 
     if (creatorRole === "HR_ADMIN") {
-      if (!["MANAGER", "EMPLOYEE"].includes(role)) {
+      if (!["MANAGER", "EMPLOYEE"].includes(normalizedRole)) {
         return sendError(res, 403, "Invalid role creation");
       }
     }
@@ -26,13 +57,29 @@ const createUser = async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
 
+    const resolvedFirstName =
+      typeof firstName === "string" && firstName.trim().length > 0
+        ? firstName.trim()
+        : linkedEmployee?.firstName || "";
+    const resolvedLastName =
+      typeof lastName === "string" && lastName.trim().length > 0
+        ? lastName.trim()
+        : linkedEmployee?.lastName || "";
+
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       password: hash,
-      role,
+      role: normalizedRole,
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
+      employeeId: linkedEmployee?._id,
+      createdBy: req.user.id,
     });
 
-    sendSuccess(res, 201, "User created successfully", user);
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
+    sendSuccess(res, 201, "User created successfully", { data: safeUser });
   } catch (err) {
     sendError(res, 500, "Internal server error", err.message);
   }

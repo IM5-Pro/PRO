@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/AuthRouter.js";
@@ -27,6 +28,13 @@ connectDB().then(() => {
   roleSeeder();
 });
 // Middleware
+app.use(
+  cors({
+    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

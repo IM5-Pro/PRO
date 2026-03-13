@@ -1,13 +1,32 @@
 // Validation utilities for Auth and User operations
 
 const VALID_ROLES = ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"];
+const ALLOWED_EMAIL_DOMAIN = "ispace.com";
 
 /**
  * Validate email format
  */
 const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (typeof email !== "string") {
+    return false;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const firstAtIndex = normalizedEmail.indexOf("@");
+  const lastAtIndex = normalizedEmail.lastIndexOf("@");
+
+  if (firstAtIndex <= 0 || firstAtIndex !== lastAtIndex) {
+    return false;
+  }
+
+  const localPart = normalizedEmail.slice(0, firstAtIndex);
+  const domainPart = normalizedEmail.slice(firstAtIndex + 1);
+
+  if (domainPart !== ALLOWED_EMAIL_DOMAIN) {
+    return false;
+  }
+
+  return /^[a-z0-9._%+-]+$/i.test(localPart);
 };
 
 /**
@@ -47,7 +66,7 @@ const validateRegisterSuperAdmin = (body) => {
   if (!body.email || typeof body.email !== "string") {
     errors.email = "Email is required and must be a string";
   } else if (!isValidEmail(body.email)) {
-    errors.email = "Email format is invalid";
+    errors.email = `Email must be a valid @${ALLOWED_EMAIL_DOMAIN} address`;
   }
 
   if (!body.password || typeof body.password !== "string") {
@@ -71,7 +90,7 @@ const validateLogin = (body) => {
   if (!body.email || typeof body.email !== "string") {
     errors.email = "Email is required and must be a string";
   } else if (!isValidEmail(body.email)) {
-    errors.email = "Email format is invalid";
+    errors.email = `Email must be a valid @${ALLOWED_EMAIL_DOMAIN} address`;
   }
 
   if (!body.password || typeof body.password !== "string") {
@@ -94,7 +113,7 @@ const validateCreateUser = (body) => {
   if (!body.email || typeof body.email !== "string") {
     errors.email = "Email is required and must be a string";
   } else if (!isValidEmail(body.email)) {
-    errors.email = "Email format is invalid";
+    errors.email = `Email must be a valid @${ALLOWED_EMAIL_DOMAIN} address`;
   }
 
   // Validate password

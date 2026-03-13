@@ -122,7 +122,7 @@ employeeSchema.index({ isActive: 1 });
 employeeSchema.index({ panNumber: 1 }, { unique: true, sparse: true });
 employeeSchema.index({ aadhaarNumber: 1 }, { unique: true, sparse: true });
 
-employeeSchema.pre("save", function syncDates(next) {
+employeeSchema.pre("save", function syncDates() {
   if (!this.manager && this.managerId) {
     this.manager = this.managerId;
   }
@@ -206,10 +206,9 @@ employeeSchema.pre("save", function syncDates(next) {
     });
   }
 
-  next();
 });
 
-employeeSchema.pre("findOneAndUpdate", function syncManagerAliases(next) {
+employeeSchema.pre("findOneAndUpdate", function syncManagerAliases() {
   const update = this.getUpdate() || {};
   const hasSet = !!update.$set;
   const setPayload = hasSet ? update.$set : update;
@@ -257,7 +256,6 @@ employeeSchema.pre("findOneAndUpdate", function syncManagerAliases(next) {
     });
   }
 
-  next();
 });
 
 export default mongoose.model("Employee", employeeSchema);

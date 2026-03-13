@@ -6,6 +6,56 @@
  */
 
 import React, { createContext, useState, useCallback, useEffect } from 'react';
+import API from '../api/client';
+import { getCookie, removeCookie, setCookie } from '../utils/cookies';
+import { normalizeRole } from '../utils/roles';
+
+const ACCESS_TOKEN_COOKIE = 'authToken';
+const REFRESH_TOKEN_COOKIE = 'refreshToken';
+const ACCESS_TOKEN_MAX_AGE = 8 * 60 * 60;
+const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
+
+const clearPunchFlags = () => {
+  localStorage.removeItem('isPunchedIn');
+  localStorage.removeItem('punchInTime');
+  localStorage.removeItem('hasPunchedInToday');
+  localStorage.removeItem('dailyWorkingHours');
+};
+
+const clearAuthStorage = () => {
+  localStorage.removeItem('user');
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  removeCookie(ACCESS_TOKEN_COOKIE);
+  removeCookie(REFRESH_TOKEN_COOKIE);
+};
+
+const toDisplayName = (user) => {
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+  if (fullName) return fullName;
+  if (user?.name) return user.name;
+  if (user?.email) return user.email.split('@')[0];
+  return 'User';
+};
+
+const toDepartment = (role) => {
+  if (role === 'manager') return 'Management';
+  if (role === 'employee') return 'Engineering';
+  return 'Human Resources';
+};
+
+const normalizeUser = (user = {}) => {
+  const normalizedRole = normalizeRole(user.role);
+
+  return {
+    ...user,
+    name: toDisplayName(user),
+    role: normalizedRole,
+    department: user.department || toDepartment(normalizedRole),
+    avatar: user.avatar || '👨‍💼',
+  };
+};
 
 /**
  * Authentication Context
@@ -35,24 +85,24 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   /**
-   * Initialize authentication from localStorage
-   * Checks for existing session on app load
+   * Initialize authentication from persisted user and token cookie
    */
   useEffect(() => {
     const initializeAuth = () => {
       try {
         const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('authToken');
+        const token = getCookie(ACCESS_TOKEN_COOKIE) || localStorage.getItem('authToken');
 
         if (storedUser && token) {
           const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
+          setUser(normalizeUser(parsedUser));
           setIsAuthenticated(true);
+        } else {
+          clearAuthStorage();
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
-        localStorage.removeItem('user');
-        localStorage.removeItem('authToken');
+        clearAuthStorage();
       } finally {
         setLoading(false);
       }
@@ -75,71 +125,48 @@ export const AuthProvider = ({ children }) => {
     setError(null);
 
     try {
-      // Simulate API call - Replace with actual backend API
       if (!email || !password) {
         throw new Error('Email and password are required');
       }
 
       // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailRegex = /^[A-Za-z0-9._%+-]+@ispace\.com$/i;
       if (!emailRegex.test(email)) {
-        throw new Error('Invalid email format');
+        throw new Error('Email must be a valid @ispace.com address');
       }
 
-      // Simulate API response
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await API.post('/auth/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      // Mock user data - Replace with actual backend response
-      // ROLE DETECTION:
-      // - 'hr@...' or 'admin@...' → HR role (access to HR Dashboard)
-      // - 'manager@...' → Manager role (access to Manager Dashboard)
-      // - default → Employee role (access to Employee Dashboard)
-      let userRole = 'employee';
-      let userName = 'Employee';
-      let department = 'Engineering';
-      let avatar = '👨‍💼';
+      const responsePayload = response?.data;
+      const authData = responsePayload?.data || {};
 
-      if (email.includes('admin') || email.includes('hr')) {
-        userRole = 'hr';
-        userName = 'HR Admin';
-        department = 'Human Resources';
-        avatar = '👩‍💼';
-      } else if (email.includes('manager')) {
-        userRole = 'manager';
-        userName = 'Sourav';
-        department = 'Management';
-      } else {
-        userName = email.split('@')[0];
+      if (!responsePayload?.success) {
+        throw new Error(responsePayload?.message || 'Login failed');
       }
 
-      const mockUser = {
-        id: '1',
-        name: userName,
-        email,
-        role: userRole,
-        department,
-        avatar,
-      };
+      if (!authData?.accessToken || !authData?.user) {
+        throw new Error('Invalid login response from server');
+      }
 
-      // Generate mock token
-      const mockToken = `token_${Date.now()}`;
+      const normalizedUser = normalizeUser(authData.user);
 
-      // Store auth data
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      localStorage.setItem('authToken', mockToken);
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setCookie(ACCESS_TOKEN_COOKIE, authData.accessToken, ACCESS_TOKEN_MAX_AGE);
+      if (authData.refreshToken) {
+        setCookie(REFRESH_TOKEN_COOKIE, authData.refreshToken, REFRESH_TOKEN_MAX_AGE);
+      }
 
-      // Clear punch-related flags on fresh login
-      localStorage.removeItem('isPunchedIn');
-      localStorage.removeItem('punchInTime');
-      localStorage.removeItem('hasPunchedInToday');
-      localStorage.removeItem('dailyWorkingHours');
+      clearPunchFlags();
 
-      setUser(mockUser);
+      setUser(normalizedUser);
       setIsAuthenticated(true);
 
-      return mockUser;
+      return normalizedUser;
     } catch (err) {
-      const errorMessage = err.message || 'Login failed';
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -154,22 +181,17 @@ export const AuthProvider = ({ children }) => {
    * @example
    * logout();
    */
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     try {
-      localStorage.removeItem('user');
-      localStorage.removeItem('authToken');
-      
-      // Clear punch-related data on logout
-      localStorage.removeItem('isPunchedIn');
-      localStorage.removeItem('punchInTime');
-      localStorage.removeItem('hasPunchedInToday');
-      localStorage.removeItem('dailyWorkingHours');
-      
+      await API.post('/auth/logout');
+    } catch (err) {
+      console.warn('Logout API failed, clearing local session anyway');
+    } finally {
+      clearAuthStorage();
+      clearPunchFlags();
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
-    } catch (err) {
-      console.error('Logout error:', err);
     }
   }, []);
 
@@ -180,17 +202,21 @@ export const AuthProvider = ({ children }) => {
    * 
    * @example
    * hasRole('manager') // true or false
-   * hasRole(['manager', 'admin']) // true if user has either role
+   * hasRole(['manager', 'hr_admin']) // true if user has either role
    */
   const hasRole = useCallback(
     (role) => {
       if (!user) return false;
+      const userRole = normalizeRole(user.role);
+
       if (typeof role === 'string') {
-        return user.role === role;
+        return userRole === normalizeRole(role);
       }
+
       if (Array.isArray(role)) {
-        return role.includes(user.role);
+        return role.map((value) => normalizeRole(value)).includes(userRole);
       }
+
       return false;
     },
     [user]
@@ -201,7 +227,7 @@ export const AuthProvider = ({ children }) => {
    * @returns {boolean} - Authentication status
    */
   const getAuthStatus = useCallback(() => {
-    return isAuthenticated && !!localStorage.getItem('authToken');
+    return isAuthenticated && !!getCookie(ACCESS_TOKEN_COOKIE);
   }, [isAuthenticated]);
 
   /**

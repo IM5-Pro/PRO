@@ -27,6 +27,7 @@ import LetterTemplates from '../Pages/HR/LetterTemplates';
 import AdminPanelConfig from '../Pages/HR/AdminPanelConfig';
 import Workflows from '../Pages/HR/Workflows';
 import MeetingRoom from '../Pages/HR/MeetingRoom';
+import { ROLES } from '../../utils/roles';
 
 /**
  * Validation constants for user data
@@ -36,7 +37,7 @@ const VALIDATION_RULES = {
   MIN_NAME_LENGTH: 2,
   MAX_NAME_LENGTH: 50,
   EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  ROLES: ['admin', 'hr', 'manager', 'employee'],
+  ROLES: [ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.MANAGER, ROLES.EMPLOYEE],
 };
 
 /**
@@ -138,9 +139,11 @@ const PAGE_CONFIGS = [
  * HRDashboard Component
  * Main dashboard layout for HR management with comprehensive functionality
  * 
+ * @param {Object} props - Component props
+ * @param {string} [props.defaultPage='dashboard'] - Initial page id to open
  * @returns {JSX.Element} Complete HR dashboard with sidebar, header, and current page content
  */
-const HRDashboard = () => {
+const HRDashboard = ({ defaultPage = 'dashboard' }) => {
   // ============================================================================
   // CONTEXT HOOKS
   // ============================================================================
@@ -151,7 +154,10 @@ const HRDashboard = () => {
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState(() => {
+    const hasRequestedPage = PAGE_CONFIGS.some((page) => page.id === defaultPage);
+    return hasRequestedPage ? defaultPage : 'dashboard';
+  });
   const [notificationCount, setNotificationCount] = useState(3);
   const [isLoading, setIsLoading] = useState(false);
   const contentScrollRef = useRef(null);
@@ -169,7 +175,7 @@ const HRDashboard = () => {
     () => ({
       name: user?.name || 'HR Administrator',
       email: user?.email || 'hr@company.com',
-      role: user?.role || 'hr',
+      role: user?.role || ROLES.HR_ADMIN,
       avatar: user?.avatar || '👨‍💼',
       department: user?.department || 'Human Resources',
     }),

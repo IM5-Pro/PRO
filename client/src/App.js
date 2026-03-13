@@ -11,26 +11,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Login from './components/Login/Login';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
-import DashboardLayout from './components/DashboardLayout/DashboardLayout';
-
-// Page Components
-import Dashboard from './components/Pages/Dashboard';
-import Announcements from './components/Pages/Announcements';
-import Attendance from './components/Pages/Attendance';
-import LeaveManagement from './components/Pages/LeaveManagement';
-import Performance from './components/Pages/Performance';
-import EmployeeProfile from './components/Pages/EmployeeProfile';
-import Reports from './components/Pages/Reports';
-import TeamCollaboration from './components/Pages/TeamCollaboration';
-import Settings from './components/Pages/Settings';
-import Payroll from './components/Pages/Payroll';
-import Employees from './components/Pages/Employees';
-import Leaves from './components/Pages/Leaves';
-import Analytics from './components/Pages/Analytics';
-
-import ManagerDashboard from './components/ManagerDashboard/ManagerDashboard';
-import HRDashboard from './components/HRDashboard/HRDashboard';
+import UnifiedDashboard from './components/UnifiedDashboard/UnifiedDashboard';
 import PunchInOut from './components/PunchInOut/PunchInOut';
+import { ROLES } from './utils/roles';
 
 /**
  * AppContent Component
@@ -42,15 +25,15 @@ import PunchInOut from './components/PunchInOut/PunchInOut';
  * 3. User tries to access without login → Redirect to login
  * 
  * ROLE-BASED ROUTING:
- * - 'hr' or 'admin' → HR Dashboard (10 modules)
- * - 'manager' → Manager Dashboard (Team management)
- * - 'employee' → Employee Dashboard (Personal features)
+ * - One common dashboard layout for all roles
+ * - Widgets and pages are rendered based on role
  * 
  * @returns {JSX.Element} - Login or Dashboard based on authentication
  */
 const AppContent = () => {
   const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
+  const userRole = user?.role;
 
   // if someone is already signed in and manually visits /login, bounce
   // them to the appropriate dashboard instead of showing the login form.
@@ -91,85 +74,30 @@ const AppContent = () => {
   const hasPunchedInToday = localStorage.getItem('hasPunchedInToday') === 'true';
   
   // For employee role, check punch status
-  if (!isPunchedIn && !hasPunchedInToday && user?.role === 'employee' && location.pathname !== '/punch') {
+  if (!isPunchedIn && !hasPunchedInToday && userRole === ROLES.EMPLOYEE && location.pathname !== '/punch') {
     return <Navigate to="/punch" replace />;
   }
 
-  /**
-   * HR/ADMIN DASHBOARD
-   * Full HR management system with 10 modules
-   */
-  if (user?.role === 'hr' || user?.role === 'admin') {
-    return (
-      <ProtectedRoute requiredRole={user?.role}>
-        <HRDashboard />
-      </ProtectedRoute>
-    );
+  // Non-employee roles should never stay on /punch route.
+  if (location.pathname === '/punch' && userRole !== ROLES.EMPLOYEE) {
+    return <Navigate to="/" replace />;
   }
 
-  /**
-   * MANAGER DASHBOARD
-   * Team management and employee oversight
-   */
-  if (user?.role === 'manager') {
-    return (
-      <ProtectedRoute requiredRole="manager">
-        <ManagerDashboard />
-      </ProtectedRoute>
-    );
-  }
-
-  /**
-   * EMPLOYEE DASHBOARD
-   * Personal dashboard with employee features
-   * Default for all other authenticated users
-   */
   return (
-    <ProtectedRoute requiredRole="employee">
+    <ProtectedRoute requiredRole={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN, ROLES.SUPER_ADMIN]}>
       <Routes>
         {/* ============================================================
-            PUNCH IN/OUT ROUTE - Full Screen (No Header/Sidebar)
-            ============================================================ */}
-        <Route path="/punch" element={<PunchInOut />} />
-
-        {/* ============================================================
-            ALL OTHER EMPLOYEE ROUTES - With Header & Sidebar
+            PUNCH IN/OUT ROUTE - employee only
             ============================================================ */}
         <Route
-          path="/*"
-          element={
-            <DashboardLayout>
-              <Routes>
-                {/* ============================================================
-                    MAIN DASHBOARD PAGES - EMPLOYEE
-                    ============================================================ */}
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/announcements" element={<Announcements />} />
-                <Route path="/attendance" element={<Attendance />} />
-                <Route path="/leave-management" element={<LeaveManagement />} />
-                <Route path="/performance" element={<Performance />} />
-                <Route path="/profile" element={<EmployeeProfile />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/team" element={<TeamCollaboration />} />
-                <Route path="/payroll" element={<Payroll />} />
-
-                {/* ============================================================
-                    SIDEBAR NAVIGATION PAGES - EMPLOYEE
-                    ============================================================ */}
-                <Route path="/employees" element={<Employees />} />
-                <Route path="/leaves" element={<Leaves />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/settings" element={<Settings />} />
-
-                {/* ============================================================
-                    DEFAULT & FALLBACK ROUTES
-                    ============================================================ */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </DashboardLayout>
-          }
+          path="/punch"
+          element={userRole === ROLES.EMPLOYEE ? <PunchInOut /> : <Navigate to="/" replace />}
         />
+
+        {/* ============================================================
+            COMMON DASHBOARD FOR ALL ROLES
+            ============================================================ */}
+        <Route path="/*" element={<UnifiedDashboard />} />
       </Routes>
     </ProtectedRoute>
   );
