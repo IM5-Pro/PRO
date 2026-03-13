@@ -9,10 +9,24 @@ const router = express.Router();
 
 router.post("/register-superadmin", authController.registerSuperAdmin);
 router.post(
-	"/register-hr-admin",
-	authGuard,
-	roleGuard(Roles.SUPER_ADMIN, Roles.HR_ADMIN),
-	authController.registerHrAdmin,
+  "/register-hr-admin",
+  authGuard,
+  roleGuard(Roles.SUPER_ADMIN, Roles.HR_ADMIN),
+  authController.registerHrAdmin,
+);
+
+router.post(
+  "/register-manager",
+  authGuard,
+  roleGuard(Roles.SUPER_ADMIN, Roles.HR_ADMIN),
+  authController.registerManager,
+);
+
+router.post(
+  "/register-employee",
+  authGuard,
+  roleGuard(Roles.SUPER_ADMIN, Roles.HR_ADMIN),
+  authController.registerEmployee,
 );
 
 router.post("/login-superadmin", loginRateLimiter, authController.login);

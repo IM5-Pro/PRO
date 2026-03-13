@@ -16,6 +16,7 @@ import {
   validateCreateUser,
 } from "../utils/validators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
+import { createUserOrThrow } from "../services/userService.js";
 
 const BCRYPT_SALT_ROUNDS = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || "12", 10);
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -92,50 +93,36 @@ const registerSuperAdmin = async (req, res) => {
   }
 };
 
-// HR admin creation (Super/Admin or existing HR Admin can perform)
-const registerHrAdmin = async (req, res) => {
+const registerUser = async (req, res, targetRole) => {
   try {
-    // validation leverages createUser rules but disallows SUPER_ADMIN
-    const normalizedEmail = normalizeEmail(req.body.email);
-    const validation = validateCreateUser({
-      ...req.body,
-      email: normalizedEmail,
-      role: Roles.HR_ADMIN,
-    });
-    if (!validation.isValid) {
-      return sendError(res, 400, "Validation failed", validation.errors);
-    }
-
-    // ensure caller is permitted (roleGuard on route should handle this too)
+    // Only SUPER_ADMIN or HR_ADMIN can register other users
     if (!req.user || (req.user.role !== Roles.SUPER_ADMIN && req.user.role !== Roles.HR_ADMIN)) {
       return sendError(res, 403, "Access denied");
     }
 
-    const { password, firstName, lastName } = req.body;
-
-    const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser) {
-      return sendError(res, 409, "Email already registered", { email: "This email is already in use" });
-    }
-
-    const hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
-
-    const user = await User.create({
-      email: normalizedEmail,
-      password: hash,
-      role: Roles.HR_ADMIN,
-      firstName: firstName || "",
-      lastName: lastName || "",
+    const user = await createUserOrThrow({
+      creatorRole: req.user.role,
+      creatorId: req.user.id,
+      payload: {
+        ...req.body,
+        role: targetRole,
+      },
     });
 
-    return sendSuccess(res, 201, "HR admin created successfully", {
+    return sendSuccess(res, 201, `${targetRole} created successfully`, {
       data: toUserResponse(user),
     });
   } catch (err) {
-    console.error("Register HR admin error:", err);
-    return sendError(res, 500, "Internal server error", { error: err.message });
+    console.error(`Register ${targetRole} error:`, err);
+    const status = err.status || 500;
+    return sendError(res, status, err.message, err.details);
   }
 };
+
+const registerHrAdmin = async (req, res) => registerUser(req, res, Roles.HR_ADMIN);
+const registerManager = async (req, res) => registerUser(req, res, Roles.MANAGER);
+const registerEmployee = async (req, res) => registerUser(req, res, Roles.EMPLOYEE);
+
 
 const login = async (req, res) => {
   try {
@@ -419,6 +406,8 @@ const sessionTerminate = async (req, res) => {
 export default {
   registerSuperAdmin,
   registerHrAdmin,
+  registerManager,
+  registerEmployee,
   login,
   logout,
   refreshToken,
