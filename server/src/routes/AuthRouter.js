@@ -15,7 +15,6 @@ router.post(
 	authController.registerHrAdmin,
 );
 
-router.post("/login-superadmin", loginRateLimiter, authController.login);
 router.post("/login", loginRateLimiter, authController.login);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/forgot-password", authController.forgotPassword);

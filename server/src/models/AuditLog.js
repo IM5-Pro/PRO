@@ -14,7 +14,7 @@ const auditLogSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-auditLogSchema.pre("validate", function syncEntityFields(next) {
+auditLogSchema.pre("validate", function syncEntityFields() {
   if (!this.entity && this.entityType) {
     this.entity = this.entityType;
   }
@@ -22,8 +22,6 @@ auditLogSchema.pre("validate", function syncEntityFields(next) {
   if (!this.entityType && this.entity) {
     this.entityType = this.entity;
   }
-
-  next();
 });
 
 auditLogSchema.index({ entity: 1, entityId: 1, createdAt: -1 });

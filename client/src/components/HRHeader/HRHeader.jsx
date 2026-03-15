@@ -258,6 +258,34 @@ const HRHeader = ({
     return 'Good evening';
   }, [currentTime]);
 
+  const roleLabel = useMemo(() => {
+    const normalized = String(user.role || '').replace(/_/g, ' ').trim();
+    if (!normalized) {
+      return 'User';
+    }
+
+    return normalized
+      .split(' ')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }, [user.role]);
+
+  const notificationItems = useMemo(() => {
+    const templates = [
+      'Pending approvals require your review',
+      'Attendance exceptions are ready for validation',
+      'Payroll cycle status has been refreshed',
+      'Policy acknowledgement reminder is pending',
+      'A shared document has been updated',
+      'Live dashboard data sync completed',
+    ];
+
+    return Array.from({ length: notificationCount }, (_, idx) => ({
+      title: templates[idx % templates.length],
+      time: idx === 0 ? 'Just now' : idx === 1 ? '5 min ago' : 'Today',
+    }));
+  }, [notificationCount]);
+
   // ============================================================================
   // COMPONENT RENDER
   // ============================================================================
@@ -278,7 +306,7 @@ const HRHeader = ({
               />
               <input
                 type="text"
-                placeholder="Search employees, leaves, payroll..."
+                placeholder="Search people, requests, payroll, or policies..."
                 value={searchQuery}
                 onChange={handleSearchChange}
                 className="w-full pl-10 pr-4 py-3 bg-white border-2 border-slate-400 text-slate-900 placeholder-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300 shadow-lg font-medium"
@@ -361,10 +389,10 @@ const HRHeader = ({
                 <div className="p-4">
                   {notificationCount > 0 ? (
                     <div className="space-y-3">
-                      {[...Array(notificationCount)].map((_, idx) => (
+                      {notificationItems.map((item, idx) => (
                         <div key={idx} className="p-3 bg-slate-100/80 rounded-lg hover:bg-slate-200/80 transition-colors cursor-pointer border border-slate-200">
-                          <p className="text-sm text-slate-800">Notification {idx + 1}</p>
-                          <p className="text-xs text-slate-600 mt-1">Just now</p>
+                          <p className="text-sm text-slate-800">{item.title}</p>
+                          <p className="text-xs text-slate-600 mt-1">{item.time}</p>
                         </div>
                       ))}
                     </div>
@@ -415,7 +443,7 @@ const HRHeader = ({
                   <p className="text-xs text-slate-600 mt-1">{user.email}</p>
                   <div className="mt-2">
                     <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded font-medium">
-                      {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || 'User'}
+                      {roleLabel}
                     </span>
                   </div>
                 </div>
@@ -428,7 +456,7 @@ const HRHeader = ({
                     role="menuitem"
                   >
                     <FiUser size={18} />
-                    <span>View Profile</span>
+                    <span>My Profile</span>
                   </button>
 
                   <button
@@ -437,7 +465,7 @@ const HRHeader = ({
                     role="menuitem"
                   >
                     <FiSettings size={18} />
-                    <span>Settings</span>
+                    <span>Workspace Settings</span>
                   </button>
 
                   <div className="border-t border-slate-200 my-2" />

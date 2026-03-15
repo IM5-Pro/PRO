@@ -33,7 +33,7 @@ const HRSidebar = ({
   currentPage = 'dashboard',
   onNavigate = () => {},
   pageConfigs = [],
-  portalLabel = 'HR Portal',
+  portalLabel = 'HR Operations',
 }) => {
   // ============================================================================
   // STATE MANAGEMENT
@@ -63,7 +63,7 @@ const HRSidebar = ({
 
   const currentPageLabel = useMemo(() => {
     const currentConfig = pageConfigs.find((page) => page.id === currentPage);
-    return currentConfig?.label || 'Dashboard';
+    return currentConfig?.label || 'Overview';
   }, [currentPage, pageConfigs]);
 
   // ============================================================================
@@ -219,10 +219,10 @@ const HRSidebar = ({
             LOGO SECTION
             ======================================== */}
         <div className="p-6 border-b border-white/40">
-          <h1 className="text-2xl font-bold">HRMS</h1>
+          <h1 className="text-2xl font-bold">HRMS Suite</h1>
           <p className="text-slate-600 text-sm">{portalLabel}</p>
           <p className="mt-3 text-xs text-slate-700 bg-white/40 border border-white/50 rounded-md px-2 py-1 inline-block">
-            Current: {currentPageLabel}
+            Viewing: {currentPageLabel}
           </p>
         </div>
 

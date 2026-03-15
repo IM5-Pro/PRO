@@ -3,6 +3,45 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import HRSidebar from '../HRSidebar/HRSidebar';
 import HRHeader from '../HRHeader/HRHeader';
+import ProfileCard from '../ProfileCard/ProfileCard';
+import AttendanceCard from '../AttendanceCard/AttendanceCard';
+import LeaveBalance from '../LeaveBalance/LeaveBalance';
+import Announcements from '../Announcements/Announcements';
+import Birthdays from '../Birthdays/Birthdays';
+import TodoList from '../TodoList/TodoList';
+import TimeTracker from '../TimeTracker/TimeTracker';
+import TeamStatsCard from '../TeamStatsCard/TeamStatsCard';
+import TeamScheduleCalendar from '../TeamScheduleCalendar/TeamScheduleCalendar';
+import TimingsChart from '../TimingsChart/TimingsChart';
+import PerformanceChart from '../PerformanceChart/PerformanceChart';
+import AttendanceSheet from '../AttendanceSheet/AttendanceSheet';
+import BookMeeting from '../BookMeeting/BookMeeting';
+import ManagerActionCenter from '../ManagerDashboard/ManagerActionCenter';
+import ManagerSidebarPageContent from '../ManagerDashboard/ManagerSidebarPages';
+import DashboardPage from '../Pages/Dashboard';
+import AttendancePage from '../Pages/Attendance';
+import AnnouncementsPage from '../Pages/Announcements';
+import AnalyticsPage from '../Pages/Analytics';
+import EmployeeProfilePage from '../Pages/EmployeeProfile';
+import EmployeesPage from '../Pages/Employees';
+import LeaveManagementPage from '../Pages/LeaveManagement';
+import LeavesPage from '../Pages/Leaves';
+import PayrollPage from '../Pages/Payroll';
+import PerformancePage from '../Pages/Performance';
+import ReportsPage from '../Pages/Reports';
+import SettingsPortalPage from '../Pages/Settings';
+import TeamCollaborationPage from '../Pages/TeamCollaboration';
+import DashboardOverviewPage from '../Pages/HR/DashboardOverview';
+import LeavesAttendancePage from '../Pages/HR/LeavesAttendance';
+import ManpowerPlanningPage from '../Pages/HR/ManpowerPlanning';
+import HRPayrollPage from '../Pages/HR/Payroll';
+import ExitClearancePage from '../Pages/HR/ExitClearance';
+import MeetingRoomPage from '../Pages/HR/MeetingRoom';
+import WorkflowsPage from '../Pages/HR/Workflows';
+import LetterTemplatesPage from '../Pages/HR/LetterTemplates';
+import UserManagementPage from '../Pages/HR/UserManagement';
+import MastersPage from '../Pages/HR/Masters';
+import AdminPanelConfigPage from '../Pages/HR/AdminPanelConfig';
 import { ROLES } from '../../utils/roles';
 import {
   approveLeaveRequest,
@@ -17,80 +56,442 @@ import {
 
 const ROLE_DASHBOARD_CONFIG = {
   [ROLES.EMPLOYEE]: {
-    portalLabel: 'Employee Portal',
-    heading: 'Employee Dashboard',
-    subtitle: 'Track your day-to-day work and personal HR actions.',
+    portalLabel: 'Employee Self-Service',
+    heading: 'My Work Dashboard',
+    subtitle: 'Manage attendance, leave, payroll, and documents in one place.',
     widgets: [
-      { key: 'attendance', title: 'My Attendance', value: '0', note: 'Attendance records loaded from backend' },
-      { key: 'leaves', title: 'My Leaves', value: '0', note: 'Leave requests loaded from backend' },
-      { key: 'holidays', title: 'Upcoming Holidays', value: '0', note: 'Leave policies loaded from backend' },
-      { key: 'payslip', title: 'Payslip Download', value: '0', note: 'Payroll entries loaded from backend' },
+      { key: 'attendance', title: 'Attendance This Month', value: '0', note: 'Live attendance summary from your daily records' },
+      { key: 'leaves', title: 'My Leave Requests', value: '0', note: 'Submitted and approved leave requests from backend' },
+      { key: 'holidays', title: 'Upcoming Holidays', value: '0', note: 'Holiday calendar synced from company leave policy' },
+      { key: 'payslip', title: 'Payslips Available', value: '0', note: 'Payroll statements available for secure download' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Dashboard', icon: '🏠', category: 'main', description: 'Personal overview' },
-      { id: 'my-profile', label: 'My Profile', icon: '👤', category: 'main', description: 'Manage your profile' },
-      { id: 'attendance', label: 'Attendance', icon: '🕒', category: 'work', description: 'View attendance logs' },
-      { id: 'leaves', label: 'Leaves', icon: '🌴', category: 'work', description: 'Apply and review leaves' },
-      { id: 'payroll', label: 'Payroll', icon: '💵', category: 'work', description: 'View payslips and payroll info' },
-      { id: 'documents', label: 'Documents', icon: '📁', category: 'work', description: 'Access company documents' },
+      { id: 'dashboard', label: 'Overview', icon: '🏠', category: 'main', description: 'Personal HR summary and quick actions' },
+      { id: 'my-profile', label: 'Profile', icon: '👤', category: 'main', description: 'Personal information and employment details' },
+      { id: 'attendance', label: 'Attendance Log', icon: '🕒', category: 'work', description: 'Daily punch history and attendance status' },
+      { id: 'leaves', label: 'Leave Requests', icon: '🌴', category: 'work', description: 'Apply leave and track request progress' },
+      { id: 'payroll', label: 'Compensation', icon: '💵', category: 'work', description: 'Payslips, deductions, and payroll details' },
+      { id: 'documents', label: 'Documents Hub', icon: '📁', category: 'work', description: 'Policy, letters, and employee documents' },
+      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'work', description: 'Browse all dashboard widgets and cards' },
     ],
   },
   [ROLES.MANAGER]: {
-    portalLabel: 'Manager Portal',
-    heading: 'Manager Dashboard',
-    subtitle: 'Manage team execution, approvals, and outcomes.',
+    portalLabel: 'Manager Control Center',
+    heading: 'Team Operations Dashboard',
+    subtitle: 'Monitor team performance, approve requests, and remove blockers.',
     widgets: [
-      { key: 'team-attendance', title: 'Team Attendance', value: '0', note: 'Team attendance rows loaded from backend' },
-      { key: 'leave-requests', title: 'Pending Leave Requests', value: '0', note: 'Team leave requests loaded from backend' },
-      { key: 'team-performance', title: 'Team Performance', value: 'N/A', note: 'Monthly summary loaded from backend' },
-      { key: 'team-members', title: 'Team Members', value: '0', note: 'Team member list loaded from backend' },
+      { key: 'team-attendance', title: 'Team Attendance Today', value: '0', note: 'Live team attendance snapshot from backend' },
+      { key: 'leave-requests', title: 'Pending Leave Decisions', value: '0', note: 'Leave requests awaiting manager action' },
+      { key: 'team-performance', title: 'Average Work Hours', value: 'N/A', note: 'Monthly effort trend generated from attendance summary' },
+      { key: 'team-members', title: 'Direct Reports', value: '0', note: 'Active team members assigned to your reporting line' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Dashboard', icon: '🏠', category: 'main', description: 'Team overview' },
-      { id: 'team', label: 'Team', icon: '👥', category: 'main', description: 'Team directory and updates' },
-      { id: 'attendance', label: 'Attendance', icon: '🕒', category: 'operations', description: 'Track team attendance' },
-      { id: 'leave-approvals', label: 'Leave Approvals', icon: '✅', category: 'operations', description: 'Approve leave requests' },
-      { id: 'reports', label: 'Reports', icon: '📊', category: 'operations', description: 'Team reports and exports' },
+      { id: 'dashboard', label: 'Overview', icon: '🏠', category: 'main', description: 'Team KPIs and actionable updates' },
+      { id: 'team', label: 'Team Directory', icon: '👥', category: 'main', description: 'Team structure, contacts, and ownership' },
+      { id: 'attendance', label: 'Team Attendance', icon: '🕒', category: 'operations', description: 'Daily attendance and punctuality tracking' },
+      { id: 'leave-approvals', label: 'Leave Decisions', icon: '✅', category: 'operations', description: 'Approve or reject pending leave requests' },
+      { id: 'reports', label: 'Performance Reports', icon: '📊', category: 'operations', description: 'Attendance trends and team productivity reports' },
+      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'operations', description: 'Browse all dashboard widgets and cards' },
     ],
   },
   [ROLES.HR_ADMIN]: {
-    portalLabel: 'HR Portal',
-    heading: 'HR Dashboard',
-    subtitle: 'Operate HR processes across workforce lifecycle.',
+    portalLabel: 'HR Operations Center',
+    heading: 'Workforce Operations Dashboard',
+    subtitle: 'Run employee lifecycle operations across attendance, leave, and payroll.',
     widgets: [
-      { key: 'total-employees', title: 'Total Employees', value: '0', note: 'Company-wide headcount from backend' },
-      { key: 'new-joiners', title: 'New Joiners', value: '0', note: 'Recent joiners from backend records' },
-      { key: 'pending-leaves', title: 'Pending Leave Approvals', value: '0', note: 'Leave approvals loaded from backend' },
-      { key: 'payroll-processing', title: 'Payroll Processing', value: '0', note: 'Payroll runs loaded from backend' },
+      { key: 'total-employees', title: 'Active Employees', value: '0', note: 'Current workforce headcount from employee records' },
+      { key: 'new-joiners', title: 'New Joiners (Month)', value: '0', note: 'Employees onboarded in the current month' },
+      { key: 'pending-leaves', title: 'Leaves Awaiting Approval', value: '0', note: 'Pending leave requests requiring HR attention' },
+      { key: 'payroll-processing', title: 'Payroll Runs', value: '0', note: 'Payroll cycle status across ongoing runs' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Dashboard', icon: '🏠', category: 'main', description: 'HR overview' },
-      { id: 'employees', label: 'Employees', icon: '👥', category: 'operations', description: 'Employee management' },
-      { id: 'attendance', label: 'Attendance', icon: '🕒', category: 'operations', description: 'Attendance controls' },
-      { id: 'leaves', label: 'Leaves', icon: '🌴', category: 'operations', description: 'Leave operations' },
-      { id: 'payroll', label: 'Payroll', icon: '💰', category: 'operations', description: 'Payroll runs and setup' },
-      { id: 'reports', label: 'Reports', icon: '📊', category: 'operations', description: 'HR reporting' },
+      { id: 'dashboard', label: 'Overview', icon: '🏠', category: 'main', description: 'Organization-wide HR health summary' },
+      { id: 'employees', label: 'Employee Directory', icon: '👥', category: 'operations', description: 'Manage employee records and profiles' },
+      { id: 'attendance', label: 'Attendance Control', icon: '🕒', category: 'operations', description: 'Audit attendance logs and resolve issues' },
+      { id: 'leaves', label: 'Leave Operations', icon: '🌴', category: 'operations', description: 'Review, approve, and monitor leave flow' },
+      { id: 'payroll', label: 'Payroll Operations', icon: '💰', category: 'operations', description: 'Execute payroll runs and monitor processing' },
+      { id: 'reports', label: 'HR Reports', icon: '📊', category: 'operations', description: 'Operational and compliance reporting outputs' },
+      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'operations', description: 'Browse all dashboard widgets and cards' },
     ],
   },
   [ROLES.SUPER_ADMIN]: {
-    portalLabel: 'Admin Portal',
-    heading: 'Admin Dashboard',
-    subtitle: 'Control system governance and enterprise settings.',
+    portalLabel: 'Enterprise Admin Center',
+    heading: 'Governance Dashboard',
+    subtitle: 'Oversee system governance, access control, and organizational structure.',
     widgets: [
-      { key: 'company-overview', title: 'Company Overview', value: '0', note: 'Employee data loaded from backend' },
-      { key: 'system-settings', title: 'System Settings', value: '0', note: 'Role settings loaded from backend' },
-      { key: 'audit-logs', title: 'Audit Logs', value: '0', note: 'Session activity loaded from backend' },
-      { key: 'department-stats', title: 'Department Stats', value: '0', note: 'Department data loaded from backend' },
+      { key: 'company-overview', title: 'Organization Headcount', value: '0', note: 'Enterprise employee volume from live backend records' },
+      { key: 'system-settings', title: 'Configured Roles', value: '0', note: 'Role and access model definitions in the platform' },
+      { key: 'audit-logs', title: 'Active Sessions', value: '0', note: 'Authenticated sessions and access activity overview' },
+      { key: 'department-stats', title: 'Departments', value: '0', note: 'Department structure and coverage across the company' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Dashboard', icon: '🛡️', category: 'main', description: 'Enterprise overview' },
-      { id: 'employees', label: 'Employees', icon: '👥', category: 'governance', description: 'Global employee controls' },
-      { id: 'departments', label: 'Departments', icon: '🏢', category: 'governance', description: 'Department administration' },
-      { id: 'roles-permissions', label: 'Roles & Permissions', icon: '🔐', category: 'governance', description: 'Access control management' },
-      { id: 'system-settings', label: 'System Settings', icon: '⚙️', category: 'system', description: 'Core platform settings' },
-      { id: 'audit-logs', label: 'Audit Logs', icon: '📜', category: 'system', description: 'Activity and compliance logs' },
+      { id: 'dashboard', label: 'Overview', icon: '🛡️', category: 'main', description: 'Enterprise risk, usage, and control summary' },
+      { id: 'employees', label: 'Global Employees', icon: '👥', category: 'governance', description: 'Cross-organization employee governance controls' },
+      { id: 'departments', label: 'Department Admin', icon: '🏢', category: 'governance', description: 'Department setup and structural governance' },
+      { id: 'roles-permissions', label: 'Access Control', icon: '🔐', category: 'governance', description: 'Roles, permissions, and assignment management' },
+      { id: 'system-settings', label: 'Platform Settings', icon: '⚙️', category: 'system', description: 'Core tenant and policy configuration' },
+      { id: 'audit-logs', label: 'Compliance Logs', icon: '📜', category: 'system', description: 'Security and compliance activity trails' },
+      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'system', description: 'Browse all dashboard widgets and cards' },
     ],
   },
+};
+
+const UI_COMPONENT_MEMBERS = [
+  {
+    id: 1,
+    name: 'Sarah Johnson',
+    role: 'Product Manager - PM01',
+    avatar: '👩‍💼',
+    calendar: ['present', 'present', 'present', 'halfDay', 'present', 'leave', 'leave', 'present', 'present', 'present', 'present', 'present', 'absent', 'leave', 'present', 'present', 'halfDay', 'present', 'present', 'present', 'leave', 'present', 'present', 'present', 'present', 'halfDay', 'leave', 'present', 'present', 'present'],
+    lastWeekHours: 36,
+    thisWeekHours: 34.5,
+  },
+  {
+    id: 2,
+    name: 'Mike Chen',
+    role: 'Developer - DEV02',
+    avatar: '👨‍💻',
+    calendar: ['present', 'present', 'halfDay', 'present', 'present', 'leave', 'leave', 'present', 'present', 'present', 'present', 'present', 'present', 'leave', 'present', 'absent', 'present', 'present', 'present', 'present', 'leave', 'present', 'halfDay', 'present', 'present', 'present', 'leave', 'present', 'present', 'present'],
+    lastWeekHours: 35.5,
+    thisWeekHours: 36,
+  },
+  {
+    id: 3,
+    name: 'Emma Davis',
+    role: 'Designer - DES01',
+    avatar: '👩‍🎨',
+    calendar: ['present', 'present', 'present', 'present', 'halfDay', 'leave', 'leave', 'present', 'present', 'present', 'absent', 'present', 'present', 'leave', 'present', 'present', 'present', 'halfDay', 'present', 'present', 'leave', 'present', 'present', 'present', 'present', 'present', 'leave', 'absent', 'present', 'present'],
+    lastWeekHours: 32,
+    thisWeekHours: 33.5,
+  },
+];
+
+const MANAGER_PAGE_OPTIONS = [
+  { id: 'users', label: 'Users' },
+  { id: 'checklist', label: 'Checklist' },
+  { id: 'leaves', label: 'Leaves' },
+  { id: 'payroll', label: 'Payroll' },
+  { id: 'recruit', label: 'Recruitment' },
+  { id: 'messages', label: 'Messages' },
+  { id: 'help', label: 'Help' },
+  { id: 'settings', label: 'Settings' },
+];
+
+const STANDARD_PAGE_OPTIONS = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'attendance', label: 'Attendance' },
+  { id: 'announcements', label: 'Announcements' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'employee-profile', label: 'Employee Profile' },
+  { id: 'employees', label: 'Employees' },
+  { id: 'leave-management', label: 'Leave Management' },
+  { id: 'leaves', label: 'Leaves' },
+  { id: 'payroll', label: 'Payroll' },
+  { id: 'performance', label: 'Performance' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'settings', label: 'Settings' },
+  { id: 'team-collaboration', label: 'Team Collaboration' },
+];
+
+const HR_PAGE_OPTIONS = [
+  { id: 'dashboard-overview', label: 'HR Overview' },
+  { id: 'leaves-attendance', label: 'Leaves & Attendance' },
+  { id: 'manpower-planning', label: 'Manpower Planning' },
+  { id: 'hr-payroll', label: 'HR Payroll' },
+  { id: 'exit-clearance', label: 'Exit Clearance' },
+  { id: 'meeting-room', label: 'Meeting Room' },
+  { id: 'workflows', label: 'Workflows' },
+  { id: 'letter-templates', label: 'Letter Templates' },
+  { id: 'user-management', label: 'User Management' },
+  { id: 'masters', label: 'Masters' },
+  { id: 'admin-panel-config', label: 'Admin Panel Config' },
+];
+
+const STANDARD_PAGE_COMPONENTS = {
+  dashboard: DashboardPage,
+  attendance: AttendancePage,
+  announcements: AnnouncementsPage,
+  analytics: AnalyticsPage,
+  'employee-profile': EmployeeProfilePage,
+  employees: EmployeesPage,
+  'leave-management': LeaveManagementPage,
+  leaves: LeavesPage,
+  payroll: PayrollPage,
+  performance: PerformancePage,
+  reports: ReportsPage,
+  settings: SettingsPortalPage,
+  'team-collaboration': TeamCollaborationPage,
+};
+
+const HR_PAGE_COMPONENTS = {
+  'dashboard-overview': DashboardOverviewPage,
+  'leaves-attendance': LeavesAttendancePage,
+  'manpower-planning': ManpowerPlanningPage,
+  'hr-payroll': HRPayrollPage,
+  'exit-clearance': ExitClearancePage,
+  'meeting-room': MeetingRoomPage,
+  workflows: WorkflowsPage,
+  'letter-templates': LetterTemplatesPage,
+  'user-management': UserManagementPage,
+  masters: MastersPage,
+  'admin-panel-config': AdminPanelConfigPage,
+};
+
+const ROLE_AWARE_PREVIEW_CONFIG = {
+  [ROLES.EMPLOYEE]: {
+    showManagerSection: false,
+    showHrSection: false,
+    standardPages: ['dashboard', 'attendance', 'announcements', 'employee-profile', 'leaves', 'payroll', 'performance', 'settings'],
+    showTeamWidgets: false,
+  },
+  [ROLES.MANAGER]: {
+    showManagerSection: true,
+    showHrSection: false,
+    standardPages: ['dashboard', 'attendance', 'announcements', 'analytics', 'employee-profile', 'employees', 'leaves', 'payroll', 'performance', 'reports', 'settings', 'team-collaboration'],
+    showTeamWidgets: true,
+  },
+  [ROLES.HR_ADMIN]: {
+    showManagerSection: false,
+    showHrSection: true,
+    standardPages: ['dashboard', 'attendance', 'announcements', 'analytics', 'employees', 'leave-management', 'leaves', 'payroll', 'performance', 'reports', 'settings', 'team-collaboration'],
+    hrPages: ['dashboard-overview', 'leaves-attendance', 'manpower-planning', 'hr-payroll', 'exit-clearance', 'meeting-room', 'workflows', 'letter-templates', 'user-management', 'masters', 'admin-panel-config'],
+    showTeamWidgets: true,
+  },
+  [ROLES.SUPER_ADMIN]: {
+    showManagerSection: true,
+    showHrSection: true,
+    standardPages: STANDARD_PAGE_OPTIONS.map((item) => item.id),
+    hrPages: HR_PAGE_OPTIONS.map((item) => item.id),
+    showTeamWidgets: true,
+  },
+};
+
+const filterOptionsByIds = (options, ids = []) => {
+  const allowed = new Set(ids);
+  return options.filter((item) => allowed.has(item.id));
+};
+
+const PreviewFrame = ({ children }) => (
+  <div className="rounded-2xl border border-slate-300/70 bg-white/30 overflow-hidden">
+    <div className="bg-slate-100/70 border-b border-slate-300/70 px-4 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Preview</p>
+    </div>
+    <div>{children}</div>
+  </div>
+);
+
+const UnifiedComponentsGallery = ({ user }) => {
+  const [selectedMember, setSelectedMember] = useState(UI_COMPONENT_MEMBERS[0]);
+  const [selectedManagerPage, setSelectedManagerPage] = useState('users');
+  const [selectedStandardPage, setSelectedStandardPage] = useState('dashboard');
+  const [selectedHrPage, setSelectedHrPage] = useState('dashboard-overview');
+  const previewConfig = ROLE_AWARE_PREVIEW_CONFIG[user?.role] || ROLE_AWARE_PREVIEW_CONFIG[ROLES.EMPLOYEE];
+
+  const currentUserName = user?.name || 'HRMS User';
+  const currentUserRole = String(user?.role || 'employee').replace(/_/g, ' ');
+  const currentUserDepartment = user?.department || 'People Operations';
+  const currentUserEmail = user?.email || 'user@company.com';
+  const availableStandardPages = useMemo(
+    () => filterOptionsByIds(STANDARD_PAGE_OPTIONS, previewConfig.standardPages || []),
+    [previewConfig.standardPages]
+  );
+  const availableHrPages = useMemo(
+    () => filterOptionsByIds(HR_PAGE_OPTIONS, previewConfig.hrPages || []),
+    [previewConfig.hrPages]
+  );
+  const SelectedStandardPage = STANDARD_PAGE_COMPONENTS[selectedStandardPage] || DashboardPage;
+  const SelectedHrPage = HR_PAGE_COMPONENTS[selectedHrPage] || DashboardOverviewPage;
+
+  useEffect(() => {
+    if (availableStandardPages.length === 0) {
+      return;
+    }
+
+    const hasSelectedStandardPage = availableStandardPages.some((item) => item.id === selectedStandardPage);
+    if (!hasSelectedStandardPage) {
+      setSelectedStandardPage(availableStandardPages[0].id);
+    }
+  }, [availableStandardPages, selectedStandardPage]);
+
+  useEffect(() => {
+    if (availableHrPages.length === 0) {
+      return;
+    }
+
+    const hasSelectedHrPage = availableHrPages.some((item) => item.id === selectedHrPage);
+    if (!hasSelectedHrPage) {
+      setSelectedHrPage(availableHrPages[0].id);
+    }
+  }, [availableHrPages, selectedHrPage]);
+
+  useEffect(() => {
+    if (!previewConfig.showManagerSection) {
+      return;
+    }
+
+    const hasSelectedManagerPage = MANAGER_PAGE_OPTIONS.some((item) => item.id === selectedManagerPage);
+    if (!hasSelectedManagerPage) {
+      setSelectedManagerPage(MANAGER_PAGE_OPTIONS[0].id);
+    }
+  }, [previewConfig.showManagerSection, selectedManagerPage]);
+
+  return (
+    <div className="min-h-screen bg-transparent p-6 md:p-8 space-y-6">
+      <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20">
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">Unified UI Components</h1>
+        <p className="text-slate-600">All dashboard cards, charts, lists, and planning widgets are available in this module, filtered for the current role.</p>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <ProfileCard
+          name={currentUserName}
+          role={currentUserRole}
+          department={currentUserDepartment}
+          email={currentUserEmail}
+          phone="+1-234-567-8900"
+          location="HQ Campus"
+          avatar={user?.avatar || '👨‍💼'}
+        />
+        <AttendanceCard present={20} absent={2} late={1} percentage={91} />
+        <LeaveBalance totalLeaves={24} usedLeaves={8} sickLeaves={8} casualLeaves={16} />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Announcements />
+        <TodoList />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Birthdays />
+        <TimeTracker />
+        <BookMeeting />
+      </div>
+
+      {previewConfig.showTeamWidgets && (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <TeamStatsCard />
+            <TimingsChart selectedMember={selectedMember} onMemberSelect={setSelectedMember} period="This Week" />
+          </div>
+
+          <TeamScheduleCalendar
+            teamMembers={UI_COMPONENT_MEMBERS}
+            selectedMember={selectedMember}
+            onMemberSelect={setSelectedMember}
+          />
+        </>
+      )}
+
+      <PerformanceChart />
+
+      <AttendanceSheet />
+
+      {previewConfig.showManagerSection && (
+        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 space-y-5">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Manager Action Center Pages</h2>
+            <p className="text-slate-600 text-sm">Preview manager action center modules and sidebar pages relevant to this role.</p>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-1">
+              <ManagerActionCenter
+                onNavigate={(pageId) => {
+                  if (MANAGER_PAGE_OPTIONS.some((item) => item.id === pageId)) {
+                    setSelectedManagerPage(pageId);
+                    return;
+                  }
+
+                  setSelectedManagerPage('users');
+                }}
+              />
+            </div>
+
+            <div className="xl:col-span-2 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {MANAGER_PAGE_OPTIONS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedManagerPage(item.id)}
+                    className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                      selectedManagerPage === item.id
+                        ? 'bg-blue-600 text-white border-blue-700'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <PreviewFrame>
+                <ManagerSidebarPageContent pageId={selectedManagerPage} onAction={() => {}} />
+              </PreviewFrame>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white/20 border border-white/30 rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Application Pages Preview</h2>
+          <p className="text-slate-600 text-sm">Browse the standard application pages relevant to the current role.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {availableStandardPages.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSelectedStandardPage(item.id)}
+              className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                selectedStandardPage === item.id
+                  ? 'bg-blue-600 text-white border-blue-700'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <PreviewFrame>
+          <SelectedStandardPage />
+        </PreviewFrame>
+      </div>
+
+      {previewConfig.showHrSection && availableHrPages.length > 0 && (
+        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 space-y-5">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">HR Pages Preview</h2>
+            <p className="text-slate-600 text-sm">Browse HR module pages relevant to the current role from the same unified components area.</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {availableHrPages.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSelectedHrPage(item.id)}
+                className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                  selectedHrPage === item.id
+                    ? 'bg-blue-600 text-white border-blue-700'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <PreviewFrame>
+            <SelectedHrPage user={user || {}} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />
+          </PreviewFrame>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading }) => {
@@ -118,7 +519,7 @@ const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading 
       </div>
 
       <div className="bg-white/20 border border-white/30 rounded-2xl p-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick Access</h2>
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick Access Modules</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {quickPages.map((page) => (
             <button
@@ -624,12 +1025,12 @@ const RolePage = ({ title, description, role, pageId }) => {
         <div className="space-y-4 mb-6">
           <div className="bg-white/20 border border-white/30 rounded-2xl p-6">
             <h2 className="text-2xl font-bold text-slate-800 mb-3">Role Actions</h2>
-            <p className="text-slate-600 text-sm mb-5">Run secured backend actions directly from this module or use row actions in the data tables below.</p>
+            <p className="text-slate-600 text-sm mb-5">Run secure operations directly from this module or use row-level actions in the datasets below.</p>
 
             {pageId === 'roles-permissions' && (
               <div className="mb-4 p-3 rounded-xl bg-slate-100/60 border border-slate-300/70 text-sm text-slate-700">
-                <p>Selected Role ID: {selectedRoleId || 'Not selected yet'}</p>
-                <p>Selected Permission ID: {selectedPermissionId || 'Not selected yet'}</p>
+                <p>Selected Role ID: {selectedRoleId || 'Not selected'}</p>
+                <p>Selected Permission ID: {selectedPermissionId || 'Not selected'}</p>
               </div>
             )}
 
@@ -679,9 +1080,9 @@ const RolePage = ({ title, description, role, pageId }) => {
       )}
 
       {loading ? (
-        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 text-slate-700">Loading live data...</div>
+        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 text-slate-700">Loading live records...</div>
       ) : datasets.length === 0 ? (
-        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 text-slate-700">No backend dataset is mapped for this page yet.</div>
+        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 text-slate-700">No dataset is mapped for this module yet.</div>
       ) : (
         <div className="space-y-6">
           {datasets.map((dataset) => {
@@ -697,13 +1098,13 @@ const RolePage = ({ title, description, role, pageId }) => {
               <div key={dataset.key} className="bg-white/20 border border-white/30 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-slate-800">{dataset.label}</h2>
-                  <span className="text-sm text-slate-600">Count: {dataset.count ?? 0}</span>
+                  <span className="text-sm text-slate-600">Total: {dataset.count ?? 0}</span>
                 </div>
 
                 {hasError ? (
                   <p className="text-red-600 text-sm">{dataset.error}</p>
                 ) : previewRows.length === 0 ? (
-                  <p className="text-slate-600 text-sm">No records returned from {dataset.endpoint}</p>
+                  <p className="text-slate-600 text-sm">No records found for endpoint {dataset.endpoint}</p>
                 ) : columns.length === 0 ? (
                   <pre className="text-xs text-slate-700 overflow-auto bg-slate-100/60 p-3 rounded-xl">{JSON.stringify(previewRows, null, 2)}</pre>
                 ) : (
@@ -732,7 +1133,7 @@ const RolePage = ({ title, description, role, pageId }) => {
                               {hasRowActions && (
                                 <td className="py-2 pr-4">
                                   {rowActions.length === 0 ? (
-                                    <span className="text-xs text-slate-500">No action</span>
+                                    <span className="text-xs text-slate-500">No actions available</span>
                                   ) : (
                                     <div className="flex flex-wrap gap-2">
                                       {rowActions.map((rowAction) => {
@@ -844,11 +1245,11 @@ const UnifiedDashboard = () => {
 
   const currentUser = useMemo(
     () => ({
-      name: user?.name || 'User',
-      email: user?.email || 'user@ispace.com',
+      name: user?.name || 'HRMS User',
+      email: user?.email || 'user@company.com',
       role: userRole,
       avatar: user?.avatar || '👨‍💼',
-      department: user?.department || 'Operations',
+      department: user?.department || 'People Operations',
     }),
     [user, userRole]
   );
@@ -895,12 +1296,16 @@ const UnifiedDashboard = () => {
       );
     }
 
+    if (currentPage === 'ui-components') {
+      return <UnifiedComponentsGallery user={currentUser} />;
+    }
+
     const page = roleConfig.pages.find((item) => item.id === currentPage);
     if (!page) {
       return (
         <RolePage
           title="Page Not Found"
-          description="The requested page is not available for your role."
+          description="This module is not available for the current access role."
         />
       );
     }
