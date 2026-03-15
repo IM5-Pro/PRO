@@ -15,7 +15,8 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { FiSearch, FiBell, FiChevronDown, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
+import { FiSearch, FiBell, FiChevronDown, FiUser, FiLogOut, FiSettings, FiLogIn } from 'react-icons/fi';
+import { usePunch } from '../../context/PunchContext';
 
 /**
  * Validation constants for header inputs
@@ -55,6 +56,9 @@ const HRHeader = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Punch state from shared context
+  const { canPunch, punchStatus, loading: punchLoading, locationLabel: punchLocationLabel, punchIn: handlePunchIn, punchOut: handlePunchOut } = usePunch();
+
   // ============================================================================
   // EFFECTS
   // ============================================================================
@@ -70,6 +74,8 @@ const HRHeader = ({
 
     return () => clearInterval(timer);
   }, []);
+
+
 
   /**
    * Close menus when clicking outside
@@ -342,6 +348,31 @@ const HRHeader = ({
             <p className="text-sm font-semibold">{formattedTime}</p>
             <p className="text-xs text-slate-600">{formattedDate}</p>
           </div>
+
+          {/* Punch In / Out Button */}
+          {canPunch && (
+            punchStatus === 'in' ? (
+              <button
+                onClick={handlePunchOut}
+                disabled={punchLoading}
+                title={`Location: ${punchLocationLabel}`}
+                className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-all duration-200 shadow-md disabled:opacity-60"
+              >
+                <FiLogIn size={15} className="rotate-180" />
+                {punchLoading ? 'Recording…' : 'Punch Out'}
+              </button>
+            ) : (
+              <button
+                onClick={handlePunchIn}
+                disabled={punchLoading}
+                title={`Location: ${punchLocationLabel}`}
+                className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-all duration-200 shadow-md disabled:opacity-60"
+              >
+                <FiLogIn size={15} />
+                {punchLoading ? 'Recording…' : 'Punch In'}
+              </button>
+            )
+          )}
 
           {/* Notification Bell */}
           <div className="relative">

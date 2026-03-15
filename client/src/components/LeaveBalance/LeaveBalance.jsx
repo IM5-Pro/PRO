@@ -20,6 +20,7 @@ const LeaveBalance = ({
   usedLeaves = 5,
   sickLeaves = 5,
   casualLeaves = 15,
+  className = '',
 }) => {
   // Calculate remaining leaves
   const remainingLeaves = totalLeaves - usedLeaves;
@@ -57,7 +58,7 @@ const LeaveBalance = ({
   );
 
   return (
-    <div className="card w-full max-w-lg">
+    <div className={`card w-full max-w-lg ${className}`}>
       {/* Header */}
       <h2 className="text-lg font-bold text-gray-800 mb-4">Leave Balance</h2>
 

@@ -28,9 +28,10 @@ const ProfileCard = ({
   location = 'New York, USA',
   avatar = '👨‍💼',
   onEdit = () => {},
+  className = '',
 }) => {
   return (
-    <div className="card w-full max-w-sm">
+    <div className={`card w-full max-w-sm ${className}`}>
       {/* Header with Edit Button */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-800">Profile</h2>

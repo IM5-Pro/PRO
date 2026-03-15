@@ -1,4 +1,15 @@
 import API from '../api/client';
+import {
+  ANNOUNCEMENT_ENDPOINTS,
+  AUTH_ENDPOINTS,
+  ATTENDANCE_ENDPOINTS,
+  DEPARTMENT_ENDPOINTS,
+  EMPLOYEE_ENDPOINTS,
+  LEAVE_ENDPOINTS,
+  PAYROLL_ENDPOINTS,
+  PERMISSION_ENDPOINTS,
+  ROLE_ENDPOINTS,
+} from '../api/endpoints';
 import { ROLES } from '../utils/roles';
 
 const getByPath = (input, path) => {
@@ -84,64 +95,77 @@ const toErrorMessage = (err) => {
 
 const DASHBOARD_WIDGET_SOURCES = {
   [ROLES.EMPLOYEE]: [
-    { key: 'attendance', endpoint: '/attendance/own?limit=10' },
-    { key: 'leaves', endpoint: '/leaves/own' },
-    { key: 'holidays', endpoint: '/leaves/policy' },
-    { key: 'payslip', endpoint: '/payroll/own' },
+    { key: 'attendance', endpoint: ATTENDANCE_ENDPOINTS.own(10) },
+    { key: 'leaves', endpoint: LEAVE_ENDPOINTS.own },
+    { key: 'holidays', endpoint: LEAVE_ENDPOINTS.policy },
+    { key: 'payslip', endpoint: PAYROLL_ENDPOINTS.own },
   ],
   [ROLES.MANAGER]: [
-    { key: 'team-attendance', endpoint: '/attendance/team?limit=20' },
-    { key: 'leave-requests', endpoint: '/leaves/team' },
-    { key: 'team-performance', endpoint: '/attendance/monthly-summary', countPath: 'summary.averageWorkingHours' },
-    { key: 'team-members', endpoint: '/employees/my-team?limit=20' },
+    { key: 'team-attendance', endpoint: ATTENDANCE_ENDPOINTS.team(20) },
+    { key: 'leave-requests', endpoint: LEAVE_ENDPOINTS.team },
+    { key: 'team-performance', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, countPath: 'summary.averageWorkingHours' },
+    { key: 'team-members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(20) },
   ],
   [ROLES.HR_ADMIN]: [
-    { key: 'total-employees', endpoint: '/employees?limit=20' },
-    { key: 'new-joiners', endpoint: '/employees?limit=200' },
-    { key: 'pending-leaves', endpoint: '/leaves/all' },
-    { key: 'payroll-processing', endpoint: '/payroll/all' },
+    { key: 'total-employees', endpoint: EMPLOYEE_ENDPOINTS.list(20) },
+    { key: 'new-joiners', endpoint: EMPLOYEE_ENDPOINTS.list(200) },
+    { key: 'pending-leaves', endpoint: LEAVE_ENDPOINTS.all },
+    { key: 'payroll-processing', endpoint: PAYROLL_ENDPOINTS.all },
   ],
   [ROLES.SUPER_ADMIN]: [
-    { key: 'company-overview', endpoint: '/employees?limit=50' },
-    { key: 'system-settings', endpoint: '/roles' },
-    { key: 'audit-logs', endpoint: '/auth/sessions', arrayKey: 'sessions' },
-    { key: 'department-stats', endpoint: '/departments' },
+    { key: 'company-overview', endpoint: EMPLOYEE_ENDPOINTS.list(50) },
+    { key: 'system-settings', endpoint: ROLE_ENDPOINTS.list },
+    { key: 'audit-logs', endpoint: AUTH_ENDPOINTS.sessions, arrayKey: 'sessions' },
+    { key: 'department-stats', endpoint: DEPARTMENT_ENDPOINTS.list },
   ],
 };
 
 const ROLE_PAGE_SOURCES = {
   [ROLES.EMPLOYEE]: {
-    'my-profile': [{ key: 'profile', label: 'Profile', endpoint: '/employees/me/profile' }],
-    attendance: [{ key: 'attendance', label: 'Attendance Records', endpoint: '/attendance/own?limit=25' }],
-    leaves: [{ key: 'leaves', label: 'Leave Requests', endpoint: '/leaves/own' }],
-    payroll: [{ key: 'payroll', label: 'Payroll Details', endpoint: '/payroll/own' }],
-    documents: [{ key: 'documents', label: 'Employee Documents', endpoint: '/employees/me/profile' }],
+    'my-profile': [{ key: 'profile', label: 'Profile', endpoint: EMPLOYEE_ENDPOINTS.myProfile }],
+    attendance: [{ key: 'attendance', label: 'Attendance Records', endpoint: ATTENDANCE_ENDPOINTS.own(25) }],
+    leaves: [{ key: 'leaves', label: 'Leave Requests', endpoint: LEAVE_ENDPOINTS.own }],
+    payroll: [{ key: 'payroll', label: 'Payroll Details', endpoint: PAYROLL_ENDPOINTS.own }],
+    documents: [{ key: 'documents', label: 'Employee Documents', endpoint: EMPLOYEE_ENDPOINTS.myProfile }],
   },
   [ROLES.MANAGER]: {
-    team: [{ key: 'team', label: 'Team Members', endpoint: '/employees/my-team?limit=25' }],
-    attendance: [{ key: 'team-attendance', label: 'Team Attendance', endpoint: '/attendance/team?limit=25' }],
-    'leave-approvals': [{ key: 'leave-requests', label: 'Team Leave Requests', endpoint: '/leaves/team' }],
-    reports: [{ key: 'attendance-summary', label: 'Monthly Attendance Summary', endpoint: '/attendance/monthly-summary', arrayKey: 'dailyBreakdown' }],
+    dashboard: [
+      { key: 'team-members', label: 'Team Members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(25) },
+      { key: 'team-attendance', label: 'Team Attendance', endpoint: ATTENDANCE_ENDPOINTS.team(25) },
+      { key: 'leave-requests', label: 'Team Leave Requests', endpoint: LEAVE_ENDPOINTS.team },
+    ],
+    attendance: [{ key: 'team-attendance', label: 'Team Attendance', endpoint: ATTENDANCE_ENDPOINTS.team(25) }],
+    announcements: [{ key: 'announcements', label: 'Announcements', endpoint: ANNOUNCEMENT_ENDPOINTS.list }],
+    analytics: [{ key: 'attendance-summary', label: 'Attendance Summary', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, arrayKey: 'dailyBreakdown' }],
+    'employee-profile': [{ key: 'profile', label: 'My Profile', endpoint: EMPLOYEE_ENDPOINTS.myProfile }],
+    team: [{ key: 'team-members', label: 'Team Members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(25) }],
+    employees: [{ key: 'team-members', label: 'Team Members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(25) }],
+    leaves: [{ key: 'leave-requests', label: 'Team Leave Requests', endpoint: LEAVE_ENDPOINTS.team }],
+    payroll: [{ key: 'session-activity', label: 'Session Activity', endpoint: AUTH_ENDPOINTS.sessions, arrayKey: 'sessions' }],
+    performance: [{ key: 'attendance-summary', label: 'Performance Trend Inputs', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, arrayKey: 'dailyBreakdown' }],
+    reports: [{ key: 'attendance-summary', label: 'Attendance Reports', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, arrayKey: 'dailyBreakdown' }],
+    settings: [{ key: 'session-activity', label: 'Session Activity', endpoint: AUTH_ENDPOINTS.sessions, arrayKey: 'sessions' }],
+    'team-collaboration': [{ key: 'team-members', label: 'Team Collaboration Members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(25) }],
   },
   [ROLES.HR_ADMIN]: {
-    employees: [{ key: 'employees', label: 'Employees', endpoint: '/employees?limit=25' }],
-    attendance: [{ key: 'attendance', label: 'Attendance', endpoint: '/attendance/all?limit=25' }],
-    leaves: [{ key: 'leaves', label: 'Leave Requests', endpoint: '/leaves/all' }],
-    payroll: [{ key: 'payroll-runs', label: 'Payroll Runs', endpoint: '/payroll/all', arrayKey: 'runs' }],
-    reports: [{ key: 'monthly-summary', label: 'Monthly Summary', endpoint: '/attendance/monthly-summary', arrayKey: 'dailyBreakdown' }],
+    employees: [{ key: 'employees', label: 'Employees', endpoint: EMPLOYEE_ENDPOINTS.list(25) }],
+    attendance: [{ key: 'attendance', label: 'Attendance', endpoint: ATTENDANCE_ENDPOINTS.all(25) }],
+    leaves: [{ key: 'leaves', label: 'Leave Requests', endpoint: LEAVE_ENDPOINTS.all }],
+    payroll: [{ key: 'payroll-runs', label: 'Payroll Runs', endpoint: PAYROLL_ENDPOINTS.all, arrayKey: 'runs' }],
+    reports: [{ key: 'monthly-summary', label: 'Monthly Summary', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, arrayKey: 'dailyBreakdown' }],
   },
   [ROLES.SUPER_ADMIN]: {
-    employees: [{ key: 'employees', label: 'Employees', endpoint: '/employees?limit=25' }],
-    departments: [{ key: 'departments', label: 'Departments', endpoint: '/departments' }],
+    employees: [{ key: 'employees', label: 'Employees', endpoint: EMPLOYEE_ENDPOINTS.list(25) }],
+    departments: [{ key: 'departments', label: 'Departments', endpoint: DEPARTMENT_ENDPOINTS.list }],
     'roles-permissions': [
-      { key: 'roles', label: 'Roles', endpoint: '/roles', arrayKey: 'roles' },
-      { key: 'permissions', label: 'Permissions', endpoint: '/permissions' },
+      { key: 'roles', label: 'Roles', endpoint: ROLE_ENDPOINTS.list, arrayKey: 'roles' },
+      { key: 'permissions', label: 'Permissions', endpoint: PERMISSION_ENDPOINTS.list },
     ],
     'system-settings': [
-      { key: 'roles', label: 'Role Settings', endpoint: '/roles', arrayKey: 'roles' },
-      { key: 'sessions', label: 'Sessions', endpoint: '/auth/sessions', arrayKey: 'sessions' },
+      { key: 'roles', label: 'Role Settings', endpoint: ROLE_ENDPOINTS.list, arrayKey: 'roles' },
+      { key: 'sessions', label: 'Sessions', endpoint: AUTH_ENDPOINTS.sessions, arrayKey: 'sessions' },
     ],
-    'audit-logs': [{ key: 'sessions', label: 'Session Activity', endpoint: '/auth/sessions', arrayKey: 'sessions' }],
+    'audit-logs': [{ key: 'sessions', label: 'Session Activity', endpoint: AUTH_ENDPOINTS.sessions, arrayKey: 'sessions' }],
   },
 };
 
@@ -280,7 +304,7 @@ export const approveLeaveRequest = async (leaveId) => {
     throw new Error('Leave request ID is required');
   }
 
-  const response = await API.patch(`/leaves/${leaveId}/approve`);
+  const response = await API.patch(LEAVE_ENDPOINTS.approve(leaveId));
   return response?.data || {};
 };
 
@@ -289,7 +313,7 @@ export const rejectLeaveRequest = async (leaveId) => {
     throw new Error('Leave request ID is required');
   }
 
-  const response = await API.patch(`/leaves/${leaveId}/reject`);
+  const response = await API.patch(LEAVE_ENDPOINTS.reject(leaveId));
   return response?.data || {};
 };
 
@@ -298,7 +322,7 @@ export const processPayrollRun = async (runId) => {
     throw new Error('Payroll run ID is required');
   }
 
-  const response = await API.post(`/payroll/${runId}/process`);
+  const response = await API.post(PAYROLL_ENDPOINTS.process(runId));
   return response?.data || {};
 };
 
@@ -312,8 +336,9 @@ export const createEmployeeRecord = async ({
   joinDate,
   phoneNumber,
   managerId,
-  accountPassword,
-  confirmPassword,
+  city,
+  state,
+  zipCode,
   accountRole,
 }) => {
   const normalizedFirstName = String(firstName || '').trim();
@@ -324,14 +349,21 @@ export const createEmployeeRecord = async ({
     throw new Error('First name, last name, and email are required');
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-    throw new Error('Email format is invalid');
+  if (!/^[A-Za-z0-9._%+-]+@ispace\.com$/i.test(normalizedEmail)) {
+    throw new Error('Email must be a valid @ispace.com address');
+  }
+
+  const normalizedAccountRole = String(accountRole || 'EMPLOYEE').trim().toUpperCase();
+
+  if (!['EMPLOYEE', 'MANAGER', 'HR_ADMIN'].includes(normalizedAccountRole)) {
+    throw new Error('Account role must be EMPLOYEE, MANAGER, or HR_ADMIN');
   }
 
   const payload = {
     firstName: normalizedFirstName,
     lastName: normalizedLastName,
     email: normalizedEmail,
+    accountRole: normalizedAccountRole,
   };
 
   const normalizedDepartment = String(department || '').trim();
@@ -378,61 +410,36 @@ export const createEmployeeRecord = async ({
     payload.phoneNumber = normalizedPhoneNumber;
   }
 
-  const response = await API.post('/employees', payload);
-  const createdEmployee = response?.data?.data || {};
-  const createdEmployeeId = createdEmployee?._id || createdEmployee?.id;
-
-  const normalizedPassword = String(accountPassword || '').trim();
-  const normalizedConfirmPassword = String(confirmPassword || '').trim();
-  const normalizedAccountRole = String(accountRole || 'EMPLOYEE').trim().toUpperCase();
-
-  if (normalizedConfirmPassword && !normalizedPassword) {
-    throw new Error('Please enter account password');
+  const normalizedCity = String(city || '').trim();
+  if (normalizedCity) {
+    payload.city = normalizedCity;
   }
 
-  if (normalizedPassword) {
-    if (!normalizedConfirmPassword) {
-      throw new Error('Please confirm account password');
+  const normalizedState = String(state || '').trim();
+  if (normalizedState) {
+    payload.state = normalizedState;
+  }
+
+  const normalizedZipCode = String(zipCode || '').trim();
+  if (normalizedZipCode) {
+    if (!/^\d{5,6}$/.test(normalizedZipCode)) {
+      throw new Error('Zip code must be 5-6 digits');
     }
 
-    if (normalizedPassword !== normalizedConfirmPassword) {
-      throw new Error('Account password and confirm password must match');
-    }
+    payload.zipCode = normalizedZipCode;
+  }
 
-    const passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-    if (!passwordPattern.test(normalizedPassword)) {
-      throw new Error('Account password must be 8+ chars with uppercase, lowercase, number, and special character');
-    }
+  const response = await API.post(EMPLOYEE_ENDPOINTS.create, payload);
+  const responseData = response?.data || {};
+  const temporaryPassword = responseData?.temporaryPassword;
 
-    if (!['EMPLOYEE', 'MANAGER', 'HR_ADMIN'].includes(normalizedAccountRole)) {
-      throw new Error('Account role must be EMPLOYEE, MANAGER, or HR_ADMIN');
-    }
-
-    try {
-      await API.post('/users/create', {
-        email: normalizedEmail,
-        password: normalizedPassword,
-        role: normalizedAccountRole,
-        firstName: normalizedFirstName,
-        lastName: normalizedLastName,
-        employeeId: createdEmployeeId || undefined,
-      });
-
-      return {
-        ...(response?.data || {}),
-        message: 'Employee and login account created successfully',
-      };
-    } catch (accountError) {
-      return {
-        ...(response?.data || {}),
-        message: `Employee created, but login account setup failed: ${accountError?.response?.data?.message || accountError?.message || 'Unknown error'}`,
-      };
-    }
+  if (!temporaryPassword) {
+    return responseData;
   }
 
   return {
-    ...(response?.data || {}),
-    message: 'Employee created successfully. No login account was created.',
+    ...responseData,
+    message: `${responseData?.message || 'Employee and login account created successfully'} Temporary password: ${temporaryPassword}`,
   };
 };
 
@@ -441,7 +448,7 @@ export const assignPermissionToRole = async ({ roleId, permissionId }) => {
     throw new Error('Role ID and Permission ID are required');
   }
 
-  const response = await API.post(`/roles/${roleId}/assign-permission`, {
+  const response = await API.post(ROLE_ENDPOINTS.assignPermission(roleId), {
     permissionId,
   });
 
@@ -453,7 +460,7 @@ export const assignRoleToPermission = async ({ permissionId, roleId }) => {
     throw new Error('Permission ID and Role ID are required');
   }
 
-  const response = await API.post(`/permissions/${permissionId}/assign-role`, {
+  const response = await API.post(PERMISSION_ENDPOINTS.assignRole(permissionId), {
     roleId,
   });
 

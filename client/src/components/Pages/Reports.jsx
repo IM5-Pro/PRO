@@ -3,13 +3,104 @@
  * Generate and view reports
  */
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FiFileText, FiDownload, FiCalendar } from 'react-icons/fi';
+import API from '../../api/client';
+import { ATTENDANCE_ENDPOINTS, EMPLOYEE_ENDPOINTS, LEAVE_ENDPOINTS, PAYROLL_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
+
+const toPayload = (response) => response?.data || {};
+
+const extractRows = (payload, key) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (key && Array.isArray(payload?.[key])) {
+    return payload[key];
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+};
 
 const Reports = () => {
   const { colors } = useTheme();
   const [period, setPeriod] = useState('monthly');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reports, setReports] = useState([]);
+
+  const loadReports = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const [teamResponse, attendanceResponse, leaveResponse, payrollResponse] = await Promise.all([
+        API.get(EMPLOYEE_ENDPOINTS.myTeam(200)),
+        API.get(ATTENDANCE_ENDPOINTS.team(200)),
+        API.get(LEAVE_ENDPOINTS.team),
+        API.get(PAYROLL_ENDPOINTS.own).catch(() => ({ data: { data: [] } })),
+      ]);
+
+      const teamRows = extractRows(toPayload(teamResponse));
+      const attendanceRows = extractRows(toPayload(attendanceResponse));
+      const leaveRows = extractRows(toPayload(leaveResponse));
+      const payrollRows = extractRows(toPayload(payrollResponse), 'details');
+
+      const currentLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const currentDate = new Date().toISOString().slice(0, 10);
+
+      const liveReports = [
+        {
+          name: 'Team Attendance Report',
+          type: 'Attendance',
+          period: currentLabel,
+          date: currentDate,
+          size: `${Math.max(1, Math.ceil(attendanceRows.length / 12))}.${attendanceRows.length % 10} MB`,
+          records: attendanceRows.length,
+        },
+        {
+          name: 'Leave Request Report',
+          type: 'Leave',
+          period: currentLabel,
+          date: currentDate,
+          size: `${Math.max(1, Math.ceil(leaveRows.length / 10))}.${leaveRows.length % 10} MB`,
+          records: leaveRows.length,
+        },
+        {
+          name: 'Team Directory Snapshot',
+          type: 'Team',
+          period: currentLabel,
+          date: currentDate,
+          size: `${Math.max(1, Math.ceil(teamRows.length / 10))}.${teamRows.length % 10} MB`,
+          records: teamRows.length,
+        },
+        {
+          name: 'Payroll Summary',
+          type: 'Payroll',
+          period: currentLabel,
+          date: currentDate,
+          size: `${Math.max(1, Math.ceil(payrollRows.length / 8))}.${payrollRows.length % 10} MB`,
+          records: payrollRows.length,
+        },
+      ];
+
+      setReports(liveReports);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to load reports');
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
   const handleDownload = (report) => {
     const fileContent = [
@@ -17,7 +108,8 @@ const Reports = () => {
       `Type: ${report.type}`,
       `Period: ${report.period}`,
       `Generated: ${report.date}`,
-      `File Size: ${report.size}`
+      `File Size: ${report.size}`,
+      `Records: ${report.records || 0}`
     ].join('\n');
 
     const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
@@ -30,14 +122,6 @@ const Reports = () => {
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
   };
-
-  const reports = [
-    { name: 'Monthly Performance Report', type: 'Performance', period: 'November 2024', date: '2024-12-01', size: '2.4 MB' },
-    { name: 'Attendance Summary', type: 'Attendance', period: 'November 2024', date: '2024-12-01', size: '1.8 MB' },
-    { name: 'Leave Tracker', type: 'Leave', period: 'November 2024', date: '2024-12-01', size: '0.9 MB' },
-    { name: 'Payroll Report', type: 'Payroll', period: 'November 2024', date: '2024-12-01', size: '3.2 MB' },
-    { name: 'Project Completion Report', type: 'Projects', period: 'Q4 2024', date: '2024-11-30', size: '4.1 MB' }
-  ];
 
   return (
     <div
@@ -66,6 +150,18 @@ const Reports = () => {
           </select>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-6">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="rounded-xl border border-slate-200 bg-white text-slate-500 px-4 py-5 mb-6">
+          Loading reports...
+        </div>
+      )}
 
       {/* Reports Table */}
       <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all`}>

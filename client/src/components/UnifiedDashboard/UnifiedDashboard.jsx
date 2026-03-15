@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API from '../../api/client';
+import { ANNOUNCEMENT_ENDPOINTS } from '../../api/endpoints';
 import HRSidebar from '../HRSidebar/HRSidebar';
 import HRHeader from '../HRHeader/HRHeader';
 import ProfileCard from '../ProfileCard/ProfileCard';
@@ -66,13 +68,14 @@ const ROLE_DASHBOARD_CONFIG = {
       { key: 'payslip', title: 'Payslips Available', value: '0', note: 'Payroll statements available for secure download' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Overview', icon: '🏠', category: 'main', description: 'Personal HR summary and quick actions' },
-      { id: 'my-profile', label: 'Profile', icon: '👤', category: 'main', description: 'Personal information and employment details' },
-      { id: 'attendance', label: 'Attendance Log', icon: '🕒', category: 'work', description: 'Daily punch history and attendance status' },
-      { id: 'leaves', label: 'Leave Requests', icon: '🌴', category: 'work', description: 'Apply leave and track request progress' },
-      { id: 'payroll', label: 'Compensation', icon: '💵', category: 'work', description: 'Payslips, deductions, and payroll details' },
-      { id: 'documents', label: 'Documents Hub', icon: '📁', category: 'work', description: 'Policy, letters, and employee documents' },
-      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'work', description: 'Browse all dashboard widgets and cards' },
+      { id: 'dashboard', label: 'Dashboard', icon: '🏠', category: 'main', description: 'Personal HR summary and quick actions' },
+      { id: 'attendance', label: 'Attendance', icon: '🕒', category: 'work', description: 'Daily punch history and attendance status' },
+      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'work', description: 'Company updates and important notices' },
+      { id: 'employee-profile', label: 'Employee Profile', icon: '👤', category: 'work', description: 'Personal information and employment details' },
+      { id: 'leaves', label: 'Leaves', icon: '🌴', category: 'work', description: 'Apply leave and track request progress' },
+      { id: 'payroll', label: 'Payroll', icon: '💵', category: 'work', description: 'Payslips, deductions, and payroll details' },
+      { id: 'performance', label: 'Performance', icon: '📈', category: 'work', description: 'Goals, ratings, and review insights' },
+      { id: 'settings', label: 'Settings', icon: '⚙️', category: 'work', description: 'Update profile preferences and account settings' },
     ],
   },
   [ROLES.MANAGER]: {
@@ -86,12 +89,18 @@ const ROLE_DASHBOARD_CONFIG = {
       { key: 'team-members', title: 'Direct Reports', value: '0', note: 'Active team members assigned to your reporting line' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Overview', icon: '🏠', category: 'main', description: 'Team KPIs and actionable updates' },
-      { id: 'team', label: 'Team Directory', icon: '👥', category: 'main', description: 'Team structure, contacts, and ownership' },
-      { id: 'attendance', label: 'Team Attendance', icon: '🕒', category: 'operations', description: 'Daily attendance and punctuality tracking' },
-      { id: 'leave-approvals', label: 'Leave Decisions', icon: '✅', category: 'operations', description: 'Approve or reject pending leave requests' },
-      { id: 'reports', label: 'Performance Reports', icon: '📊', category: 'operations', description: 'Attendance trends and team productivity reports' },
-      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'operations', description: 'Browse all dashboard widgets and cards' },
+      { id: 'dashboard', label: 'Dashboard', icon: '🏠', category: 'main', description: 'Team KPIs and actionable updates' },
+      { id: 'attendance', label: 'Attendance', icon: '🕒', category: 'operations', description: 'Daily attendance and punctuality tracking' },
+      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'operations', description: 'Company updates and important notices' },
+      { id: 'analytics', label: 'Analytics', icon: '📈', category: 'operations', description: 'Team analytics and productivity trends' },
+      { id: 'employee-profile', label: 'Employee Profile', icon: '👤', category: 'operations', description: 'Profile and role details' },
+      { id: 'team', label: 'Team', icon: '👥', category: 'operations', description: 'Direct reports and team member details' },
+      { id: 'leaves', label: 'Leaves', icon: '🌴', category: 'operations', description: 'Approve and track leave requests' },
+      { id: 'payroll', label: 'Payroll', icon: '💵', category: 'operations', description: 'Payroll summaries and payouts' },
+      { id: 'performance', label: 'Performance', icon: '🎯', category: 'operations', description: 'Performance reviews and goals' },
+      { id: 'reports', label: 'Reports', icon: '📊', category: 'operations', description: 'Attendance and performance reports' },
+      { id: 'settings', label: 'Settings', icon: '⚙️', category: 'operations', description: 'Manager preferences and account settings' },
+      { id: 'team-collaboration', label: 'Team Collaboration', icon: '🤝', category: 'operations', description: 'Collaborate, communicate, and coordinate with teams' },
     ],
   },
   [ROLES.HR_ADMIN]: {
@@ -105,13 +114,18 @@ const ROLE_DASHBOARD_CONFIG = {
       { key: 'payroll-processing', title: 'Payroll Runs', value: '0', note: 'Payroll cycle status across ongoing runs' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Overview', icon: '🏠', category: 'main', description: 'Organization-wide HR health summary' },
-      { id: 'employees', label: 'Employee Directory', icon: '👥', category: 'operations', description: 'Manage employee records and profiles' },
-      { id: 'attendance', label: 'Attendance Control', icon: '🕒', category: 'operations', description: 'Audit attendance logs and resolve issues' },
-      { id: 'leaves', label: 'Leave Operations', icon: '🌴', category: 'operations', description: 'Review, approve, and monitor leave flow' },
-      { id: 'payroll', label: 'Payroll Operations', icon: '💰', category: 'operations', description: 'Execute payroll runs and monitor processing' },
-      { id: 'reports', label: 'HR Reports', icon: '📊', category: 'operations', description: 'Operational and compliance reporting outputs' },
-      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'operations', description: 'Browse all dashboard widgets and cards' },
+      { id: 'dashboard', label: 'HR Overview', icon: '🏠', category: 'main', description: 'Organization-wide HR health summary' },
+      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'operations', description: 'Create and send company announcements' },
+      { id: 'leaves-attendance', label: 'Leaves & Attendance', icon: '📅', category: 'operations', description: 'Manage leave flow and attendance records' },
+      { id: 'manpower-planning', label: 'Manpower Planning', icon: '🧠', category: 'operations', description: 'Workforce planning and staffing insights' },
+      { id: 'hr-payroll', label: 'HR Payroll', icon: '💰', category: 'operations', description: 'Payroll operations and payouts' },
+      { id: 'exit-clearance', label: 'Exit Clearance', icon: '🚪', category: 'operations', description: 'Handle separation and clearance process' },
+      { id: 'meeting-room', label: 'Meeting Room', icon: '📍', category: 'operations', description: 'Schedule meetings and room usage' },
+      { id: 'workflows', label: 'Workflows', icon: '🔁', category: 'operations', description: 'Automate HR approval workflows' },
+      { id: 'letter-templates', label: 'Letter Templates', icon: '✉️', category: 'operations', description: 'Generate HR letters and documents' },
+      { id: 'user-management', label: 'User Management', icon: '👤', category: 'operations', description: 'Manage user accounts and access' },
+      { id: 'masters', label: 'Masters', icon: '🗂️', category: 'operations', description: 'Departments, designations, and masters' },
+      { id: 'admin-panel-config', label: 'Admin Panel Config', icon: '⚙️', category: 'operations', description: 'Configure HR admin panel behavior' },
     ],
   },
   [ROLES.SUPER_ADMIN]: {
@@ -128,6 +142,7 @@ const ROLE_DASHBOARD_CONFIG = {
       { id: 'dashboard', label: 'Overview', icon: '🛡️', category: 'main', description: 'Enterprise risk, usage, and control summary' },
       { id: 'employees', label: 'Global Employees', icon: '👥', category: 'governance', description: 'Cross-organization employee governance controls' },
       { id: 'departments', label: 'Department Admin', icon: '🏢', category: 'governance', description: 'Department setup and structural governance' },
+      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'governance', description: 'Create and send announcements to employees' },
       { id: 'roles-permissions', label: 'Access Control', icon: '🔐', category: 'governance', description: 'Roles, permissions, and assignment management' },
       { id: 'system-settings', label: 'Platform Settings', icon: '⚙️', category: 'system', description: 'Core tenant and policy configuration' },
       { id: 'audit-logs', label: 'Compliance Logs', icon: '📜', category: 'system', description: 'Security and compliance activity trails' },
@@ -195,6 +210,7 @@ const STANDARD_PAGE_OPTIONS = [
 
 const HR_PAGE_OPTIONS = [
   { id: 'dashboard-overview', label: 'HR Overview' },
+  { id: 'announcements', label: 'Announcements' },
   { id: 'leaves-attendance', label: 'Leaves & Attendance' },
   { id: 'manpower-planning', label: 'Manpower Planning' },
   { id: 'hr-payroll', label: 'HR Payroll' },
@@ -225,6 +241,7 @@ const STANDARD_PAGE_COMPONENTS = {
 
 const HR_PAGE_COMPONENTS = {
   'dashboard-overview': DashboardOverviewPage,
+  announcements: AnnouncementsPage,
   'leaves-attendance': LeavesAttendancePage,
   'manpower-planning': ManpowerPlanningPage,
   'hr-payroll': HRPayrollPage,
@@ -247,14 +264,20 @@ const ROLE_AWARE_PREVIEW_CONFIG = {
   [ROLES.MANAGER]: {
     showManagerSection: true,
     showHrSection: false,
-    standardPages: ['dashboard', 'attendance', 'announcements', 'analytics', 'employee-profile', 'employees', 'leaves', 'payroll', 'performance', 'reports', 'settings', 'team-collaboration'],
+    standardPages: ['dashboard', 'attendance', 'announcements', 'analytics', 'employee-profile', 'team', 'leaves', 'payroll', 'performance', 'reports', 'settings', 'team-collaboration'],
     showTeamWidgets: true,
   },
   [ROLES.HR_ADMIN]: {
     showManagerSection: false,
     showHrSection: true,
     standardPages: ['dashboard', 'attendance', 'announcements', 'analytics', 'employees', 'leave-management', 'leaves', 'payroll', 'performance', 'reports', 'settings', 'team-collaboration'],
-    hrPages: ['dashboard-overview', 'leaves-attendance', 'manpower-planning', 'hr-payroll', 'exit-clearance', 'meeting-room', 'workflows', 'letter-templates', 'user-management', 'masters', 'admin-panel-config'],
+    hrPages: ['dashboard-overview', 'announcements', 'leaves-attendance', 'manpower-planning', 'hr-payroll', 'exit-clearance', 'meeting-room', 'workflows', 'letter-templates', 'user-management', 'masters', 'admin-panel-config'],
+    showTeamWidgets: true,
+  },
+  [ROLES.DEPT_ADMIN]: {
+    showManagerSection: false,
+    showHrSection: false,
+    standardPages: ['dashboard', 'employees', 'attendance', 'leaves', 'reports', 'settings'],
     showTeamWidgets: true,
   },
   [ROLES.SUPER_ADMIN]: {
@@ -265,6 +288,8 @@ const ROLE_AWARE_PREVIEW_CONFIG = {
     showTeamWidgets: true,
   },
 };
+
+const SINGLE_DASHBOARD_ROLES = [];
 
 const filterOptionsByIds = (options, ids = []) => {
   const allowed = new Set(ids);
@@ -494,43 +519,163 @@ const UnifiedComponentsGallery = ({ user }) => {
   );
 };
 
+const HrPagesPreviewWorkspace = ({ user }) => {
+  const [selectedHrPage, setSelectedHrPage] = useState('dashboard-overview');
+  const availableHrPages = useMemo(() => HR_PAGE_OPTIONS, []);
+  const SelectedHrPage = HR_PAGE_COMPONENTS[selectedHrPage] || DashboardOverviewPage;
+
+  useEffect(() => {
+    if (availableHrPages.length === 0) {
+      return;
+    }
+
+    const hasSelectedHrPage = availableHrPages.some((item) => item.id === selectedHrPage);
+    if (!hasSelectedHrPage) {
+      setSelectedHrPage(availableHrPages[0].id);
+    }
+  }, [availableHrPages, selectedHrPage]);
+
+  return (
+    <div className="min-h-screen bg-transparent p-6 md:p-8 space-y-5">
+      <div className="rounded-2xl p-6 bg-white border border-slate-200 shadow-sm">
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">HR Pages Preview</h1>
+        <p className="text-slate-500 text-sm">This is the complete HR dashboard workspace. Open each HR module below and work with live backend data.</p>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-3 flex flex-wrap gap-2">
+        {availableHrPages.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setSelectedHrPage(item.id)}
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+              selectedHrPage === item.id
+                ? 'bg-blue-600 text-white border-blue-700'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <PreviewFrame>
+        <SelectedHrPage user={user || {}} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />
+      </PreviewFrame>
+    </div>
+  );
+};
+
+const StandardPagesPreviewWorkspace = ({ user, role, rolePages = [] }) => {
+  const previewConfig = ROLE_AWARE_PREVIEW_CONFIG[role] || ROLE_AWARE_PREVIEW_CONFIG[ROLES.EMPLOYEE];
+  const [selectedStandardPage, setSelectedStandardPage] = useState('dashboard');
+
+  const availableStandardPages = useMemo(
+    () => filterOptionsByIds(STANDARD_PAGE_OPTIONS, previewConfig.standardPages || []),
+    [previewConfig.standardPages]
+  );
+
+  const selectedOption = availableStandardPages.find((item) => item.id === selectedStandardPage) || availableStandardPages[0];
+  const effectivePageId = selectedOption?.id || 'dashboard';
+  const SelectedStandardPage = STANDARD_PAGE_COMPONENTS[effectivePageId];
+
+  useEffect(() => {
+    if (availableStandardPages.length === 0) {
+      return;
+    }
+
+    const hasSelectedStandardPage = availableStandardPages.some((item) => item.id === selectedStandardPage);
+    if (!hasSelectedStandardPage) {
+      setSelectedStandardPage(availableStandardPages[0].id);
+    }
+  }, [availableStandardPages, selectedStandardPage]);
+
+  const roleLabel = role === ROLES.MANAGER ? 'Manager' : 'Employee';
+  const pageMeta = rolePages.find((page) => page.id === effectivePageId);
+
+  return (
+    <div className="min-h-screen bg-transparent p-6 md:p-8 space-y-5">
+      <div className="rounded-2xl p-6 bg-white border border-slate-200 shadow-sm">
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">{roleLabel} Pages Preview</h1>
+        <p className="text-slate-500 text-sm">One dashboard layout with role-based modules. Each tab renders the actual component with live backend data.</p>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-3 flex flex-wrap gap-2">
+        {availableStandardPages.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setSelectedStandardPage(item.id)}
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+              effectivePageId === item.id
+                ? 'bg-blue-600 text-white border-blue-700'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <PreviewFrame>
+        {SelectedStandardPage ? (
+          <SelectedStandardPage user={user || {}} />
+        ) : (
+          <RolePage
+            title={pageMeta?.label || 'Page'}
+            description={pageMeta?.description || 'Live data module'}
+            role={role}
+            pageId={effectivePageId}
+          />
+        )}
+      </PreviewFrame>
+    </div>
+  );
+};
+
 const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading }) => {
   const quickPages = pages.filter((page) => page.id !== 'dashboard').slice(0, 6);
 
   return (
     <div className="min-h-screen bg-transparent p-6 md:p-8">
-      <div className="mb-8 rounded-2xl p-6 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20">
-        <h1 className="text-4xl font-bold text-slate-800 mb-2">{heading}</h1>
-        <p className="text-slate-600">{subtitle}</p>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-800 mb-1">{heading}</h1>
+        <p className="text-sm text-slate-500">{subtitle}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         {widgets.map((widget) => (
           <div
             key={widget.title}
-            className="bg-white/20 border border-white/30 rounded-2xl p-6"
-            style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
+            className="bg-white rounded-xl border border-slate-200 px-5 py-4"
+            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}
           >
-            <p className="text-sm text-slate-600 mb-2">{widget.title}</p>
-            <p className="text-3xl font-bold text-slate-800 mb-1">{loading ? '...' : widget.value}</p>
-            <p className="text-sm text-slate-600">{widget.note}</p>
+            <p className="text-xs font-medium text-slate-500 mb-2">{widget.title}</p>
+            <p className="text-3xl font-bold text-slate-800 mb-1">{loading ? '—' : widget.value}</p>
+            <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{widget.note}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white/20 border border-white/30 rounded-2xl p-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick Access Modules</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {quickPages.map((page) => (
-            <button
-              key={page.id}
-              onClick={() => onNavigate(page.id)}
-              className="text-left px-4 py-3 rounded-xl bg-slate-100/40 border border-slate-300/60 text-slate-800 font-medium hover:bg-slate-200/60 hover:border-slate-400 transition-all duration-200"
-            >
-              {page.label}
-            </button>
-          ))}
-        </div>
+      {/* Quick Access */}
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Quick Access</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {quickPages.map((page) => (
+          <button
+            key={page.id}
+            onClick={() => onNavigate(page.id)}
+            className="text-left p-4 bg-white rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all group"
+            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+          >
+            <span className="text-xl block mb-2">{page.icon}</span>
+            <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 leading-tight">{page.label}</p>
+            {page.description && (
+              <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{page.description}</p>
+            )}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -680,20 +825,6 @@ const buildRoleActions = (role, pageId) => {
         { key: 'phoneNumber', label: 'Phone Number (optional)', placeholder: '10-digit phone number', required: false },
         { key: 'managerId', label: 'Manager ID (optional)', placeholder: 'Enter manager employee ID', required: false },
         {
-          key: 'accountPassword',
-          label: 'Account Password (optional)',
-          placeholder: 'Set password to create login account',
-          required: false,
-          inputType: 'password',
-        },
-        {
-          key: 'confirmPassword',
-          label: 'Confirm Password (optional)',
-          placeholder: 'Confirm account password',
-          required: false,
-          inputType: 'password',
-        },
-        {
           key: 'accountRole',
           label: 'Account Role (optional)',
           placeholder: 'EMPLOYEE (default), MANAGER, or HR_ADMIN',
@@ -711,8 +842,6 @@ const buildRoleActions = (role, pageId) => {
           joinDate: values.joinDate,
           phoneNumber: values.phoneNumber,
           managerId: values.managerId,
-          accountPassword: values.accountPassword,
-          confirmPassword: values.confirmPassword,
           accountRole: values.accountRole,
         });
       },
@@ -756,6 +885,46 @@ const buildRoleActions = (role, pageId) => {
   return actions;
 };
 
+const SKIP_COLS = new Set([
+  '__v', 'documents', 'statusHistory', 'salaryTemplateId',
+  'refreshTokenHash', 'passwordResetTokenHash', 'failedLoginAttempts',
+  'lockedUntil', 'passwordChangedAt', 'passwordResetExpiry',
+]);
+
+const HUMAN_LABELS = {
+  _id: 'ID', firstName: 'First Name', lastName: 'Last Name', email: 'Email',
+  phoneNumber: 'Phone', isActive: 'Status', createdAt: 'Created', updatedAt: 'Updated',
+  employeeCode: 'Emp Code', department: 'Department', designation: 'Title',
+  joinDate: 'Join Date', salary: 'Salary', role: 'Role', name: 'Name',
+  description: 'Description', status: 'Status', type: 'Type', amount: 'Amount',
+  startDate: 'Start', endDate: 'End', checkIn: 'Check-in', checkOut: 'Check-out',
+  date: 'Date', leaveType: 'Leave Type', reason: 'Reason',
+};
+const humanLabel = (key) =>
+  HUMAN_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+
+const pickColumns = (row, max = 5) => {
+  if (!row) return [];
+  return Object.keys(row).filter((k) => !SKIP_COLS.has(k)).slice(0, max);
+};
+
+const StatusBadge = ({ value, col }) => {
+  if (col === 'isActive') {
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+        value ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+      }`}>{value ? 'Active' : 'Inactive'}</span>
+    );
+  }
+  const str = String(value ?? '').toUpperCase();
+  const cls = str === 'ACTIVE' || str === 'APPROVED'
+    ? 'bg-green-100 text-green-700'
+    : str === 'PENDING' ? 'bg-amber-100 text-amber-700'
+    : str === 'REJECTED' || str === 'TERMINATED' ? 'bg-red-100 text-red-700'
+    : 'bg-slate-100 text-slate-600';
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{formatValue(value)}</span>;
+};
+
 const RolePage = ({ title, description, role, pageId }) => {
   const [loading, setLoading] = useState(true);
   const [datasets, setDatasets] = useState([]);
@@ -763,6 +932,8 @@ const RolePage = ({ title, description, role, pageId }) => {
   const [actionState, setActionState] = useState({ loadingId: '', message: '', isError: false });
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [selectedPermissionId, setSelectedPermissionId] = useState('');
+
+  const [openActionId, setOpenActionId] = useState(null);
 
   const actions = useMemo(() => buildRoleActions(role, pageId), [role, pageId]);
   const actionsById = useMemo(() => {
@@ -1016,153 +1187,163 @@ const RolePage = ({ title, description, role, pageId }) => {
 
   return (
     <div className="min-h-screen bg-transparent p-6 md:p-8">
-      <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 mb-6">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">{title}</h1>
-        <p className="text-slate-600">{description}</p>
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-slate-800">{title}</h1>
+        {description && <p className="text-sm text-slate-400 mt-0.5">{description}</p>}
       </div>
 
+      {/* Actions toolbar */}
       {actions.length > 0 && (
-        <div className="space-y-4 mb-6">
-          <div className="bg-white/20 border border-white/30 rounded-2xl p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-3">Role Actions</h2>
-            <p className="text-slate-600 text-sm mb-5">Run secure operations directly from this module or use row-level actions in the datasets below.</p>
-
-            {pageId === 'roles-permissions' && (
-              <div className="mb-4 p-3 rounded-xl bg-slate-100/60 border border-slate-300/70 text-sm text-slate-700">
-                <p>Selected Role ID: {selectedRoleId || 'Not selected'}</p>
-                <p>Selected Permission ID: {selectedPermissionId || 'Not selected'}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {actions.map((action) => {
-                const values = formValues[action.id] || {};
-                const isRunning = actionState.loadingId === action.id;
-
-                return (
-                  <div key={action.id} className="bg-slate-100/50 border border-slate-300/70 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-3">{action.title}</h3>
-
-                    <div className="space-y-3">
-                      {action.fields.map((field) => (
-                        <div key={field.key}>
-                          <label className="block text-xs text-slate-700 mb-1">{field.label}</label>
-                          <input
-                            type={field.inputType || 'text'}
-                            value={values[field.key] || ''}
-                            onChange={(event) => onFieldChange(action.id, field.key, event.target.value)}
-                            placeholder={field.placeholder}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                      ))}
-
-                      <button
-                        onClick={() => runAction(action)}
-                        disabled={isRunning}
-                        className="w-full px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold text-sm transition-colors"
-                      >
-                        {isRunning ? 'Processing...' : action.buttonLabel}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+        <div className="mb-6">
+          {pageId === 'roles-permissions' && (selectedRoleId || selectedPermissionId) && (
+            <div className="mb-3 px-4 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-600 flex flex-wrap gap-4">
+              <span>Role: <strong className="text-slate-800">{selectedRoleId || '—'}</strong></span>
+              <span>Permission: <strong className="text-slate-800">{selectedPermissionId || '—'}</strong></span>
             </div>
-
-            {actionState.message && (
-              <p className={`mt-4 text-sm ${actionState.isError ? 'text-red-600' : 'text-green-700'}`}>
-                {actionState.message}
-              </p>
-            )}
+          )}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {actions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => setOpenActionId(openActionId === action.id ? null : action.id)}
+                className={`px-3.5 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                  openActionId === action.id
+                    ? 'bg-blue-600 text-white border-blue-700'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                {openActionId === action.id ? '✕ Close' : `+ ${action.buttonLabel}`}
+              </button>
+            ))}
           </div>
+          {actions.map((action) => {
+            if (openActionId !== action.id) return null;
+            const values = formValues[action.id] || {};
+            const isRunning = actionState.loadingId === action.id;
+            return (
+              <div key={action.id} className="bg-white rounded-xl border border-slate-200 p-5 mb-3" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <h3 className="text-sm font-semibold text-slate-700 mb-4">{action.title}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  {action.fields.map((field) => (
+                    <div key={field.key}>
+                      <label className="block text-xs text-slate-500 mb-1">{field.label}</label>
+                      <input
+                        type={field.inputType || 'text'}
+                        value={values[field.key] || ''}
+                        onChange={(event) => onFieldChange(action.id, field.key, event.target.value)}
+                        placeholder={field.placeholder}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => runAction(action)}
+                  disabled={isRunning}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold text-sm transition-colors"
+                >
+                  {isRunning ? 'Processing...' : action.buttonLabel}
+                </button>
+              </div>
+            );
+          })}
+          {actionState.message && (
+            <p className={`text-sm rounded-lg px-4 py-2.5 ${
+              actionState.isError
+                ? 'bg-red-50 text-red-600 border border-red-200'
+                : 'bg-green-50 text-green-700 border border-green-200'
+            }`}>
+              {actionState.message}
+            </p>
+          )}
         </div>
       )}
 
       {loading ? (
-        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 text-slate-700">Loading live records...</div>
+        <div className="flex items-center gap-3 text-slate-400 py-16">
+          <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          Loading records...
+        </div>
       ) : datasets.length === 0 ? (
-        <div className="bg-white/20 border border-white/30 rounded-2xl p-6 text-slate-700">No dataset is mapped for this module yet.</div>
+        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">
+          No data is mapped for this module yet.
+        </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {datasets.map((dataset) => {
             const rows = Array.isArray(dataset.rows) ? dataset.rows : [];
             const hasError = Boolean(dataset.error);
-            const previewRows = rows.slice(0, 6);
+            const previewRows = rows.slice(0, 8);
             const firstRow = previewRows.find((row) => row && typeof row === 'object' && !Array.isArray(row));
-            const columns = firstRow ? Object.keys(firstRow).slice(0, 5) : [];
+            const columns = pickColumns(firstRow);
             const rowActionsByIndex = previewRows.map((row) => getRowActions(dataset.key, row));
             const hasRowActions = rowActionsByIndex.some((rowActions) => rowActions.length > 0);
 
             return (
-              <div key={dataset.key} className="bg-white/20 border border-white/30 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-slate-800">{dataset.label}</h2>
-                  <span className="text-sm text-slate-600">Total: {dataset.count ?? 0}</span>
+              <div key={dataset.key} className="bg-white rounded-xl border border-slate-200 overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold text-slate-700">{dataset.label}</h2>
+                  <span className="text-xs text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">{dataset.count ?? rows.length} records</span>
                 </div>
 
                 {hasError ? (
-                  <p className="text-red-600 text-sm">{dataset.error}</p>
+                  <p className="px-5 py-4 text-sm text-red-500">{dataset.error}</p>
                 ) : previewRows.length === 0 ? (
-                  <p className="text-slate-600 text-sm">No records found for endpoint {dataset.endpoint}</p>
+                  <p className="px-5 py-10 text-sm text-slate-400 text-center">No records found.</p>
                 ) : columns.length === 0 ? (
-                  <pre className="text-xs text-slate-700 overflow-auto bg-slate-100/60 p-3 rounded-xl">{JSON.stringify(previewRows, null, 2)}</pre>
+                  <pre className="text-xs text-slate-600 overflow-auto bg-slate-50 m-4 p-3 rounded-lg">{JSON.stringify(previewRows, null, 2)}</pre>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-300">
-                          {columns.map((column) => (
-                            <th key={column} className="py-2 pr-4 text-slate-700 font-semibold">{column}</th>
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          {columns.map((col) => (
+                            <th key={col} className="px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                              {humanLabel(col)}
+                            </th>
                           ))}
-                          {hasRowActions && <th className="py-2 pr-4 text-slate-700 font-semibold">Actions</th>}
+                          {hasRowActions && (
+                            <th className="px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
+                          )}
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100">
                         {previewRows.map((row, index) => {
                           const rowActions = rowActionsByIndex[index] || [];
-
                           return (
-                            <tr key={index} className="border-b border-slate-200/70">
-                              {columns.map((column) => (
-                                <td key={`${index}-${column}`} className="py-2 pr-4 text-slate-700">
-                                  {formatValue(row[column])}
+                            <tr key={index} className="hover:bg-slate-50/60 transition-colors">
+                              {columns.map((col) => (
+                                <td key={`${index}-${col}`} className="px-4 py-3 text-sm text-slate-700 max-w-[200px] truncate">
+                                  {(col === 'isActive' || col === 'status')
+                                    ? <StatusBadge value={row[col]} col={col} />
+                                    : formatValue(row[col])
+                                  }
                                 </td>
                               ))}
-
                               {hasRowActions && (
-                                <td className="py-2 pr-4">
-                                  {rowActions.length === 0 ? (
-                                    <span className="text-xs text-slate-500">No actions available</span>
-                                  ) : (
-                                    <div className="flex flex-wrap gap-2">
-                                      {rowActions.map((rowAction) => {
-                                        const isRunning = rowAction.actionId && actionState.loadingId === rowAction.actionId;
-
-                                        return (
-                                          <button
-                                            key={rowAction.key}
-                                            type="button"
-                                            onClick={() => {
-                                              if (rowAction.onClick) {
-                                                rowAction.onClick();
-                                                return;
-                                              }
-
-                                              const action = actionsById[rowAction.actionId];
-                                              if (action) {
-                                                runAction(action, rowAction.values || {});
-                                              }
-                                            }}
-                                            disabled={Boolean(rowAction.disabled) || Boolean(isRunning)}
-                                            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${getRowActionClassName(rowAction.tone)}`}
-                                          >
-                                            {isRunning ? 'Processing...' : rowAction.label}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                                <td className="px-4 py-3">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {rowActions.map((rowAction) => {
+                                      const isRunning = rowAction.actionId && actionState.loadingId === rowAction.actionId;
+                                      return (
+                                        <button
+                                          key={rowAction.key}
+                                          type="button"
+                                          onClick={() => {
+                                            if (rowAction.onClick) { rowAction.onClick(); return; }
+                                            const action = actionsById[rowAction.actionId];
+                                            if (action) runAction(action, rowAction.values || {});
+                                          }}
+                                          disabled={Boolean(rowAction.disabled) || Boolean(isRunning)}
+                                          className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${getRowActionClassName(rowAction.tone)}`}
+                                        >
+                                          {isRunning ? '…' : rowAction.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </td>
                               )}
                             </tr>
@@ -1183,6 +1364,7 @@ const RolePage = ({ title, description, role, pageId }) => {
 
 const UnifiedDashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user = {}, logout } = useAuth();
   const contentScrollRef = useRef(null);
   const [notificationCount, setNotificationCount] = useState(3);
@@ -1190,18 +1372,51 @@ const UnifiedDashboard = () => {
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const userRole = user?.role || ROLES.EMPLOYEE;
+  const isSingleDashboardLayout = SINGLE_DASHBOARD_ROLES.includes(userRole);
   const roleConfig = useMemo(() => {
     return ROLE_DASHBOARD_CONFIG[userRole] || ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE];
   }, [userRole]);
 
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState(() => searchParams.get('page') || 'dashboard');
+
+  useEffect(() => {
+    const pageFromUrl = searchParams.get('page');
+    if (!pageFromUrl) {
+      return;
+    }
+
+    setCurrentPage((previousPage) => (
+      previousPage === pageFromUrl ? previousPage : pageFromUrl
+    ));
+  }, [searchParams]);
 
   useEffect(() => {
     const hasPage = roleConfig.pages.some((page) => page.id === currentPage);
-    if (!hasPage) {
+    if (!hasPage && currentPage !== 'dashboard') {
       setCurrentPage('dashboard');
     }
   }, [currentPage, roleConfig.pages]);
+
+  useEffect(() => {
+    if (isSingleDashboardLayout && currentPage !== 'dashboard') {
+      setCurrentPage('dashboard');
+    }
+  }, [currentPage, isSingleDashboardLayout]);
+
+  useEffect(() => {
+    const currentPageFromUrl = searchParams.get('page') || 'dashboard';
+    if (currentPageFromUrl === currentPage) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (currentPage === 'dashboard') {
+      nextParams.delete('page');
+    } else {
+      nextParams.set('page', currentPage);
+    }
+    setSearchParams(nextParams, { replace: true });
+  }, [currentPage, searchParams, setSearchParams]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1238,6 +1453,37 @@ const UnifiedDashboard = () => {
   }, [roleConfig.widgets, userRole]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadAnnouncementNotifications = async () => {
+      try {
+        const response = await API.get(ANNOUNCEMENT_ENDPOINTS.list);
+        const payload = response?.data || {};
+        const rows = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : [];
+
+        const unreadCount = rows.filter((item) => item?.deliveryChannels?.notification !== false).length;
+        if (isMounted) {
+          setNotificationCount(unreadCount);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setNotificationCount(0);
+        }
+      }
+    };
+
+    loadAnnouncementNotifications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userRole]);
+
+  useEffect(() => {
     if (contentScrollRef.current) {
       contentScrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
     }
@@ -1253,6 +1499,24 @@ const UnifiedDashboard = () => {
     }),
     [user, userRole]
   );
+
+  const sidebarPageConfigs = useMemo(() => {
+    if (!isSingleDashboardLayout) {
+      return roleConfig.pages;
+    }
+
+    const layoutLabel = userRole === ROLES.MANAGER ? 'Manager Pages Preview' : 'Employee Pages Preview';
+
+    return [
+      {
+        id: 'dashboard',
+        label: layoutLabel,
+        icon: '🧩',
+        category: 'main',
+        description: 'Single role-based workspace with live modules',
+      },
+    ];
+  }, [isSingleDashboardLayout, roleConfig.pages, userRole]);
 
   const handleNavigate = useCallback(
     (pageId) => {
@@ -1283,6 +1547,68 @@ const UnifiedDashboard = () => {
   }, []);
 
   const renderPageContent = () => {
+    if (userRole === ROLES.HR_ADMIN) {
+      if (currentPage === 'dashboard') {
+        return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />;
+      }
+
+      const HrPage = HR_PAGE_COMPONENTS[currentPage];
+      if (HrPage) {
+        return <HrPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />;
+      }
+
+      return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />;
+    }
+
+    if (userRole === ROLES.MANAGER) {
+      if (currentPage === 'dashboard') {
+        return (
+          <DashboardHome
+            heading={roleConfig.heading}
+            subtitle={roleConfig.subtitle}
+            widgets={dashboardWidgets}
+            pages={roleConfig.pages}
+            onNavigate={handleNavigate}
+            loading={dashboardLoading}
+          />
+        );
+      }
+
+      if (currentPage === 'team' || currentPage === 'employees') {
+        return <EmployeesPage />;
+      }
+
+      if (currentPage === 'leaves') {
+        return <LeavesPage />;
+      }
+
+      const ManagerPage = STANDARD_PAGE_COMPONENTS[currentPage];
+      if (ManagerPage) {
+        return <ManagerPage />;
+      }
+
+      const managerPage = roleConfig.pages.find((item) => item.id === currentPage);
+      if (managerPage) {
+        return (
+          <RolePage
+            title={managerPage.label}
+            description={managerPage.description}
+            role={userRole}
+            pageId={currentPage}
+          />
+        );
+      }
+
+      return (
+        <RolePage
+          title="Manager Module"
+          description="Live module data is unavailable for the selected page."
+          role={userRole}
+          pageId={currentPage}
+        />
+      );
+    }
+
     if (currentPage === 'dashboard') {
       return (
         <DashboardHome
@@ -1298,6 +1624,27 @@ const UnifiedDashboard = () => {
 
     if (currentPage === 'ui-components') {
       return <UnifiedComponentsGallery user={currentUser} />;
+    }
+
+    if (currentPage === 'employees') {
+      return <EmployeesPage />;
+    }
+
+    if (currentPage === 'leaves') {
+      return <LeavesPage />;
+    }
+
+      if (currentPage === 'attendance' && userRole === ROLES.SUPER_ADMIN) {
+        return <LeavesAttendancePage defaultTab="attendance" />;
+      }
+
+      if (currentPage === 'payroll') {
+      return <PayrollPage />;
+    }
+
+    const StandardPage = STANDARD_PAGE_COMPONENTS[currentPage];
+    if (StandardPage) {
+      return <StandardPage />;
     }
 
     const page = roleConfig.pages.find((item) => item.id === currentPage);
@@ -1318,7 +1665,7 @@ const UnifiedDashboard = () => {
       <HRSidebar
         currentPage={currentPage}
         onNavigate={handleNavigate}
-        pageConfigs={roleConfig.pages}
+        pageConfigs={sidebarPageConfigs}
         portalLabel={roleConfig.portalLabel}
       />
 

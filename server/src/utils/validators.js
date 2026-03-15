@@ -154,7 +154,7 @@ const validateCreateUser = (body) => {
 const canCreateRole = (creatorRole, targetRole) => {
   const rolePermissions = {
     SUPER_ADMIN: ["HR_ADMIN", "MANAGER", "EMPLOYEE"],
-    HR_ADMIN: ["MANAGER", "EMPLOYEE"],
+    HR_ADMIN: ["HR_ADMIN", "MANAGER", "EMPLOYEE"],
     MANAGER: [],
     EMPLOYEE: [],
   };

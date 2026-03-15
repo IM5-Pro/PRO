@@ -1,40 +1,118 @@
-import React, { useState } from 'react';
-import { FiUser, FiEdit2, FiSave, FiX } from 'react-icons/fi';
-import { useTheme } from '../../context/ThemeContext';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FiSave, FiUser, FiX } from 'react-icons/fi';
+import API from '../../api/client';
+import { EMPLOYEE_ENDPOINTS } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
+import ProfileCard from '../ProfileCard/ProfileCard';
+import AttendanceCard from '../AttendanceCard/AttendanceCard';
+import LeaveBalance from '../LeaveBalance/LeaveBalance';
+
+const formatRole = (value = '') => {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase();
+};
+
+const getLocation = (employee) => {
+  const location = [
+    employee?.city || employee?.address?.city,
+    employee?.state || employee?.address?.state,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  return location || 'HQ Campus';
+};
+
+const DEFAULT_PHONE = '+1-234-567-8900';
+const DEFAULT_EMAIL = 'employee@company.com';
+const DEFAULT_BIO = 'Focused on delivering reliable outcomes and collaborating effectively with the team.';
 
 const EmployeeProfile = () => {
-  const { colors } = useTheme();
+  const { user = {} } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  const initialProfile = {
-    name: 'John Doe',
-    position: 'Senior Frontend Developer',
-    department: 'Engineering',
-    email: 'john.doe@company.com',
-    phone: '+1-234-567-8900',
-    location: 'New York, USA',
-    joinDate: '2022-01-15',
-    bio: 'Passionate full-stack developer with 6+ years of experience building scalable web applications.',
-    avatar: '👨‍💼'
-  };
-  const [profile, setProfile] = useState(initialProfile);
-  const [draftProfile, setDraftProfile] = useState(initialProfile);
+  const [profile, setProfile] = useState({
+    name: user?.name || 'Employee',
+    role: formatRole(user?.role || 'EMPLOYEE'),
+    designation: user?.designation || 'Employee',
+    department: user?.department || 'General',
+    email: user?.email || DEFAULT_EMAIL,
+    phone: user?.phone || DEFAULT_PHONE,
+    location: user?.location || 'HQ Campus',
+    joinDate: '',
+    bio: DEFAULT_BIO,
+    avatar: user?.avatar || '👨‍💼',
+  });
 
-  const handleEditToggle = () => {
-    if (isEditing) {
-      setDraftProfile(profile);
-      setIsEditing(false);
-      return;
-    }
+  const [draftProfile, setDraftProfile] = useState(profile);
 
-    setDraftProfile(profile);
-    setIsEditing(true);
-  };
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await API.get(EMPLOYEE_ENDPOINTS.myProfile);
+        const employee = response?.data?.data || response?.data || {};
+
+        const nextProfile = {
+          name: [employee?.firstName, employee?.lastName].filter(Boolean).join(' ') || user?.name || 'Employee',
+          role: formatRole(user?.role || 'EMPLOYEE'),
+          designation: employee?.designation || 'Employee',
+          department: employee?.department || user?.department || 'General',
+          email: employee?.email || user?.email || DEFAULT_EMAIL,
+          phone: employee?.phoneNumber || employee?.phone || user?.phone || DEFAULT_PHONE,
+          location: getLocation(employee),
+          joinDate: employee?.joinDate || employee?.joiningDate || '',
+          bio: DEFAULT_BIO,
+          avatar: user?.avatar || '👨‍💼',
+        };
+
+        if (mounted) {
+          setProfile(nextProfile);
+          setDraftProfile(nextProfile);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err?.response?.data?.message || 'Unable to load profile details right now.');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.avatar, user?.department, user?.email, user?.name, user?.phone, user?.role]);
+
+  const attendanceStats = useMemo(() => ({
+    present: 20,
+    absent: 2,
+    late: 1,
+    percentage: 91,
+  }), []);
+
+  const leaveStats = useMemo(() => ({
+    totalLeaves: 24,
+    usedLeaves: 8,
+    sickLeaves: 8,
+    casualLeaves: 16,
+  }), []);
 
   const handleDraftChange = (field, value) => {
     setDraftProfile((previousProfile) => ({
       ...previousProfile,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -43,161 +121,140 @@ const EmployeeProfile = () => {
     setIsEditing(false);
   };
 
+  const handleCancelEdit = () => {
+    setDraftProfile(profile);
+    setIsEditing(false);
+  };
+
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-            <FiUser className="w-10 h-10" /> My Profile
-          </h1>
-          <p className={colors.text.tertiary}>View and manage your profile information</p>
-        </div>
-
-        <button
-          onClick={handleEditToggle}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2"
-        >
-          {isEditing ? (
-            <>
-              <FiX size={20} /> Cancel
-            </>
-          ) : (
-            <>
-              <FiEdit2 size={20} /> Edit Profile
-            </>
-          )}
-        </button>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <FiUser size={24} /> My Profile
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">Personal details, attendance snapshot, and leave summary.</p>
       </div>
 
-      {/* Profile Card */}
-      <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-8 hover:border-slate-600 transition-all mb-8`}>
-        <div className="flex items-center gap-6 mb-8">
-          <div className="text-7xl bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl p-4">
-            {profile.avatar}
-          </div>
-
-          <div className="flex-1">
-            <h2 className={`text-3xl font-bold ${colors.text.primary} mb-2`}>{profile.name}</h2>
-            <p className="text-blue-400 text-lg font-semibold mb-2">{profile.position}</p>
-            <p className={colors.text.tertiary}>{profile.department} • Joined {profile.joinDate}</p>
-          </div>
+      {loading ? (
+        <div className="flex items-center gap-3 text-slate-500 py-16">
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          Loading profile...
         </div>
-
-        {/* Basic Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Full Name</label>
-            {isEditing ? (
-              <input
-                type="text"
-                  value={draftProfile.name}
-                  onChange={(event) => handleDraftChange('name', event.target.value)}
-                className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
-              />
-            ) : (
-              <p className={`${colors.text.primary} font-medium`}>{profile.name}</p>
-            )}
-          </div>
-
-          <div>
-            <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Position</label>
-            {isEditing ? (
-              <input
-                type="text"
-                  value={draftProfile.position}
-                  onChange={(event) => handleDraftChange('position', event.target.value)}
-                className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
-              />
-            ) : (
-              <p className={`${colors.text.primary} font-medium`}>{profile.position}</p>
-            )}
-          </div>
-
-          <div>
-            <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Email</label>
-            {isEditing ? (
-              <input
-                type="email"
-                  value={draftProfile.email}
-                  onChange={(event) => handleDraftChange('email', event.target.value)}
-                className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
-              />
-            ) : (
-              <p className={`${colors.text.primary} font-medium`}>{profile.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Phone</label>
-            {isEditing ? (
-              <input
-                type="tel"
-                  value={draftProfile.phone}
-                  onChange={(event) => handleDraftChange('phone', event.target.value)}
-                className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
-              />
-            ) : (
-              <p className={`${colors.text.primary} font-medium`}>{profile.phone}</p>
-            )}
-          </div>
-
-          <div>
-            <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Department</label>
-            {isEditing ? (
-              <input
-                type="text"
-                  value={draftProfile.department}
-                  onChange={(event) => handleDraftChange('department', event.target.value)}
-                className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
-              />
-            ) : (
-              <p className={`${colors.text.primary} font-medium`}>{profile.department}</p>
-            )}
-          </div>
-
-          <div>
-            <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Location</label>
-            {isEditing ? (
-              <input
-                type="text"
-                  value={draftProfile.location}
-                  onChange={(event) => handleDraftChange('location', event.target.value)}
-                className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors`}
-              />
-            ) : (
-              <p className={`${colors.text.primary} font-medium`}>{profile.location}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Bio */}
-        <div className="mt-6">
-          <label className={`block ${colors.text.secondary} text-sm font-medium mb-2`}>Bio</label>
-          {isEditing ? (
-            <textarea
-              value={draftProfile.bio}
-              onChange={(event) => handleDraftChange('bio', event.target.value)}
-              className={`w-full px-4 py-2 bg-slate-700/50 border ${colors.border.secondary} ${colors.text.primary} rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none`}
-              rows="4"
-            ></textarea>
-          ) : (
-            <p className={colors.text.secondary}>{profile.bio}</p>
+      ) : (
+        <>
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
           )}
-        </div>
 
-        {/* Save Button */}
-        {isEditing && (
-          <button
-            onClick={handleSaveChanges}
-            className="mt-6 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2"
-          >
-            <FiSave size={20} /> Save Changes
-          </button>
-        )}
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+            <ProfileCard
+              name={profile.name}
+              role={profile.designation || profile.role}
+              department={profile.department}
+              email={profile.email}
+              phone={profile.phone}
+              location={profile.location}
+              avatar={profile.avatar}
+              onEdit={() => setIsEditing(true)}
+              className="h-full max-w-none"
+            />
+
+            <AttendanceCard
+              present={attendanceStats.present}
+              absent={attendanceStats.absent}
+              late={attendanceStats.late}
+              percentage={attendanceStats.percentage}
+              className="h-full max-w-none"
+            />
+
+            <LeaveBalance
+              totalLeaves={leaveStats.totalLeaves}
+              usedLeaves={leaveStats.usedLeaves}
+              sickLeaves={leaveStats.sickLeaves}
+              casualLeaves={leaveStats.casualLeaves}
+              className="h-full max-w-none"
+            />
+          </div>
+
+          {isEditing && (
+            <div className="mt-6 max-w-4xl rounded-2xl border border-slate-200 bg-white p-6" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-semibold text-slate-800">Edit Basic Details</h2>
+                <button
+                  onClick={handleCancelEdit}
+                  className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  aria-label="Cancel editing"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={draftProfile.name}
+                    onChange={(event) => handleDraftChange('name', event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Designation</label>
+                  <input
+                    type="text"
+                    value={draftProfile.designation}
+                    onChange={(event) => handleDraftChange('designation', event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={draftProfile.department}
+                    onChange={(event) => handleDraftChange('department', event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={draftProfile.phone}
+                    onChange={(event) => handleDraftChange('phone', event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={draftProfile.location}
+                    onChange={(event) => handleDraftChange('location', event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={handleSaveChanges}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+                >
+                  <FiSave size={16} /> Save Changes
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

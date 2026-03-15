@@ -549,6 +549,152 @@ const ROLE_PERMISSIONS = {
     },
   },
 
+  DEPT_ADMIN: {
+    // User Management (no access)
+    users: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false,
+      list: false,
+      export: false,
+      import: false,
+      bulk_update: false,
+    },
+
+    // Employee Management (department-scoped read)
+    employees: {
+      create: false,
+      read: true,           // scoped to own department
+      update: false,
+      delete: false,
+      deactivate: false,
+      activate: false,
+      view_profile: true,   // scoped to own department
+      update_profile: false,
+      upload_docs: false,
+      download_docs: true,
+      view_salary: false,
+      transfer_dept: false,
+      change_designation: true,  // within own department
+      change_manager: false,
+      list: true,           // scoped to own department
+      export: false,
+      import: false,
+      bulk_update: false,
+      view_history: true,   // scoped to own department
+    },
+
+    // Role Management (no access)
+    roles: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false,
+      list: false,
+      view_permissions: false,
+      assign_permissions: false,
+      remove_permissions: false,
+    },
+
+    // Permission Management (no access)
+    permissions: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false,
+      list: false,
+      assign_role: false,
+      remove_role: false,
+    },
+
+    // Attendance (department-scoped)
+    attendance: {
+      checkin: false,
+      checkout: false,
+      view_own: true,
+      view_team: true,      // scoped to own department
+      view_all: false,
+      edit: false,
+      delete: false,
+      bulk_upload: false,
+      export: false,
+      approve: true,        // department leave/attendance approvals
+      reject: true,
+      shift_assign: false,
+      shift_update: false,
+      shift_delete: false,
+    },
+
+    // Leave Management (department-scoped approvals)
+    leaves: {
+      create: true,         // own leave
+      read: true,
+      update: true,
+      delete: false,
+      list: true,           // scoped to own department
+      approve: true,        // approve department employees' leaves
+      reject: true,
+      cancel: false,
+      export: false,
+    },
+
+    // Reports (department-scoped view)
+    reports: {
+      view: true,
+      export: false,
+      generate: false,
+    },
+
+    // Audit Logs (no access)
+    audit_logs: {
+      view: false,
+      export: false,
+    },
+
+    // Payroll (own only)
+    payroll: {
+      create: false,
+      process: false,
+      approve: false,
+      reject: false,
+      generate_slips: false,
+      view_own: true,
+      view_all: false,
+      download_slip: true,
+      export: false,
+      update_salary: false,
+      view_salary_structure: false,
+      update_salary_structure: false,
+      tax_calculate: false,
+      tax_update: false,
+      bonus_add: false,
+      deduction_add: false,
+      lock: false,
+      unlock: false,
+    },
+
+    // Designation Management (read only)
+    designation: {
+      create: false,
+      read: true,
+      update: false,
+      delete: false,
+      list: true,
+      assign: false,
+    },
+
+    // Department Management (own dept read)
+    department: {
+      create: false,
+      read: true,
+      update: false,
+      delete: false,
+      list: true,
+      assign_manager: false,
+    },
+  },
+
   FINANCE: {
     users: {},
     employees: {},

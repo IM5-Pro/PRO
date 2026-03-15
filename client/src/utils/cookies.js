@@ -19,6 +19,24 @@ export const getCookie = (name) => {
   return '';
 };
 
+export const setJsonCookie = (name, value, maxAgeSeconds = 86400) => {
+  setCookie(name, JSON.stringify(value), maxAgeSeconds);
+};
+
+export const getJsonCookie = (name, fallback = null) => {
+  const rawValue = getCookie(name);
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(rawValue);
+  } catch {
+    return fallback;
+  }
+};
+
 export const removeCookie = (name) => {
   const secure = shouldUseSecureCookie() ? '; Secure' : '';
   document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Strict${secure}`;

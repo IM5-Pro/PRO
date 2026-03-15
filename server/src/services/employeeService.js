@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
+import crypto from "crypto";
 import AuditLog from "../models/AuditLog.js";
 import SalaryHistory from "../models/SalaryHistory.js";
+import { createUser } from "./userService.js";
 import {
   countByQuery,
   createEmployee,
@@ -14,6 +16,11 @@ import {
 } from "../repositories/employeeRepository.js";
 
 const normalizeEmail = (email) => (typeof email === "string" ? email.toLowerCase().trim() : "");
+
+const generateTemporaryPassword = () => {
+  const token = crypto.randomBytes(6).toString("hex");
+  return `Tmp!${token}Aa1`;
+};
 
 const createAuditLog = (payload, session = null) => {
   return AuditLog.create([payload], { session }).then((docs) => docs[0]);
@@ -83,7 +90,7 @@ const assertNoManagerLoop = async (employeeId, managerID) => {
   }
 };
 
-const createEmployeeWithAudit = async ({ body, actorId }) => {
+const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -122,6 +129,29 @@ const createEmployeeWithAudit = async ({ body, actorId }) => {
     };
 
     const employee = await createEmployee(employeePayload, session);
+    const temporaryPassword = generateTemporaryPassword();
+    let loginAccountCreated = false;
+
+    try {
+      await createUser({
+        creatorRole: actorRole,
+        creatorId: actorId,
+        payload: {
+          email: normalizedEmail,
+          password: temporaryPassword,
+          role: body.accountRole || "EMPLOYEE",
+          firstName: body.firstName,
+          lastName: body.lastName,
+          employeeId: employee._id,
+          mustChangePassword: true,
+        },
+        session,
+      });
+      loginAccountCreated = true;
+    } catch (error) {
+      error.statusCode = error.statusCode || error.status || 400;
+      throw error;
+    }
 
     if (Number.isFinite(body.salary) && body.salary >= 0) {
       await SalaryHistory.create(
@@ -152,7 +182,11 @@ const createEmployeeWithAudit = async ({ body, actorId }) => {
     );
 
     await session.commitTransaction();
-    return employee;
+    return {
+      employee,
+      loginAccountCreated,
+      temporaryPassword,
+    };
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -161,7 +195,7 @@ const createEmployeeWithAudit = async ({ body, actorId }) => {
   }
 };
 
-const listEmployeesWithPagination = async ({ role, userId, queryParams }) => {
+const listEmployeesWithPagination = async ({ role, userId, queryParams, deptAdminDepartment }) => {
   const page = Number.parseInt(queryParams.page || "1", 10);
   const limit = Number.parseInt(queryParams.limit || "10", 10);
   const filters = {
@@ -171,6 +205,20 @@ const listEmployeesWithPagination = async ({ role, userId, queryParams }) => {
       queryParams.isActive !== undefined ? queryParams.isActive === "true" : undefined,
     cursor: queryParams.cursor || null,
   };
+
+  // Department Admins are scoped to their own department only
+  if (role === "DEPT_ADMIN") {
+    const resolvedDept = deptAdminDepartment || null;
+    if (!resolvedDept) {
+      return {
+        employees: [],
+        pagination: { page, limit, total: 0, pages: 0 },
+      };
+    }
+    if (!filters.department) {
+      filters.department = resolvedDept;
+    }
+  }
 
   const query = getListQuery({ role, userId, filters });
 

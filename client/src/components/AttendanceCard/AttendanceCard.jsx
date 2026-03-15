@@ -20,6 +20,7 @@ const AttendanceCard = ({
   absent = 2,
   late = 1,
   percentage = 90,
+  className = '',
 }) => {
   /**
    * Determine color based on attendance percentage
@@ -48,7 +49,7 @@ const AttendanceCard = ({
   );
 
   return (
-    <div className="card w-full max-w-sm">
+    <div className={`card w-full max-w-sm ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-800">Attendance</h2>

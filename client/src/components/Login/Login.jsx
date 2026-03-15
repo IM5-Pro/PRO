@@ -8,9 +8,10 @@
  * <Login onLoginSuccess={handleSuccess} />
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FiMail, FiLock } from 'react-icons/fi';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import API from '../../api/client';
+import { AUTH_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from '../Auth/AuthLayout';
 import FormInput from '../Auth/FormInput';
@@ -35,12 +36,57 @@ const Login = ({ onLoginSuccess = null }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [activeRecovery, setActiveRecovery] = useState(null);
+
+  // Forgot username state
+  const [forgotUsernameEmail, setForgotUsernameEmail] = useState('');
+  const [forgotUsernameLoading, setForgotUsernameLoading] = useState(false);
+  const [forgotUsernameError, setForgotUsernameError] = useState('');
+  const [forgotUsernameSuccess, setForgotUsernameSuccess] = useState('');
+  const [forgotUsernameHint, setForgotUsernameHint] = useState('');
+  const [forgotUsernameValue, setForgotUsernameValue] = useState('');
+
+  // Forgot password and reset state
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordError, setForgotPasswordError] = useState('');
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState('');
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState('');
+  const [showInitialPasswordSetup, setShowInitialPasswordSetup] = useState(false);
+  const [initialPassword, setInitialPassword] = useState('');
+  const [initialConfirmPassword, setInitialConfirmPassword] = useState('');
+  const [initialPasswordLoading, setInitialPasswordLoading] = useState(false);
+  const [initialPasswordError, setInitialPasswordError] = useState('');
+  const [initialPasswordSuccess, setInitialPasswordSuccess] = useState('');
 
   // navigation - ensure we leave the login page after a successful sign‑in
   const navigate = useNavigate();
+  const location = useLocation();
 
   // authentication helper
-  const { login } = useAuth();
+  const { isAuthenticated, user: currentUser, login, logout, updateCurrentUser } = useAuth();
+
+  const getRedirectPath = () => {
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect') || '/';
+
+    if (!redirect.startsWith('/') || redirect.startsWith('//') || redirect.startsWith('/login')) {
+      return '/';
+    }
+
+    return redirect;
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.mustChangePassword) {
+      setShowInitialPasswordSetup(true);
+    }
+  }, [currentUser?.mustChangePassword, isAuthenticated]);
 
   /**
    * Validate email format
@@ -90,6 +136,20 @@ const Login = ({ onLoginSuccess = null }) => {
     setPassword(value);
     setPasswordError(validatePassword(value));
   };
+
+  const validateNewAccountPassword = (passwordValue) => {
+    if (!passwordValue.trim()) {
+      return 'Password is required';
+    }
+
+    const passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!passwordPattern.test(passwordValue)) {
+      return 'Password must be 8+ chars with uppercase, lowercase, number, and special character';
+    }
+
+    return '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -109,16 +169,22 @@ const Login = ({ onLoginSuccess = null }) => {
 
     try {
       // Attempt login
-      await login(email, password);
+      const authenticatedUser = await login(email, password);
 
-      setSuccess(true);
       setEmail('');
       setPassword('');
+
+      if (authenticatedUser?.mustChangePassword) {
+        setShowInitialPasswordSetup(true);
+        return;
+      }
+
+      setSuccess(true);
 
       // push the user off the login route so AppContent can render the
       // appropriate dashboard for their role. we navigate to the root
       // because AppContent handles role‑based routing on '/'.
-      navigate('/', { replace: true });
+      navigate(getRedirectPath(), { replace: true });
 
       // Call success callback (legacy prop, still supported)
       if (onLoginSuccess) {
@@ -128,6 +194,173 @@ const Login = ({ onLoginSuccess = null }) => {
       setError(err.message || 'Login failed');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resetRecoveryState = () => {
+    setForgotUsernameEmail('');
+    setForgotUsernameError('');
+    setForgotUsernameSuccess('');
+    setForgotUsernameHint('');
+    setForgotUsernameValue('');
+
+    setForgotPasswordEmail('');
+    setForgotPasswordError('');
+    setForgotPasswordSuccess('');
+    setResetToken('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setResetPasswordError('');
+    setResetPasswordSuccess('');
+  };
+
+  const openRecovery = (type) => {
+    resetRecoveryState();
+    setActiveRecovery(type);
+  };
+
+  const closeRecovery = () => {
+    setActiveRecovery(null);
+    resetRecoveryState();
+  };
+
+  const handleInitialPasswordSetup = async (e) => {
+    e.preventDefault();
+    setInitialPasswordError('');
+    setInitialPasswordSuccess('');
+
+    const passwordValidation = validateNewAccountPassword(initialPassword);
+    if (passwordValidation) {
+      setInitialPasswordError(passwordValidation);
+      return;
+    }
+
+    if (initialPassword !== initialConfirmPassword) {
+      setInitialPasswordError('Password and confirm password must match');
+      return;
+    }
+
+    setInitialPasswordLoading(true);
+    try {
+      await API.post(AUTH_ENDPOINTS.completeInitialPassword, {
+        password: initialPassword,
+        confirmPassword: initialConfirmPassword,
+      });
+
+      updateCurrentUser({ mustChangePassword: false });
+      setInitialPassword('');
+      setInitialConfirmPassword('');
+      setInitialPasswordSuccess('Password created successfully. Redirecting to dashboard...');
+      setSuccess(true);
+
+      setTimeout(() => {
+        setShowInitialPasswordSetup(false);
+        navigate(getRedirectPath(), { replace: true });
+      }, 500);
+    } catch (err) {
+      setInitialPasswordError(err?.response?.data?.message || err?.message || 'Failed to create password');
+    } finally {
+      setInitialPasswordLoading(false);
+    }
+  };
+
+  const handleForgotUsernameSubmit = async (e) => {
+    e.preventDefault();
+    setForgotUsernameError('');
+    setForgotUsernameSuccess('');
+    setForgotUsernameHint('');
+    setForgotUsernameValue('');
+
+    const emailValidation = validateEmail(forgotUsernameEmail);
+    if (emailValidation) {
+      setForgotUsernameError(emailValidation);
+      return;
+    }
+
+    setForgotUsernameLoading(true);
+    try {
+      const response = await API.post(AUTH_ENDPOINTS.forgotUsername, {
+        email: forgotUsernameEmail.trim().toLowerCase(),
+      });
+
+      const payload = response?.data || {};
+      const responseData = payload?.data || {};
+      setForgotUsernameSuccess(payload?.message || 'Username details were sent successfully');
+      setForgotUsernameHint(responseData?.usernameHint || '');
+      setForgotUsernameValue(responseData?.username || '');
+    } catch (err) {
+      setForgotUsernameError(err?.response?.data?.message || err?.message || 'Failed to process forgot username request');
+    } finally {
+      setForgotUsernameLoading(false);
+    }
+  };
+
+  const handleForgotPasswordRequest = async (e) => {
+    e.preventDefault();
+    setForgotPasswordError('');
+    setForgotPasswordSuccess('');
+
+    const emailValidation = validateEmail(forgotPasswordEmail);
+    if (emailValidation) {
+      setForgotPasswordError(emailValidation);
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+    try {
+      const response = await API.post(AUTH_ENDPOINTS.forgotPassword, {
+        email: forgotPasswordEmail.trim().toLowerCase(),
+      });
+
+      const payload = response?.data || {};
+      const responseData = payload?.data || {};
+      setForgotPasswordSuccess(payload?.message || 'Password reset instructions sent');
+
+      if (responseData?.resetToken) {
+        setResetToken(responseData.resetToken);
+      }
+    } catch (err) {
+      setForgotPasswordError(err?.response?.data?.message || err?.message || 'Failed to process forgot password request');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setResetPasswordError('');
+    setResetPasswordSuccess('');
+
+    if (!resetToken.trim()) {
+      setResetPasswordError('Reset token is required');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setResetPasswordError('New password must be at least 8 characters long');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setResetPasswordError('Passwords do not match');
+      return;
+    }
+
+    setResetPasswordLoading(true);
+    try {
+      const response = await API.post(AUTH_ENDPOINTS.resetPassword, {
+        resetToken: resetToken.trim(),
+        password: newPassword,
+      });
+
+      const payload = response?.data || {};
+      setResetPasswordSuccess(payload?.message || 'Password reset successfully');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setResetPasswordError(err?.response?.data?.message || err?.message || 'Failed to reset password');
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -194,28 +427,297 @@ const Login = ({ onLoginSuccess = null }) => {
           {/* Account Recovery Links */}
           <div className="border-t border-gray-200 pt-5">
             {/* All Links in One Row */}
-            <div className="flex justify-between items-center">
-              <a 
-                href="#forgot-username" 
+            <div className="flex justify-between items-center gap-3">
+              <button
+                type="button"
+                onClick={() => openRecovery('username')}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
               >
                 Forgot Username?
-              </a>
-              <a 
-                href="#reset-password" 
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-              >
-                Reset Password
-              </a>
-              <a 
-                href="#forgot-password" 
+              </button>
+              <button
+                type="button"
+                onClick={() => openRecovery('password')}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
               >
                 Forgot Password?
-              </a>
+              </button>
             </div>
           </div>
         </form>
+      )}
+
+      {/* Recovery Dialog */}
+      {activeRecovery && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-y-auto">
+          <div className="flex min-h-full items-start justify-center p-3 sm:p-4 md:items-center">
+            <div className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {activeRecovery === 'username' ? 'Recover Username' : 'Recover Password'}
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">
+                  {activeRecovery === 'username'
+                    ? 'Enter your registered work email to recover your username.'
+                    : 'Request a reset token and set a new password.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeRecovery}
+                className="text-slate-500 hover:text-slate-700 text-sm font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+
+            {activeRecovery === 'username' && (
+              <form onSubmit={handleForgotUsernameSubmit} className="space-y-4">
+                {forgotUsernameError && (
+                  <AlertMessage
+                    type="error"
+                    title="Recovery Failed"
+                    message={forgotUsernameError}
+                    onClose={() => setForgotUsernameError('')}
+                  />
+                )}
+
+                {forgotUsernameSuccess && (
+                  <AlertMessage
+                    type="success"
+                    title="Request Processed"
+                    message={forgotUsernameSuccess}
+                    onClose={() => setForgotUsernameSuccess('')}
+                  />
+                )}
+
+                <FormInput
+                  label="Work Email"
+                  type="email"
+                  id="forgot-username-email"
+                  value={forgotUsernameEmail}
+                  onChange={(e) => setForgotUsernameEmail(e.target.value)}
+                  placeholder="name@ispace.com"
+                  disabled={forgotUsernameLoading}
+                />
+
+                {forgotUsernameHint && (
+                  <div className="text-sm text-slate-700 bg-slate-100 border border-slate-200 rounded-lg p-3 break-words">
+                    Username hint: <span className="font-semibold">{forgotUsernameHint}</span>
+                  </div>
+                )}
+
+                {forgotUsernameValue && (
+                  <div className="text-sm text-slate-700 bg-blue-50 border border-blue-200 rounded-lg p-3 break-words">
+                    Username: <span className="font-semibold">{forgotUsernameValue}</span>
+                  </div>
+                )}
+
+                <SubmitButton
+                  label="Recover Username"
+                  loadingLabel="Processing..."
+                  isLoading={forgotUsernameLoading}
+                  disabled={forgotUsernameLoading}
+                />
+              </form>
+            )}
+
+            {activeRecovery === 'password' && (
+              <div className="space-y-5">
+                <form onSubmit={handleForgotPasswordRequest} className="space-y-4">
+                  {forgotPasswordError && (
+                    <AlertMessage
+                      type="error"
+                      title="Request Failed"
+                      message={forgotPasswordError}
+                      onClose={() => setForgotPasswordError('')}
+                    />
+                  )}
+
+                  {forgotPasswordSuccess && (
+                    <AlertMessage
+                      type="success"
+                      title="Request Submitted"
+                      message={forgotPasswordSuccess}
+                      onClose={() => setForgotPasswordSuccess('')}
+                    />
+                  )}
+
+                  <FormInput
+                    label="Work Email"
+                    type="email"
+                    id="forgot-password-email"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    placeholder="name@ispace.com"
+                    disabled={forgotPasswordLoading}
+                  />
+
+                  <SubmitButton
+                    label="Request Reset Token"
+                    loadingLabel="Requesting..."
+                    isLoading={forgotPasswordLoading}
+                    disabled={forgotPasswordLoading}
+                  />
+                </form>
+
+                <div className="border-t border-slate-200 pt-5">
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    {resetPasswordError && (
+                      <AlertMessage
+                        type="error"
+                        title="Reset Failed"
+                        message={resetPasswordError}
+                        onClose={() => setResetPasswordError('')}
+                      />
+                    )}
+
+                    {resetPasswordSuccess && (
+                      <AlertMessage
+                        type="success"
+                        title="Password Updated"
+                        message={resetPasswordSuccess}
+                        onClose={() => setResetPasswordSuccess('')}
+                      />
+                    )}
+
+                    <FormInput
+                      label="Reset Token"
+                      type="text"
+                      id="reset-token"
+                      value={resetToken}
+                      onChange={(e) => setResetToken(e.target.value)}
+                      placeholder="Paste reset token"
+                      helperText="In development, token is shown after requesting. In production, use the token from email."
+                      disabled={resetPasswordLoading}
+                    />
+
+                    <FormInput
+                      label="New Password"
+                      type="password"
+                      id="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      helperText="Must be at least 8 characters and include uppercase, lowercase, number, and symbol."
+                      disabled={resetPasswordLoading}
+                    />
+
+                    <FormInput
+                      label="Confirm New Password"
+                      type="password"
+                      id="confirm-new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      disabled={resetPasswordLoading}
+                    />
+
+                    <SubmitButton
+                      label="Reset Password"
+                      loadingLabel="Resetting..."
+                      isLoading={resetPasswordLoading}
+                      disabled={resetPasswordLoading}
+                    />
+                  </form>
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+          </div>
+        </div>
+      )}
+
+      {showInitialPasswordSetup && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 overflow-y-auto">
+          <div className="flex min-h-full items-start justify-center p-3 sm:p-4 md:items-center">
+            <div className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="border-b border-slate-200 px-4 py-4 sm:px-6">
+              <h2 className="text-xl font-bold text-slate-900">Create Your Password</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                You signed in with a generated temporary password. Enter your new password and confirm it to continue.
+              </p>
+            </div>
+
+            <form onSubmit={handleInitialPasswordSetup} className="min-h-0 flex flex-1 flex-col">
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+              <div className="space-y-4">
+              {initialPasswordError && (
+                <AlertMessage
+                  type="error"
+                  title="Password Setup Failed"
+                  message={initialPasswordError}
+                  onClose={() => setInitialPasswordError('')}
+                />
+              )}
+
+              {initialPasswordSuccess && (
+                <AlertMessage
+                  type="success"
+                  title="Password Created"
+                  message={initialPasswordSuccess}
+                  closable={false}
+                />
+              )}
+
+              <FormInput
+                label="Enter Password"
+                type="password"
+                id="initial-password"
+                value={initialPassword}
+                onChange={(e) => setInitialPassword(e.target.value)}
+                placeholder="Enter new password"
+                helperText="Must be at least 8 characters and include uppercase, lowercase, number, and symbol."
+                disabled={initialPasswordLoading}
+              />
+
+              <FormInput
+                label="Confirm Password"
+                type="password"
+                id="initial-confirm-password"
+                value={initialConfirmPassword}
+                onChange={(e) => setInitialConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                disabled={initialPasswordLoading}
+              />
+              </div>
+              </div>
+
+              <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logout();
+                    setShowInitialPasswordSetup(false);
+                    setInitialPassword('');
+                    setInitialConfirmPassword('');
+                    setInitialPasswordError('');
+                    setInitialPasswordSuccess('');
+                  }}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors duration-300 font-medium"
+                  disabled={initialPasswordLoading}
+                >
+                  Sign Out
+                </button>
+                <div className="flex-1">
+                  <SubmitButton
+                    label="Save Password"
+                    loadingLabel="Saving..."
+                    isLoading={initialPasswordLoading}
+                    disabled={initialPasswordLoading}
+                  />
+                </div>
+                </div>
+              </div>
+            </form>
+          </div>
+          </div>
+        </div>
       )}
     </AuthLayout>
   );

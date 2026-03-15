@@ -16,19 +16,41 @@ import {
 } from "../services/employeeService.js";
 import { generateSignedDocumentUrl } from "../utils/documentSigner.js";
 
-const resolveCurrentEmployee = async (userId) => {
-  let employee = await Employee.findById(userId)
+const resolveCurrentEmployee = async (userId, employeeIdHint = null) => {
+  const populateQuery = (query) => query
     .populate("managerID", "firstName lastName email designation")
     .populate("managerId", "firstName lastName email designation");
 
+  const normalizedHint =
+    typeof employeeIdHint === "string" && employeeIdHint.trim()
+      ? employeeIdHint.trim()
+      : employeeIdHint;
+
+  if (normalizedHint) {
+    const employeeByHint = await populateQuery(Employee.findById(normalizedHint));
+    if (employeeByHint) {
+      return employeeByHint;
+    }
+  }
+
+  const authUser = await User.findById(userId).select("employeeId").lean();
+  if (authUser?.employeeId) {
+    const employeeByLinkedId = await populateQuery(Employee.findById(authUser.employeeId));
+    if (employeeByLinkedId) {
+      return employeeByLinkedId;
+    }
+  }
+
+  let employee = await populateQuery(Employee.findById(userId));
+
   if (!employee) {
-    employee = await Employee.findOne({ createdBy: userId })
-      .populate("managerID", "firstName lastName email designation")
-      .populate("managerId", "firstName lastName email designation");
+    employee = await populateQuery(Employee.findOne({ createdBy: userId }));
   }
 
   return employee;
 };
+
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Create new employee (HR_ADMIN, SUPER_ADMIN only)
@@ -40,18 +62,29 @@ const createEmployee = async (req, res) => {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
-    const employee = await createEmployeeWithAudit({
+    const { employee, loginAccountCreated, temporaryPassword } = await createEmployeeWithAudit({
       body: req.body,
       actorId: req.user.id,
+      actorRole: req.user.role,
     });
 
-    return sendSuccess(res, 201, "Employee created successfully", {
+    return sendSuccess(
+      res,
+      201,
+      loginAccountCreated
+        ? "Employee and login account created successfully"
+        : "Employee created successfully",
+      {
       data: employee,
-    });
+      loginAccountCreated,
+      temporaryPassword,
+      },
+    );
   } catch (err) {
     console.error("Create employee error:", err);
-    if (err.statusCode) {
-      return sendError(res, err.statusCode, err.message);
+    const statusCode = err.statusCode || err.status;
+    if (statusCode) {
+      return sendError(res, statusCode, err.message, err.details);
     }
     return sendError(res, 500, "Internal server error", { error: err.message });
   }
@@ -62,10 +95,18 @@ const createEmployee = async (req, res) => {
  */
 const listEmployees = async (req, res) => {
   try {
+    // For DEPT_ADMIN, resolve their department to scope the query
+    let deptAdminDepartment;
+    if (req.user.role === "DEPT_ADMIN") {
+      const adminEmployee = await resolveCurrentEmployee(req.user.id, req.user.employeeId);
+      deptAdminDepartment = adminEmployee?.department || null;
+    }
+
     const result = await listEmployeesWithPagination({
       role: req.user.role,
       userId: req.user.id,
       queryParams: req.query,
+      deptAdminDepartment,
     });
 
     return sendSuccess(res, 200, "Employees retrieved successfully", {
@@ -74,6 +115,81 @@ const listEmployees = async (req, res) => {
     });
   } catch (err) {
     console.error("List employees error:", err);
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+/**
+ * List managers for assignment dropdown (HR_ADMIN, SUPER_ADMIN)
+ */
+const listManagers = async (req, res) => {
+  try {
+    const { limit = 100, department = "", search = "" } = req.query;
+    const parsedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 100, 1), 500);
+    const normalizedDepartment = String(department || "").trim();
+    const normalizedSearch = String(search || "").trim();
+
+    const sharedFilters = { isActive: true };
+    if (normalizedDepartment) {
+      sharedFilters.department = { $regex: `^${escapeRegex(normalizedDepartment)}$`, $options: "i" };
+    }
+
+    if (normalizedSearch) {
+      const searchRegex = new RegExp(escapeRegex(normalizedSearch), "i");
+      sharedFilters.$or = [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { email: searchRegex },
+        { designation: searchRegex },
+      ];
+    }
+
+    const managerUsers = await User.find({
+      role: "MANAGER",
+      isActive: true,
+      employeeId: { $exists: true, $ne: null },
+    })
+      .select("employeeId")
+      .lean();
+
+    const managerEmployeeIds = managerUsers
+      .map((user) => user.employeeId)
+      .filter(Boolean);
+
+    const [roleManagers, designationManagers] = await Promise.all([
+      managerEmployeeIds.length > 0
+        ? Employee.find({ _id: { $in: managerEmployeeIds }, ...sharedFilters })
+            .select("firstName lastName email designation department")
+            .sort({ firstName: 1 })
+            .limit(parsedLimit)
+            .lean()
+        : Promise.resolve([]),
+      Employee.find({
+        designation: { $regex: "manager", $options: "i" },
+        ...sharedFilters,
+      })
+        .select("firstName lastName email designation department")
+        .sort({ firstName: 1 })
+        .limit(parsedLimit)
+        .lean(),
+    ]);
+
+    const merged = new Map();
+    [...roleManagers, ...designationManagers].forEach((manager) => {
+      merged.set(String(manager._id), manager);
+    });
+
+    const managers = [...merged.values()].sort((left, right) => {
+      const leftName = `${left.firstName || ""} ${left.lastName || ""}`.trim();
+      const rightName = `${right.firstName || ""} ${right.lastName || ""}`.trim();
+      return leftName.localeCompare(rightName);
+    });
+
+    return sendSuccess(res, 200, "Managers retrieved successfully", {
+      data: managers,
+    });
+  } catch (err) {
+    console.error("List managers error:", err);
     return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
@@ -109,6 +225,13 @@ const readEmployee = async (req, res) => {
       return sendError(res, 403, "You can only view your team members");
     }
 
+    if (userRole === "DEPT_ADMIN") {
+      const adminEmployee = await resolveCurrentEmployee(userId, req.user.employeeId);
+      if (!adminEmployee?.department || employee.department !== adminEmployee.department) {
+        return sendError(res, 403, "You can only view employees in your department");
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: "Employee retrieved successfully",
@@ -125,7 +248,7 @@ const readEmployee = async (req, res) => {
  */
 const myProfile = async (req, res) => {
   try {
-    const employee = await resolveCurrentEmployee(req.user.id);
+    const employee = await resolveCurrentEmployee(req.user.id, req.user.employeeId);
     if (!employee) {
       return sendError(res, 404, "Employee profile not found for current user");
     }
@@ -147,7 +270,7 @@ const myTeam = async (req, res) => {
     const { page = 1, limit = 20, isActive } = req.query;
     const skip = (Number.parseInt(page, 10) - 1) * Number.parseInt(limit, 10);
 
-    const selfEmployee = await resolveCurrentEmployee(req.user.id);
+    const selfEmployee = await resolveCurrentEmployee(req.user.id, req.user.employeeId);
     const managerIdentifiers = [req.user.id];
     if (selfEmployee?._id) {
       managerIdentifiers.push(selfEmployee._id);
@@ -193,7 +316,7 @@ const myTeam = async (req, res) => {
  */
 const myManager = async (req, res) => {
   try {
-    const selfEmployee = await resolveCurrentEmployee(req.user.id);
+    const selfEmployee = await resolveCurrentEmployee(req.user.id, req.user.employeeId);
     if (!selfEmployee) {
       return sendError(res, 404, "Employee profile not found for current user");
     }
@@ -428,6 +551,16 @@ const viewProfile = async (req, res) => {
         success: false,
         message: "You can only view your team members' profiles",
       });
+    }
+
+    if (userRole === "DEPT_ADMIN") {
+      const adminEmployee = await resolveCurrentEmployee(userId, req.user.employeeId);
+      if (!adminEmployee?.department || employee.department !== adminEmployee.department) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only view profiles of employees in your department",
+        });
+      }
     }
 
     res.status(200).json({
@@ -1093,6 +1226,7 @@ const convertToCSV = (employees) => {
 export {
   createEmployee,
   listEmployees,
+  listManagers,
   myProfile,
   myTeam,
   myManager,

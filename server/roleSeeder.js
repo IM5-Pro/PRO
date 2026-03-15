@@ -266,6 +266,42 @@ export const roles = [
     ],
   },
   {
+    name: "DEPT_ADMIN",
+    description: "Department Administrator – manages employees, attendance, and leave approvals within their assigned department",
+    roleVersion: 1,
+    permissions: permissionsList.filter((p) => [
+      "employee.read",
+      "employee.view_profile",
+      "employee.list",
+      "employee.download_documents",
+      "employee.change_designation",
+      "employee.view_history",
+      "attendance.view_own",
+      "attendance.view_team",
+      "attendance.approve",
+      "attendance.reject",
+      "leave.apply",
+      "leave.cancel",
+      "leave.update",
+      "leave.view_own",
+      "leave.view_team",
+      "leave.approve",
+      "leave.reject",
+      "leave.balance_view",
+      "department.read",
+      "department.list",
+      "designation.read",
+      "designation.list",
+      "payroll.view_own",
+      "payroll.download_slip",
+      "report.attendance",
+      "report.leave",
+      "report.dashboard_view",
+      "document.view",
+      "document.download",
+    ].includes(p)),
+  },
+  {
     name: "EMPLOYEE",
     description: "Employee with basic access",
     roleVersion: 1,
@@ -340,7 +376,7 @@ const seedRoles = async () => {
   try {
     // Connect to MongoDB
     await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/hrms",
+      process.env.MONGODB_URI
     );
 
     console.log("Connected to MongoDB");

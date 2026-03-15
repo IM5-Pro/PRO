@@ -2,6 +2,7 @@ export const ROLES = Object.freeze({
   EMPLOYEE: 'employee',
   MANAGER: 'manager',
   HR_ADMIN: 'hr_admin',
+  DEPT_ADMIN: 'dept_admin',
   SUPER_ADMIN: 'super_admin',
 });
 

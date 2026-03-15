@@ -9,10 +9,13 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { PunchProvider } from './context/PunchContext';
 import Login from './components/Login/Login';
+import Register from './components/Register/Register';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import UnifiedDashboard from './components/UnifiedDashboard/UnifiedDashboard';
 import PunchInOut from './components/PunchInOut/PunchInOut';
+import { getCookie } from './utils/cookies';
 import { ROLES } from './utils/roles';
 
 /**
@@ -61,7 +64,8 @@ const AppContent = () => {
   // NOT AUTHENTICATED - REDIRECT TO LOGIN PAGE
   // ============================================================================
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const redirectPath = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
   }
 
   // ============================================================================
@@ -70,16 +74,22 @@ const AppContent = () => {
 
   // Check if user needs to punch in/out first (only on initial login)
   // hasPunchedInToday allows punch out without forced return to punch screen
-  const isPunchedIn = localStorage.getItem('isPunchedIn') === 'true';
-  const hasPunchedInToday = localStorage.getItem('hasPunchedInToday') === 'true';
+  const isPunchedIn = getCookie('isPunchedIn') === 'true';
+  const hasPunchedInToday = getCookie('hasPunchedInToday') === 'true';
   
-  // For employee role, check punch status
-  if (!isPunchedIn && !hasPunchedInToday && userRole === ROLES.EMPLOYEE && location.pathname !== '/punch') {
+  // For employee, manager, and HR admin roles: check punch status
+  const punchRoles = [ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN];
+  if (!isPunchedIn && !hasPunchedInToday && punchRoles.includes(userRole) && location.pathname !== '/punch') {
     return <Navigate to="/punch" replace />;
   }
 
-  // Non-employee roles should never stay on /punch route.
-  if (location.pathname === '/punch' && userRole !== ROLES.EMPLOYEE) {
+  // Once user is checked in, never keep them on /punch.
+  if (location.pathname === '/punch' && punchRoles.includes(userRole) && isPunchedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Only super admin should never stay on /punch route.
+  if (location.pathname === '/punch' && !punchRoles.includes(userRole)) {
     return <Navigate to="/" replace />;
   }
 
@@ -91,7 +101,7 @@ const AppContent = () => {
             ============================================================ */}
         <Route
           path="/punch"
-          element={userRole === ROLES.EMPLOYEE ? <PunchInOut /> : <Navigate to="/" replace />}
+          element={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN].includes(userRole) ? <PunchInOut /> : <Navigate to="/" replace />}
         />
 
         {/* ============================================================
@@ -115,13 +125,16 @@ function App() {
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <Routes>
-            {/* LOGIN ROUTE - Always accessible */}
-            <Route path="/login" element={<Login />} />
-            
-            {/* MAIN APP ROUTES - Protected by AppContent */}
-            <Route path="/*" element={<AppContent />} />
-          </Routes>
+          <PunchProvider>
+            <Routes>
+              {/* LOGIN ROUTE - Always accessible */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* MAIN APP ROUTES - Protected by AppContent */}
+              <Route path="/*" element={<AppContent />} />
+            </Routes>
+          </PunchProvider>
         </AuthProvider>
       </ThemeProvider>
     </Router>

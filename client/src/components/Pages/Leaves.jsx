@@ -3,106 +3,279 @@
  * Modern leave request and balance management interface
  */
 
-import React, { useState } from 'react';
-import { FiCalendar, FiPlus, FiCheck, FiX, FiClock, FiAlert, FiTrendingDown } from 'react-icons/fi';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { FiCalendar, FiPlus, FiCheck, FiX, FiClock, FiArrowLeft } from 'react-icons/fi';
+import API from '../../api/client';
+import { LEAVE_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { normalizeRole, ROLES } from '../../utils/roles';
+
+const LEAVE_CARD_COLORS = [
+  'from-blue-500 to-cyan-500',
+  'from-red-500 to-pink-500',
+  'from-yellow-500 to-orange-500',
+  'from-purple-500 to-pink-500',
+  'from-emerald-500 to-green-500',
+];
+
+const statusColors = {
+  approved: 'from-green-500 to-emerald-500',
+  pending: 'from-yellow-500 to-orange-500',
+  rejected: 'from-red-500 to-pink-500',
+  cancelled: 'from-slate-500 to-slate-600',
+};
+
+const toPayload = (response) => response?.data || {};
+
+const extractRows = (payload, key) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (key && Array.isArray(payload?.[key])) {
+    return payload[key];
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+};
 
 const Leaves = () => {
   const { colors } = useTheme();
-  const [showModal, setShowModal] = useState(false);
-  const [leaveRequests, setLeaveRequests] = useState([
-    {
-      id: 1,
-      type: 'Annual Leave',
-      startDate: '2026-03-15',
-      endDate: '2026-03-20',
-      days: 6,
-      reason: 'Family vacation',
-      status: 'approved',
-      approvedBy: 'John Manager'
-    },
-    {
-      id: 2,
-      type: 'Casual Leave',
-      startDate: '2026-03-10',
-      endDate: '2026-03-10',
-      days: 1,
-      reason: 'Personal work',
-      status: 'pending',
-      approvedBy: '-'
-    },
-    {
-      id: 3,
-      type: 'Sick Leave',
-      startDate: '2026-02-28',
-      endDate: '2026-02-28',
-      days: 1,
-      reason: 'Medical appointment',
-      status: 'approved',
-      approvedBy: 'John Manager'
-    }
-  ]);
+  const { user = {} } = useAuth();
+  const role = normalizeRole(user?.role);
 
-  const leaveBalance = [
-    {
-      type: 'Annual Leave',
-      total: 20,
-      used: 8,
-      available: 12,
-      color: 'from-blue-500 to-cyan-500',
-      icon: 'annual'
-    },
-    {
-      type: 'Sick Leave',
-      total: 12,
-      used: 2,
-      available: 10,
-      color: 'from-red-500 to-pink-500',
-      icon: 'sick'
-    },
-    {
-      type: 'Casual Leave',
-      total: 8,
-      used: 3,
-      available: 5,
-      color: 'from-yellow-500 to-orange-500',
-      icon: 'casual'
-    },
-    {
-      type: 'Maternity Leave',
-      total: 90,
-      used: 0,
-      available: 90,
-      color: 'from-purple-500 to-pink-500',
-      icon: 'maternity'
-    }
-  ];
+  const [showRequestPage, setShowRequestPage] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveBalance, setLeaveBalance] = useState([]);
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [formValues, setFormValues] = useState({
+    leaveTypeId: '',
+    startDate: '',
+    endDate: '',
+    reason: '',
+  });
 
-  const handleLeaveRequestSubmit = (event) => {
+  const loadLeaveData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const requestEndpoint =
+        role === ROLES.HR_ADMIN || role === ROLES.SUPER_ADMIN
+          ? LEAVE_ENDPOINTS.all
+          : role === ROLES.MANAGER
+            ? LEAVE_ENDPOINTS.team
+            : LEAVE_ENDPOINTS.own;
+
+      const [requestResponse, balanceResponse, policyResponse] = await Promise.all([
+        API.get(requestEndpoint),
+        API.get(LEAVE_ENDPOINTS.balance()),
+        API.get(LEAVE_ENDPOINTS.policy).catch(() => null),
+      ]);
+
+      const requestRows = extractRows(toPayload(requestResponse), 'data');
+      const balanceRows = extractRows(toPayload(balanceResponse), 'data');
+      const policyRows = policyResponse ? extractRows(toPayload(policyResponse), 'data') : [];
+
+      const mappedRequests = requestRows.map((request) => {
+        const leaveTypeData = request?.leaveTypeId;
+        const approvedByData = request?.approvedBy;
+        const leaveTypeName =
+          typeof leaveTypeData === 'object'
+            ? leaveTypeData?.name || leaveTypeData?.code || 'Leave'
+            : request?.leaveTypeName || 'Leave';
+
+        const approverName =
+          typeof approvedByData === 'object'
+            ? [approvedByData?.firstName, approvedByData?.lastName].filter(Boolean).join(' ').trim() || approvedByData?.email || ''
+            : '';
+
+        const requesterName =
+          typeof request?.employeeId === 'object'
+            ? [request?.employeeId?.firstName, request?.employeeId?.lastName].filter(Boolean).join(' ').trim()
+            : '';
+
+        const normalizedStatus = String(request?.status || 'PENDING').toLowerCase();
+
+        return {
+          id: request?._id || request?.id,
+          type: leaveTypeName,
+          startDate: request?.startDate,
+          endDate: request?.endDate,
+          days: Number(request?.totalDays || 0),
+          reason: request?.reason || '-',
+          status: normalizedStatus,
+          approvedBy: approverName || (typeof request?.approvedBy === 'string' ? request?.approvedBy : '-'),
+          requesterName: requesterName || '-',
+        };
+      });
+
+      const mappedBalances = balanceRows.map((balance, index) => {
+        const leaveTypeData = balance?.leaveTypeId;
+        const leaveTypeName =
+          typeof leaveTypeData === 'object'
+            ? leaveTypeData?.name || leaveTypeData?.code || 'Leave'
+            : 'Leave';
+
+        const leaveTypeId =
+          typeof leaveTypeData === 'object'
+            ? leaveTypeData?._id || leaveTypeData?.id
+            : leaveTypeData;
+
+        const total = Number(balance?.totalDays ?? leaveTypeData?.totalDays ?? 0);
+        const used = Number(balance?.usedDays ?? 0);
+        const available = Number(balance?.remainingDays ?? Math.max(0, total - used));
+
+        return {
+          type: leaveTypeName,
+          leaveTypeId,
+          total,
+          used,
+          available,
+          color: LEAVE_CARD_COLORS[index % LEAVE_CARD_COLORS.length],
+        };
+      });
+
+      const policyBalances = policyRows.map((policy, index) => {
+        const totalDays = Number(policy?.totalDays || 0);
+        return {
+          type: policy?.name || policy?.code || 'Leave',
+          leaveTypeId: policy?._id || policy?.id,
+          total: totalDays,
+          used: 0,
+          available: totalDays,
+          color: LEAVE_CARD_COLORS[index % LEAVE_CARD_COLORS.length],
+        };
+      });
+
+      const balanceByType = new Map();
+      [...policyBalances, ...mappedBalances].forEach((entry) => {
+        if (!entry?.leaveTypeId) {
+          return;
+        }
+        balanceByType.set(String(entry.leaveTypeId), entry);
+      });
+
+      const mergedBalances = Array.from(balanceByType.values());
+      const policyTypes = policyRows
+        .map((policy) => ({
+          id: policy?._id || policy?.id,
+          name: policy?.name || policy?.code || 'Leave',
+        }))
+        .filter((item) => item.id && item.name);
+
+      const balanceTypes = mergedBalances
+        .map((balance) => ({
+          id: balance.leaveTypeId,
+          name: balance.type,
+        }))
+        .filter((item) => item.id && item.name);
+
+      const availableTypes = (policyTypes.length > 0 ? policyTypes : balanceTypes).filter(
+        (item, index, arr) => arr.findIndex((entry) => String(entry.id) === String(item.id)) === index
+      );
+
+      setLeaveRequests(mappedRequests);
+      setLeaveBalance(mergedBalances);
+      setLeaveTypes(availableTypes);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to load leave data');
+      setLeaveRequests([]);
+      setLeaveBalance([]);
+      setLeaveTypes([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [role, user?.employeeId]);
+
+  useEffect(() => {
+    loadLeaveData();
+  }, [loadLeaveData]);
+
+  const canApproveOrReject = useMemo(() => {
+    return role === ROLES.MANAGER || role === ROLES.HR_ADMIN || role === ROLES.SUPER_ADMIN;
+  }, [role]);
+
+  const handleFormChange = (field) => (event) => {
+    setFormValues((previous) => ({
+      ...previous,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleLeaveRequestSubmit = async (event) => {
     event.preventDefault();
-    setShowModal(false);
+    setError('');
+
+    const { leaveTypeId, startDate, endDate, reason } = formValues;
+
+    if (!leaveTypeId || !startDate || !endDate) {
+      setError('Leave type, start date, and end date are required');
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      setError('Start date must be before or equal to end date');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await API.post(LEAVE_ENDPOINTS.create, {
+        leaveTypeId,
+        startDate,
+        endDate,
+        reason: reason.trim(),
+      });
+
+      setShowRequestPage(false);
+      setFormValues({
+        leaveTypeId: '',
+        startDate: '',
+        endDate: '',
+        reason: '',
+      });
+
+      await loadLeaveData();
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to submit leave request');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleLeaveAction = (requestId, status) => {
-    setLeaveRequests((previousRequests) =>
-      previousRequests.map((request) =>
-        request.id === requestId
-          ? { ...request, status, approvedBy: status === 'approved' ? 'Self Action' : request.approvedBy }
-          : request
-      )
-    );
-  };
+  const handleLeaveAction = async (requestId, action) => {
+    if (!requestId) {
+      return;
+    }
 
-  const statusColors = {
-    approved: 'from-green-500 to-emerald-500',
-    pending: 'from-yellow-500 to-orange-500',
-    rejected: 'from-red-500 to-pink-500'
+    setError('');
+
+    try {
+      if (action === 'approve') {
+        await API.patch(LEAVE_ENDPOINTS.approve(requestId));
+      } else if (action === 'reject') {
+        await API.patch(LEAVE_ENDPOINTS.reject(requestId));
+      } else if (action === 'cancel') {
+        await API.post(LEAVE_ENDPOINTS.cancel(requestId));
+      }
+
+      await loadLeaveData();
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to update leave request');
+    }
   };
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
-    >
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -112,42 +285,136 @@ const Leaves = () => {
           <p className={colors.text.tertiary}>Manage your leave requests and balance</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setError('');
+            setShowRequestPage(true);
+          }}
           className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
         >
           <FiPlus size={20} /> Request Leave
         </button>
       </div>
 
+      {error && (
+        <div className="glass rounded-2xl p-4 mb-6 border border-red-500/30 bg-red-500/10 text-red-300">
+          {error}
+        </div>
+      )}
+
+      {showRequestPage ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 mb-8" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800">Leave Request Page</h2>
+              <p className="text-sm text-slate-500 mt-1">Submit your leave request and track the approval status.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowRequestPage(false)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            >
+              <FiArrowLeft size={16} /> Back to Leaves
+            </button>
+          </div>
+
+          <form className="space-y-5" onSubmit={handleLeaveRequestSubmit}>
+            <div>
+              <label className="block text-slate-700 font-medium mb-2 text-sm">Leave Type</label>
+              <select
+                value={formValues.leaveTypeId}
+                onChange={handleFormChange('leaveTypeId')}
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:border-blue-500 transition-all duration-300"
+              >
+                <option value="">Select leave type</option>
+                {leaveTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 font-medium mb-2 text-sm">Start Date</label>
+                <input
+                  type="date"
+                  value={formValues.startDate}
+                  onChange={handleFormChange('startDate')}
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-700 font-medium mb-2 text-sm">End Date</label>
+                <input
+                  type="date"
+                  value={formValues.endDate}
+                  onChange={handleFormChange('endDate')}
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-700 font-medium mb-2 text-sm">Reason</label>
+              <textarea
+                rows="4"
+                value={formValues.reason}
+                onChange={handleFormChange('reason')}
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:border-blue-500"
+                placeholder="Enter reason..."
+              ></textarea>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowRequestPage(false)}
+                className="flex-1 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors duration-300 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-all duration-300 font-medium"
+              >
+                {submitting ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : (
+      <>
       {/* Leave Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {leaveBalance.map((leave, idx) => {
-          const percentage = (leave.used / leave.total) * 100;
+          const percentage = leave.total > 0 ? (leave.used / leave.total) * 100 : 0;
           return (
             <div
-              key={idx}
-              className={`group glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1`}
+              key={`${leave.leaveTypeId || leave.type}-${idx}`}
+              className="group bg-white rounded-2xl border border-slate-200 p-6 hover:border-blue-200 transition-all duration-300 hover:shadow-md"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`${colors.text.secondary} font-semibold text-sm`}>{leave.type}</h3>
+                <h3 className="text-slate-700 font-semibold text-sm">{leave.type}</h3>
               </div>
 
               {/* Progress Bar */}
               <div className="mb-4">
-                <div className={`w-full h-3 ${colors.bg.tertiary} rounded-full overflow-hidden mb-2`}>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
                   <div
                     className={`h-full bg-gradient-to-r ${leave.color} rounded-full transition-all duration-500`}
-                    style={{ width: `${percentage}%` }}
+                    style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }}
                   ></div>
                 </div>
-                <p className={`${colors.text.tertiary} text-xs`}>
+                <p className="text-slate-500 text-xs">
                   {leave.used} of {leave.total} used
                 </p>
               </div>
 
               {/* Available Days */}
-              <div className="bg-slate-700/30 border border-slate-700/50 rounded-lg p-3">
-                <p className={`${colors.text.tertiary} text-xs mb-1`}>Available</p>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <p className="text-slate-500 text-xs mb-1">Available</p>
                 <p className={`text-2xl font-bold bg-gradient-to-r ${leave.color} bg-clip-text text-transparent`}>
                   {leave.available}
                 </p>
@@ -157,72 +424,34 @@ const Leaves = () => {
         })}
       </div>
 
-      {/* Leave Requests Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 mb-8">
-        <div className={`glass rounded-2xl border p-8 max-w-md w-full shadow-2xl`}>
-            <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Request Leave</h2>
-
-            <form className="space-y-4" onSubmit={handleLeaveRequestSubmit}>
-              <div>
-                <label className={`block ${colors.text.primary} font-medium mb-2 text-sm`}>Leave Type</label>
-                <select className={`w-full px-4 py-3 bg-slate-700/50 border ${colors.border.secondary} rounded-lg ${colors.text.primary} focus:outline-none focus:border-blue-500 transition-all duration-300`}>
-                  <option className="bg-slate-800">Select leave type</option>
-                  <option className="bg-slate-800">Annual Leave</option>
-                  <option className="bg-slate-800">Sick Leave</option>
-                  <option className="bg-slate-800">Casual Leave</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={`block ${colors.text.primary} font-medium mb-2 text-sm`}>Start Date</label>
-                  <input type="date" className={`w-full px-4 py-3 bg-slate-700/50 border ${colors.border.secondary} rounded-lg ${colors.text.primary} focus:outline-none focus:border-blue-500`} />
-                </div>
-                <div>
-                  <label className={`block ${colors.text.primary} font-medium mb-2 text-sm`}>End Date</label>
-                  <input type="date" className={`w-full px-4 py-3 bg-slate-700/50 border ${colors.border.secondary} rounded-lg ${colors.text.primary} focus:outline-none focus:border-blue-500`} />
-                </div>
-              </div>
-
-              <div>
-                <label className={`block ${colors.text.primary} font-medium mb-2 text-sm`}>Reason</label>
-                <textarea rows="3" className={`w-full px-4 py-3 bg-slate-700/50 border ${colors.border.secondary} rounded-lg ${colors.text.primary} focus:outline-none focus:border-blue-500`} placeholder="Enter reason..."></textarea>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors duration-300 font-medium">
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300 font-medium">
-                  Submit
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Leave Requests */}
-      <div className={`glass rounded-2xl border p-6 hover:border-slate-600 transition-all duration-300`}>
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 transition-all duration-300" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
         <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Leave Requests</h2>
+
+        {loading && <p className={colors.text.tertiary}>Loading leave requests...</p>}
+
+        {!loading && leaveRequests.length === 0 && (
+          <p className={colors.text.tertiary}>No leave requests found.</p>
+        )}
 
         <div className="space-y-4">
           {leaveRequests.map((request) => (
             <div
               key={request.id}
-              className="bg-slate-700/30 border border-slate-700/50 rounded-xl p-5 hover:bg-slate-700/50 transition-colors duration-300"
+              className="bg-slate-50 border border-slate-200 rounded-xl p-5 hover:bg-slate-100 transition-colors duration-300"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className={`${colors.text.primary} font-semibold`}>{request.type}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${statusColors[request.status]} ${colors.text.primary}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${statusColors[request.status] || statusColors.pending} ${colors.text.primary}`}
+                    >
                       {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                     </span>
                   </div>
-                  <p className={`${colors.text.tertiary} text-sm mb-2`}>{request.reason}</p>
-                  <div className={`flex items-center gap-4 ${colors.text.tertiary} text-xs`}>
+                  <p className="text-slate-600 text-sm mb-2">{request.reason}</p>
+                  <div className="flex flex-wrap items-center gap-4 text-slate-500 text-xs">
                     <span className="flex items-center gap-1">
                       <FiCalendar size={14} />
                       {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
@@ -231,23 +460,38 @@ const Leaves = () => {
                       <FiClock size={14} />
                       {request.days} day{request.days > 1 ? 's' : ''}
                     </span>
+                    <span>Approved By: {request.approvedBy}</span>
+                    {canApproveOrReject && request.requesterName && (
+                      <span>Employee: {request.requesterName}</span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {request.status === 'pending' && (
+              {request.status === 'pending' && canApproveOrReject && (
                 <div className="flex gap-2 pt-3 border-t border-slate-700/50">
                   <button
-                    onClick={() => handleLeaveAction(request.id, 'approved')}
+                    onClick={() => handleLeaveAction(request.id, 'approve')}
                     className="flex-1 py-2 px-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors duration-300 text-sm font-medium flex items-center justify-center gap-2"
                   >
                     <FiCheck size={16} /> Approve
                   </button>
                   <button
-                    onClick={() => handleLeaveAction(request.id, 'rejected')}
+                    onClick={() => handleLeaveAction(request.id, 'reject')}
                     className="flex-1 py-2 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors duration-300 text-sm font-medium flex items-center justify-center gap-2"
                   >
                     <FiX size={16} /> Reject
+                  </button>
+                </div>
+              )}
+
+              {request.status === 'pending' && !canApproveOrReject && role === ROLES.EMPLOYEE && (
+                <div className="flex gap-2 pt-3 border-t border-slate-700/50">
+                  <button
+                    onClick={() => handleLeaveAction(request.id, 'cancel')}
+                    className="w-full py-2 px-3 bg-slate-500/20 hover:bg-slate-500/30 text-slate-300 rounded-lg transition-colors duration-300 text-sm font-medium"
+                  >
+                    Cancel Request
                   </button>
                 </div>
               )}
@@ -255,6 +499,8 @@ const Leaves = () => {
           ))}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

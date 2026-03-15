@@ -61,7 +61,6 @@ const designationSchema = new mongoose.Schema(
 );
 
 // Index for faster queries
-designationSchema.index({ name: 1 });
 designationSchema.index({ department: 1 });
 designationSchema.index({ level: 1 });
 designationSchema.index({ isActive: 1 });

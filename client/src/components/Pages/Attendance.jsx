@@ -1,37 +1,86 @@
 /**
  * Attendance Page
- * Calendar-based attendance tracking with theme support
+ * Calendar-based attendance tracking with live clock, geolocation, and backend integration
  */
 
-import React, { useState } from 'react';
-import { FiClock, FiCheckCircle, FiXCircle, FiLogIn, FiLogOut } from 'react-icons/fi';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FiClock, FiCheckCircle, FiXCircle, FiLogIn, FiLogOut, FiMapPin, FiAlertCircle } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
 import AttendanceSheet from '../AttendanceSheet/AttendanceSheet';
+import { usePunch } from '../../context/PunchContext';
+import API from '../../api/client';
+import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
 
 const Attendance = () => {
-  const { colors, isDark } = useTheme();
-  const [punchInTime, setPunchInTime] = useState(null);
-  const [punchOutTime, setPunchOutTime] = useState(null);
+  const { colors } = useTheme();
+
+  // Shared punch state from context
+  const {
+    punchStatus, punchInTime, punchOutTime, punchInLocation, punchOutLocation,
+    workingHours, attendanceStatus, loading, locationLabel, locationLoading,
+    punchIn, punchOut,
+  } = usePunch();
+
+  // Live clock
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const tickRef = useRef(null);
+
+  // Monthly stats (local to this page)
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [monthlySummary, setMonthlySummary] = useState({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
+  const [apiError, setApiError] = useState(null);
+  const locationError = !locationLabel && !locationLoading ? 'Location unknown' : null;
+
+  // Live clock tick
+  useEffect(() => {
+    tickRef.current = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(tickRef.current);
+  }, []);
+
+  // Load monthly summary stats
+  const loadMonthlySummary = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await API.get(ATTENDANCE_ENDPOINTS.monthlySummary);
+      const d = res.data?.data || {};
+      setMonthlySummary({
+        present: d.daysPresent ?? d.presentDays ?? 0,
+        absent: d.daysAbsent ?? d.absentDays ?? 0,
+        totalHours: typeof d.totalWorkingHours === 'number' ? d.totalWorkingHours.toFixed(1) : '0.0',
+        avgHours: typeof d.averageWorkingHours === 'number' ? d.averageWorkingHours.toFixed(1) : '0.0',
+      });
+    } catch {
+      // keep defaults
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadMonthlySummary(); }, [loadMonthlySummary]);
+
+  const formatLocalTime = (date) =>
+    date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+
+  const handlePunchIn = async () => {
+    setApiError(null);
+    try { await punchIn(); } catch (err) {
+      setApiError(err?.response?.data?.message || 'Failed to punch in.');
+    }
+  };
+
+  const handlePunchOut = async () => {
+    setApiError(null);
+    try { await punchOut(); } catch (err) {
+      setApiError(err?.response?.data?.message || 'Failed to punch out.');
+    }
+  };
 
   const stats = [
-    { title: 'Days Present', value: '18', icon: FiCheckCircle, color: 'from-green-500 to-emerald-500' },
-    { title: 'Days Absent', value: '2', icon: FiXCircle, color: 'from-red-500 to-pink-500' },
-    { title: 'Total Hours', value: '144.5', icon: FiClock, color: 'from-blue-500 to-cyan-500' },
-    { title: 'Avg Hours/Day', value: '8.5', icon: FiClock, color: 'from-purple-500 to-pink-500' }
+    { title: 'Days Present', value: statsLoading ? '...' : monthlySummary.present, icon: FiCheckCircle, color: 'from-green-500 to-emerald-500' },
+    { title: 'Days Absent', value: statsLoading ? '...' : monthlySummary.absent, icon: FiXCircle, color: 'from-red-500 to-pink-500' },
+    { title: 'Total Hours', value: statsLoading ? '...' : monthlySummary.totalHours, icon: FiClock, color: 'from-blue-500 to-cyan-500' },
+    { title: 'Avg Hours/Day', value: statsLoading ? '...' : monthlySummary.avgHours, icon: FiClock, color: 'from-purple-500 to-pink-500' },
   ];
-
-  const handlePunchIn = () => {
-    const now = new Date();
-    const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    setPunchInTime(time);
-    setPunchOutTime(null);
-  };
-
-  const handlePunchOut = () => {
-    const now = new Date();
-    const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    setPunchOutTime(time);
-  };
 
   return (
     <div
@@ -47,31 +96,72 @@ const Attendance = () => {
         </div>
 
         {/* Punch Status Card - Right Corner of Header */}
-        <div className={`glass rounded-2xl border-white/30 p-6 transition-all duration-300 bg-gradient-to-br ${colors.gradient.card} w-full md:w-72 flex-shrink-0 animate-slideInRight backdrop-blur-xl hover:shadow-2xl hover:border-white/50 transform hover:-translate-y-1 ${colors.border.primary}`}>
-          <p className={`text-sm font-medium mb-3 transition-colors duration-300 ${colors.text.tertiary}`}>Punch Status</p>
-          
+        <div className={`glass rounded-2xl border-white/30 p-6 transition-all duration-300 bg-gradient-to-br ${colors.gradient.card} w-full md:w-80 flex-shrink-0 animate-slideInRight backdrop-blur-xl hover:shadow-2xl hover:border-white/50 transform hover:-translate-y-1 ${colors.border.primary}`}>
+          {/* Live clock */}
+          <div className="flex items-center justify-between mb-1">
+            <p className={`text-xs font-medium transition-colors duration-300 ${colors.text.tertiary}`}>Local Time</p>
+            {attendanceStatus && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{attendanceStatus}</span>
+            )}
+          </div>
+          <p className={`text-2xl font-bold mb-1 tabular-nums transition-colors duration-300 ${colors.text.primary}`}>
+            {formatLocalTime(currentTime)}
+          </p>
+          {/* Location line */}
+          <div className={`flex items-center gap-1 text-xs mb-4 transition-colors duration-300 ${colors.text.tertiary}`}>
+            <FiMapPin size={11} />
+            {locationLoading ? 'Detecting location…' : locationError ? locationError : (locationLabel || 'Location unknown')}
+          </div>
+
+          {/* Error message */}
+          {apiError && (
+            <div className="flex items-start gap-2 mb-3 p-2 rounded-lg bg-red-50 border border-red-200">
+              <FiAlertCircle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-red-600">{apiError}</p>
+            </div>
+          )}
+
+          {/* Punch status */}
+          <p className={`text-xs font-medium mb-2 transition-colors duration-300 ${colors.text.tertiary}`}>Punch Status</p>
+
           {punchOutTime ? (
             <div className="animate-scaleUp">
-              <p className={`text-lg font-semibold mb-2 transition-colors duration-300 ${colors.text.secondary}`}>Punched Out</p>
-              <p className={`text-3xl font-bold transition-colors duration-300 ${colors.text.primary}`}>{punchOutTime}</p>
+              <div className="flex justify-between items-start mb-1">
+                <p className={`text-sm font-semibold transition-colors duration-300 ${colors.text.secondary}`}>Punched Out</p>
+                <p className={`text-base font-bold transition-colors duration-300 ${colors.text.primary}`}>{punchOutTime}</p>
+              </div>
+              {punchOutLocation && (
+                <p className={`text-xs flex items-center gap-1 mb-1 ${colors.text.tertiary}`}><FiMapPin size={10} />{punchOutLocation}</p>
+              )}
+              {workingHours != null && (
+                <p className={`text-xs font-medium text-green-600`}>Total: {workingHours}h worked</p>
+              )}
+              <p className={`text-xs mt-1 ${colors.text.tertiary}`}>In: {punchInTime}{punchInLocation ? ` · ${punchInLocation}` : ''}</p>
             </div>
           ) : punchInTime ? (
             <div className="animate-scaleUp">
-              <p className={`text-lg font-semibold mb-2 transition-colors duration-300 ${colors.text.secondary}`}>Punched In</p>
-              <p className={`text-3xl font-bold mb-4 transition-colors duration-300 ${colors.text.primary}`}>{punchInTime}</p>
+              <div className="flex justify-between items-start mb-1">
+                <p className={`text-sm font-semibold transition-colors duration-300 ${colors.text.secondary}`}>Punched In</p>
+                <p className={`text-base font-bold transition-colors duration-300 ${colors.text.primary}`}>{punchInTime}</p>
+              </div>
+              {punchInLocation && (
+                <p className={`text-xs flex items-center gap-1 mb-3 ${colors.text.tertiary}`}><FiMapPin size={10} />{punchInLocation}</p>
+              )}
               <button
                 onClick={handlePunchOut}
+                disabled={loading}
                 className="btn-danger w-full"
               >
-                <FiLogOut size={18} /> Punch Out
+                <FiLogOut size={18} /> {loading ? 'Recording…' : 'Punch Out'}
               </button>
             </div>
           ) : (
             <button
               onClick={handlePunchIn}
+              disabled={loading || locationLoading}
               className="btn-success w-full animate-scaleUp"
             >
-              <FiLogIn size={18} /> Punch In
+              <FiLogIn size={18} /> {loading ? 'Recording…' : 'Punch In'}
             </button>
           )}
         </div>

@@ -3,33 +3,117 @@
  * Team members, projects, and messaging
  */
 
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiUsers, FiMessageSquare, FiBriefcase } from 'react-icons/fi';
+import API from '../../api/client';
+import { ANNOUNCEMENT_ENDPOINTS, EMPLOYEE_ENDPOINTS, LEAVE_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
+
+const toPayload = (response) => response?.data || {};
+
+const extractRows = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+};
 
 const TeamCollaboration = () => {
   const { colors } = useTheme();
-  const teamMembers = [
-    { name: 'Sarah Johnson', role: 'Product Lead', status: 'online', avatar: '👩‍💼' },
-    { name: 'Mike Chen', role: 'Backend Developer', status: 'online', avatar: '👨‍💻' },
-    { name: 'Emily Davis', role: 'UI/UX Designer', status: 'away', avatar: '👩‍🎨' },
-    { name: 'Alex Rodriguez', role: 'QA Engineer', status: 'online', avatar: '👨‍🔧' },
-    { name: 'Lisa Park', role: 'DevOps Engineer', status: 'offline', avatar: '👩‍💻' }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [messages, setMessages] = useState([]);
 
-  const projects = [
-    { name: 'Dashboard Redesign', progress: 85, team: 4, status: 'In Progress' },
-    { name: 'API Integration', progress: 60, team: 3, status: 'In Progress' },
-    { name: 'Mobile App Development', progress: 45, team: 5, status: 'Planning' },
-    { name: 'Performance Optimization', progress: 90, team: 2, status: 'Nearing Completion' }
-  ];
+  const loadCollaborationData = useCallback(async () => {
+    setLoading(true);
+    setError('');
 
-  const messages = [
-    { sender: 'Sarah Johnson', message: 'Great work on the UI improvements!', time: '2 hours ago' },
-    { sender: 'Mike Chen', message: 'API endpoints are ready for integration', time: '3 hours ago' },
-    { sender: 'Emily Davis', message: 'Design mockups updated in Figma', time: 'Yesterday' },
-    { sender: 'Team Chat', message: 'Sprint planning meeting at 2:00 PM', time: 'Yesterday' }
-  ];
+    try {
+      const [teamResponse, leaveResponse, announcementResponse] = await Promise.all([
+        API.get(EMPLOYEE_ENDPOINTS.myTeam(200)),
+        API.get(LEAVE_ENDPOINTS.team),
+        API.get(ANNOUNCEMENT_ENDPOINTS.list),
+      ]);
+
+      const teamRows = extractRows(toPayload(teamResponse));
+      const leaveRows = extractRows(toPayload(leaveResponse));
+      const announcementRows = extractRows(toPayload(announcementResponse));
+
+      const mappedTeamMembers = teamRows.slice(0, 10).map((member, index) => {
+        const fullName = [member?.firstName, member?.lastName].filter(Boolean).join(' ').trim() || member?.email || 'Team Member';
+        const designation = member?.designation || member?.role || 'Team Member';
+        const status = member?.isActive === false ? 'offline' : index % 3 === 0 ? 'away' : 'online';
+        return {
+          name: fullName,
+          role: designation,
+          status,
+          avatar: '👤',
+        };
+      });
+
+      const byDepartment = new Map();
+      teamRows.forEach((member) => {
+        const department = member?.department || 'General';
+        const current = byDepartment.get(department) || { team: 0, pendingLeaves: 0 };
+        current.team += 1;
+        byDepartment.set(department, current);
+      });
+
+      leaveRows.forEach((leave) => {
+        const isPending = String(leave?.status || '').toUpperCase() === 'PENDING';
+        if (!isPending) {
+          return;
+        }
+
+        const department = leave?.employeeId?.department || 'General';
+        const current = byDepartment.get(department) || { team: 0, pendingLeaves: 0 };
+        current.pendingLeaves += 1;
+        byDepartment.set(department, current);
+      });
+
+      const mappedProjects = Array.from(byDepartment.entries()).slice(0, 4).map(([name, data]) => {
+        const progress = Math.max(40, Math.min(95, 85 - data.pendingLeaves * 5 + data.team));
+        return {
+          name: `${name} Operations`,
+          progress,
+          team: data.team,
+          status: data.pendingLeaves > 0 ? 'In Progress' : 'Stable',
+        };
+      });
+
+      const mappedMessages = announcementRows.slice(0, 4).map((item) => ({
+        sender: item?.createdByName || 'HR',
+        message: item?.title || 'Team update',
+        time: item?.publishedAt
+          ? new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : 'Today',
+      }));
+
+      setTeamMembers(mappedTeamMembers);
+      setProjects(mappedProjects);
+      setMessages(mappedMessages);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to load collaboration data');
+      setTeamMembers([]);
+      setProjects([]);
+      setMessages([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCollaborationData();
+  }, [loadCollaborationData]);
+
+  const noData = useMemo(() => !loading && teamMembers.length === 0 && projects.length === 0, [loading, projects.length, teamMembers.length]);
 
   return (
     <div
@@ -42,6 +126,20 @@ const TeamCollaboration = () => {
         </h1>
         <p className={`${colors.text.tertiary} mb-8`}>Work together with your team members</p>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-6">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="rounded-xl border border-slate-200 bg-white text-slate-500 px-4 py-5 mb-6">Loading team collaboration data...</div>
+      )}
+
+      {noData && (
+        <div className="rounded-xl border border-slate-200 bg-white text-slate-500 px-4 py-5 mb-6">No team data found.</div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

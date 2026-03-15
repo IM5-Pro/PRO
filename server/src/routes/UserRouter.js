@@ -5,25 +5,10 @@ import roleGuard from "../middleware/roleGuard.js";
 
 const router = express.Router();
 
-// Super Admin: Create any user (HR_ADMIN, MANAGER, EMPLOYEE)
+// Create user - accessible by SUPER_ADMIN and HR_ADMIN
+// The userService will enforce role creation permissions
 router.post(
-  "/admin/create-user",
-  authGuard,
-  roleGuard("SUPER_ADMIN"),
-  userController.createUser,
-);
-
-// HR Admin: Create MANAGER or EMPLOYEE only
-router.post(
-  "/hr/create-user",
-  authGuard,
-  roleGuard("HR_ADMIN"),
-  userController.createUser,
-);
-
-// Generic create (kept for backward compatibility)
-router.post(
-  "/create",
+  "/create-user",
   authGuard,
   roleGuard("SUPER_ADMIN", "HR_ADMIN"),
   userController.createUser,
@@ -34,6 +19,14 @@ router.get(
   authGuard,
   roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER"),
   userController.getEmployees,
+);
+
+// Admin reset employee login password
+router.post(
+  "/:employeeId/reset-password",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN"),
+  userController.adminResetPassword,
 );
 
 export default router;

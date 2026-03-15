@@ -27,8 +27,19 @@ router.post(
 router.get(
   "/",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER"),
   employeeController.listEmployees
+);
+
+/**
+ * List managers for assignment dropdown
+ * GET /api/employees/managers
+ */
+router.get(
+  "/managers",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN"),
+  employeeController.listManagers
 );
 
 /**
@@ -75,7 +86,7 @@ router.get(
 router.get(
   "/me/profile",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER", "EMPLOYEE"),
   employeeController.myProfile
 );
 
@@ -86,7 +97,7 @@ router.get(
 router.get(
   "/me/manager",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER", "EMPLOYEE"),
   employeeController.myManager
 );
 
@@ -97,7 +108,7 @@ router.get(
 router.get(
   "/my-team",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER"),
   employeeController.myTeam
 );
 
@@ -123,7 +134,7 @@ router.put(
 router.get(
   "/:employeeId/profile",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER", "EMPLOYEE"),
   employeeController.viewProfile
 );
 
@@ -190,7 +201,7 @@ router.get(
 router.get(
   "/:employeeId/history",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER", "EMPLOYEE"),
   employeeController.viewHistory
 );
 
@@ -260,7 +271,7 @@ router.put(
 router.get(
   "/:employeeId",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER", "EMPLOYEE"),
   employeeController.readEmployee
 );
 

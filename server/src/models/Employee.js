@@ -110,17 +110,12 @@ const employeeSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-employeeSchema.index({ email: 1 }, { unique: true });
-employeeSchema.index({ employeeCode: 1 }, { unique: true });
 employeeSchema.index({ departmentId: 1 });
 employeeSchema.index({ status: 1 });
 employeeSchema.index({ managerID: 1 });
-employeeSchema.index({ manager: 1 });
 employeeSchema.index({ department: 1 });
 employeeSchema.index({ designation: 1 });
 employeeSchema.index({ isActive: 1 });
-employeeSchema.index({ panNumber: 1 }, { unique: true, sparse: true });
-employeeSchema.index({ aadhaarNumber: 1 }, { unique: true, sparse: true });
 
 employeeSchema.pre("save", function syncDates() {
   if (!this.manager && this.managerId) {

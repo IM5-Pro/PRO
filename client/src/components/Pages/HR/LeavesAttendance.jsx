@@ -30,9 +30,10 @@ const VALIDATION_RULES = {
  * @param {Function} props.onUserUpdate - Callback for user updates
  * @returns {JSX.Element} Leaves and attendance management interface
  */
-const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
+
+const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {}, defaultTab = 'overview' }) => {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   // ============================================================================
   // MOCKED DATA
@@ -148,24 +149,24 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
   return (
     <div className="min-h-screen bg-transparent p-6 md:p-8">
       {/* Header */}
-      <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
-        <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+        <div className="rounded-2xl p-6 mb-6 bg-white border border-slate-200 shadow-sm animate-slideInDown">
+          <h1 className="text-3xl font-bold text-slate-800 mb-1 flex items-center gap-3">
           📅 Leaves & Attendance
         </h1>
-        <p className="text-slate-600">Manage leaves and track attendance records</p>
+          <p className="text-slate-500 text-sm">Manage leaves and track attendance records</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="card mb-8 p-2 flex gap-2 animate-slideInRight"
+        <div className="bg-white border border-slate-200 rounded-2xl mb-6 p-2 flex gap-1 animate-slideInRight"
         style={{ animationDelay: '0.1s' }}>
         {['overview', 'requests', 'attendance', 'balance'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2 rounded-lg font-semibold transition-all duration-300 ${
+              className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
               activeTab === tab
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -186,15 +187,15 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
             ].map((stat, idx) => (
               <div
                 key={idx}
-                className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6`}
+                  className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white`}>
                     {stat.icon}
                   </div>
                 </div>
-                <p className={`${colors.text.tertiary} text-sm font-medium mb-1`}>{stat.title}</p>
-                <p className={`text-3xl font-bold ${colors.text.primary}`}>{stat.value}</p>
+                  <p className="text-slate-500 text-sm font-medium mb-1">{stat.title}</p>
+                  <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
               </div>
             ))}
           </div>
@@ -203,29 +204,29 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
 
       {/* Requests Tab */}
       {activeTab === 'requests' && (
-        <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6`}>
-          <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Leave Requests</h2>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-6">Leave Requests</h2>
           <div className="space-y-4">
             {leaveRequests.map((req) => (
               <div
                 key={req.id}
-                className={`flex items-center justify-between p-4 bg-slate-100/30 border ${colors.border.secondary} rounded-xl hover:bg-slate-200/50 transition-all`}
+                  className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all"
               >
                 <div className="flex-1">
-                  <p className={`${colors.text.primary} font-semibold`}>{req.employee}</p>
-                  <p className={`${colors.text.tertiary} text-sm`}>
+                    <p className="text-slate-800 font-semibold">{req.employee}</p>
+                    <p className="text-slate-500 text-sm">
                     {req.leaveType} • {req.from} to {req.to} ({req.days} days)
                   </p>
-                  <p className={`${colors.text.muted} text-xs mt-1`}>{req.reason}</p>
+                    <p className="text-slate-400 text-xs mt-1">{req.reason}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`px-3 py-1 rounded text-xs font-medium ${
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       req.status === 'Approved'
-                        ? 'bg-green-600/20 text-green-300'
+                          ? 'bg-green-100 text-green-700'
                         : req.status === 'Pending'
-                        ? 'bg-yellow-600/20 text-yellow-300'
-                        : 'bg-red-600/20 text-red-300'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700'
                     }`}
                   >
                     {req.status}
@@ -234,13 +235,13 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleApproveLeave(req.id)}
-                        className="px-3 py-1 bg-green-600/20 text-green-300 hover:bg-green-600/40 rounded text-xs font-medium transition-all"
+                          className="px-3 py-1 bg-green-600 text-white hover:bg-green-700 rounded-lg text-xs font-semibold transition-all"
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => handleRejectLeave(req.id)}
-                        className="px-3 py-1 bg-red-600/20 text-red-300 hover:bg-red-600/40 rounded text-xs font-medium transition-all"
+                          className="px-3 py-1 bg-red-600 text-white hover:bg-red-700 rounded-lg text-xs font-semibold transition-all"
                       >
                         Reject
                       </button>
@@ -255,27 +256,27 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
 
       {/* Attendance Tab */}
       {activeTab === 'attendance' && (
-        <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6`}>
-          <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Attendance Summary</h2>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-6">Attendance Summary</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className={`border-b ${colors.border.secondary}`}>
-                  <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Month</th>
-                  <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Present</th>
-                  <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Absent</th>
-                  <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>WFH</th>
-                  <th className={`text-left py-3 px-4 ${colors.text.tertiary} font-semibold text-sm`}>Rate</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 text-slate-500 font-semibold text-sm">Month</th>
+                    <th className="text-left py-3 px-4 text-slate-500 font-semibold text-sm">Present</th>
+                    <th className="text-left py-3 px-4 text-slate-500 font-semibold text-sm">Absent</th>
+                    <th className="text-left py-3 px-4 text-slate-500 font-semibold text-sm">WFH</th>
+                    <th className="text-left py-3 px-4 text-slate-500 font-semibold text-sm">Rate</th>
                 </tr>
               </thead>
               <tbody>
                 {attendanceStats.map((stat) => (
-                  <tr key={stat.month} className={`border-b ${colors.border.secondary}`}>
-                    <td className={`py-3 px-4 ${colors.text.primary}`}>{stat.month}</td>
-                    <td className={`py-3 px-4 text-green-400`}>{stat.presentDays}</td>
-                    <td className={`py-3 px-4 text-red-400`}>{stat.absentDays}</td>
-                    <td className={`py-3 px-4 text-blue-400`}>{stat.wfhDays}</td>
-                    <td className={`py-3 px-4 ${colors.text.primary} font-semibold`}>{stat.attendance}%</td>
+                    <tr key={stat.month} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-4 text-slate-700 font-medium">{stat.month}</td>
+                      <td className="py-3 px-4 text-green-600 font-semibold">{stat.presentDays}</td>
+                      <td className="py-3 px-4 text-red-500 font-semibold">{stat.absentDays}</td>
+                      <td className="py-3 px-4 text-blue-500 font-semibold">{stat.wfhDays}</td>
+                      <td className="py-3 px-4 text-slate-800 font-bold">{stat.attendance}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -290,29 +291,30 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
           {leaveBalance.map((leave) => (
             <div
               key={leave.type}
-              className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6`}
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6"
             >
-              <h3 className={`text-xl font-bold ${colors.text.primary} mb-4`}>{leave.type} Leave</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-4">{leave.type} Leave</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className={colors.text.tertiary}>Total Days:</span>
-                  <span className={`${colors.text.primary} font-semibold`}>{leave.total}</span>
+                <span className="text-slate-500 text-sm">Total Days:</span>
+                <span className="text-slate-800 font-semibold">{leave.total}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className={colors.text.tertiary}>Used:</span>
-                  <span className="text-red-400 font-semibold">{leave.used}</span>
+                <span className="text-slate-500 text-sm">Used:</span>
+                <span className="text-red-500 font-semibold">{leave.used}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className={colors.text.tertiary}>Available:</span>
-                  <span className="text-green-400 font-semibold">{leave.available}</span>
+                <span className="text-slate-500 text-sm">Available:</span>
+                <span className="text-green-600 font-semibold">{leave.available}</span>
                 </div>
                 <div className="mt-4">
-                  <div className="w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full bg-gradient-to-r ${leave.color}`}
+                   className={`h-full bg-gradient-to-r ${leave.color} rounded-full`}
                       style={{ width: `${(leave.used / leave.total) * 100}%` }}
                     />
                   </div>
+                <p className="text-xs text-slate-400 mt-1 text-right">{Math.round((leave.used / leave.total) * 100)}% used</p>
                 </div>
               </div>
             </div>

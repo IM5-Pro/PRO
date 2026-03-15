@@ -276,7 +276,8 @@ export const checkIn = async (req, res) => {
       });
     } else {
       // Update existing record
-      if (attendance.checkInTime) {
+      // Allow re-check-in if employee already checked out (e.g., re-entry after lunch)
+      if (attendance.checkInTime && !attendance.checkOutTime) {
         return sendError(res, 409, "Already checked in today", {
           checkIn: "You have already checked in today",
         });
@@ -297,6 +298,10 @@ export const checkIn = async (req, res) => {
 
       attendance.checkInTime = checkInTime;
       attendance.checkInLocation = normalizedLocation;
+      // Reset checkout so the new punch cycle works cleanly
+      attendance.checkOutTime = null;
+      attendance.checkOutLocation = undefined;
+      attendance.workingHours = 0;
       attendance.status = derivedStatus.status;
       attendance.remarks = derivedStatus.isLate
         ? "Auto-marked late based on shift policy"
@@ -758,6 +763,7 @@ export const viewAll = async (req, res) => {
 /**
  * Monthly Summary: Aggregated monthly metrics for dashboards
  */
+
 export const monthlySummary = async (req, res) => {
   try {
     const now = new Date();

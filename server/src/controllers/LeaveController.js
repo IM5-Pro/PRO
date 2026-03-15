@@ -10,6 +10,43 @@ import { sendError, sendSuccess } from "../utils/response.js";
 
 const ACTIVE_LEAVE_STATUSES = ["PENDING", "APPROVED"];
 
+const DEFAULT_LEAVE_POLICIES = [
+  {
+    name: "Casual Leave",
+    code: "CL",
+    totalDays: 12,
+    reasonRequired: false,
+  },
+  {
+    name: "Sick Leave",
+    code: "SL",
+    totalDays: 8,
+    reasonRequired: true,
+  },
+  {
+    name: "Earned Leave",
+    code: "EL",
+    totalDays: 18,
+    reasonRequired: false,
+  },
+];
+
+const ensureDefaultLeavePolicies = async () => {
+  const policyCount = await LeaveType.countDocuments();
+  if (policyCount > 0) {
+    return;
+  }
+
+  try {
+    await LeaveType.insertMany(DEFAULT_LEAVE_POLICIES, { ordered: false });
+  } catch (error) {
+    // Safe to ignore duplicate-key race conditions from concurrent bootstraps.
+    if (error?.code !== 11000) {
+      throw error;
+    }
+  }
+};
+
 const getDayStart = (value) => {
   const date = new Date(value);
   date.setHours(0, 0, 0, 0);
@@ -478,6 +515,7 @@ const viewOwn = async (req, res) => {
 
     const requests = await LeaveRequest.find({ employeeId })
       .populate("leaveTypeId", "name code totalDays reasonRequired")
+      .populate("approvedBy", "firstName lastName email")
       .sort({ createdAt: -1 });
     return sendSuccess(res, 200, "Leave requests retrieved successfully", { data: requests });
   } catch (err) {
@@ -517,6 +555,7 @@ const viewTeam = async (req, res) => {
     const requests = await LeaveRequest.find({ employeeId: { $in: teamIds } })
       .populate("employeeId", "firstName lastName email")
       .populate("leaveTypeId", "name code")
+      .populate("approvedBy", "firstName lastName email")
       .sort({ createdAt: -1 });
     return sendSuccess(res, 200, "Team leave requests retrieved successfully", { data: requests });
   } catch (err) {
@@ -534,6 +573,7 @@ const viewAll = async (req, res) => {
     const requests = await LeaveRequest.find()
       .populate("employeeId", "firstName lastName email")
       .populate("leaveTypeId", "name code")
+      .populate("approvedBy", "firstName lastName email")
       .sort({ createdAt: -1 });
     return sendSuccess(res, 200, "All leave requests retrieved successfully", { data: requests });
   } catch (err) {
@@ -772,11 +812,8 @@ const deletePolicy = async (req, res) => {
 
 const viewPolicies = async (req, res) => {
   try {
-    if (req.user.role !== Roles.SUPER_ADMIN && req.user.role !== Roles.HR_ADMIN) {
-      return sendError(res, 403, "Only HR Admin and Super Admin can view policies");
-    }
-
-    const policies = await LeaveType.find();
+    await ensureDefaultLeavePolicies();
+    const policies = await LeaveType.find().sort({ name: 1 });
     return sendSuccess(res, 200, "Leave policies retrieved successfully", { data: policies });
   } catch (err) {
     return sendError(res, 500, "Internal server error", { error: err.message });
@@ -816,7 +853,15 @@ const viewBalance = async (req, res) => {
 
         employeeId = requestedEmployeeId;
       } else {
-        return sendError(res, 403, "You are not allowed to view this balance");
+        if (!requesterEmployeeId) {
+          return sendError(res, 403, "Employee mapping missing for authenticated user");
+        }
+
+        if (String(requestedEmployeeId) !== String(requesterEmployeeId)) {
+          return sendError(res, 403, "You are not allowed to view this balance");
+        }
+
+        employeeId = requesterEmployeeId;
       }
     }
 

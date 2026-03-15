@@ -15,6 +15,7 @@ import permissionRoutes from "./src/routes/PermissionRouter.js";
 import employeeRoutes from "./src/routes/EmployeeRouter.js";
 import designationRoutes from "./src/routes/DesignationRouter.js";
 import attendanceRoutes from "./src/routes/AttendanceRouter.js";
+import announcementRoutes from "./src/routes/AnnouncementRouter.js";
 import roleSeeder from "./src/seeders/roleSeeder.js";
 
 dotenv.config();
@@ -52,6 +53,7 @@ app.use("/api/permissions", permissionRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/designations", designationRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/announcements", announcementRoutes);
 
 // start server only when not running tests
 if (process.env.NODE_ENV !== "test") {

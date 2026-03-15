@@ -13,6 +13,7 @@
  */
 
 import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../Auth/LoadingSpinner';
 
@@ -31,6 +32,7 @@ const ProtectedRoute = ({
   onUnauthorized = null 
 }) => {
   const { isAuthenticated, loading, hasRole, user } = useAuth();
+  const location = useLocation();
 
   // Show loading state
   if (loading) {
@@ -42,19 +44,8 @@ const ProtectedRoute = ({
     if (onUnauthorized) {
       onUnauthorized();
     }
-    return (
-      <div className="app-loading-bg flex items-center justify-center h-screen bg-gray-100">
-        <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
-          <p className="text-gray-600 mb-6">
-            You must be logged in to access this page.
-          </p>
-          <div className="text-gray-500 text-sm">
-            Please log in to continue.
-          </div>
-        </div>
-      </div>
-    );
+    const redirectPath = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
   }
 
   // Check role authorization

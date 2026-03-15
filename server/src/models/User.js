@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
       ref: "User",
     },
     isActive: { type: Boolean, default: true },
+    mustChangePassword: { type: Boolean, default: false },
     lastLogin: { type: Date },
     refreshTokenHash: { type: String },
     refreshTokenExpiresAt: { type: Date },

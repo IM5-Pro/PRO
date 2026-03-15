@@ -7,26 +7,29 @@
 
 import React, { createContext, useState, useCallback, useEffect } from 'react';
 import API from '../api/client';
-import { getCookie, removeCookie, setCookie } from '../utils/cookies';
+import { AUTH_ENDPOINTS } from '../api/endpoints';
+import { getCookie, getJsonCookie, removeCookie, setCookie, setJsonCookie } from '../utils/cookies';
 import { normalizeRole } from '../utils/roles';
 
 const ACCESS_TOKEN_COOKIE = 'authToken';
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
+const USER_COOKIE = 'user';
+const PUNCH_IN_COOKIE = 'isPunchedIn';
+const PUNCH_IN_TIME_COOKIE = 'punchInTime';
+const PUNCHED_TODAY_COOKIE = 'hasPunchedInToday';
+const DAILY_WORKING_HOURS_COOKIE = 'dailyWorkingHours';
 const ACCESS_TOKEN_MAX_AGE = 8 * 60 * 60;
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 
 const clearPunchFlags = () => {
-  localStorage.removeItem('isPunchedIn');
-  localStorage.removeItem('punchInTime');
-  localStorage.removeItem('hasPunchedInToday');
-  localStorage.removeItem('dailyWorkingHours');
+  removeCookie(PUNCH_IN_COOKIE);
+  removeCookie(PUNCH_IN_TIME_COOKIE);
+  removeCookie(PUNCHED_TODAY_COOKIE);
+  removeCookie(DAILY_WORKING_HOURS_COOKIE);
 };
 
 const clearAuthStorage = () => {
-  localStorage.removeItem('user');
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
+  removeCookie(USER_COOKIE);
   removeCookie(ACCESS_TOKEN_COOKIE);
   removeCookie(REFRESH_TOKEN_COOKIE);
 };
@@ -42,6 +45,7 @@ const toDisplayName = (user) => {
 const toDepartment = (role) => {
   if (role === 'manager') return 'Management';
   if (role === 'employee') return 'Engineering';
+  if (role === 'dept_admin') return 'Department Management';
   return 'Human Resources';
 };
 
@@ -54,6 +58,7 @@ const normalizeUser = (user = {}) => {
     role: normalizedRole,
     department: user.department || toDepartment(normalizedRole),
     avatar: user.avatar || '👨‍💼',
+    mustChangePassword: Boolean(user.mustChangePassword),
   };
 };
 
@@ -90,12 +95,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = () => {
       try {
-        const storedUser = localStorage.getItem('user');
-        const token = getCookie(ACCESS_TOKEN_COOKIE) || localStorage.getItem('authToken');
+        const storedUser = getJsonCookie(USER_COOKIE);
+        const token = getCookie(ACCESS_TOKEN_COOKIE);
 
         if (storedUser && token) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(normalizeUser(parsedUser));
+          setUser(normalizeUser(storedUser));
           setIsAuthenticated(true);
         } else {
           clearAuthStorage();
@@ -135,7 +139,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Email must be a valid @ispace.com address');
       }
 
-      const response = await API.post('/auth/login', {
+      const response = await API.post(AUTH_ENDPOINTS.login, {
         email: email.trim().toLowerCase(),
         password,
       });
@@ -153,7 +157,7 @@ export const AuthProvider = ({ children }) => {
 
       const normalizedUser = normalizeUser(authData.user);
 
-      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setJsonCookie(USER_COOKIE, normalizedUser, REFRESH_TOKEN_MAX_AGE);
       setCookie(ACCESS_TOKEN_COOKIE, authData.accessToken, ACCESS_TOKEN_MAX_AGE);
       if (authData.refreshToken) {
         setCookie(REFRESH_TOKEN_COOKIE, authData.refreshToken, REFRESH_TOKEN_MAX_AGE);
@@ -183,7 +187,7 @@ export const AuthProvider = ({ children }) => {
    */
   const logout = useCallback(async () => {
     try {
-      await API.post('/auth/logout');
+      await API.post(AUTH_ENDPOINTS.logout);
     } catch (err) {
       console.warn('Logout API failed, clearing local session anyway');
     } finally {
@@ -192,6 +196,70 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
+    }
+  }, []);
+
+  const updateCurrentUser = useCallback((updates = {}) => {
+    setUser((currentUser) => {
+      if (!currentUser) {
+        return currentUser;
+      }
+
+      const nextUser = normalizeUser({
+        ...currentUser,
+        ...updates,
+      });
+
+      setJsonCookie(USER_COOKIE, nextUser, REFRESH_TOKEN_MAX_AGE);
+      return nextUser;
+    });
+  }, []);
+
+  /**
+   * Register first super admin account
+   * @param {string} email - Admin email
+   * @param {string} password - Admin password
+   * @param {string} name - Optional display name
+   * @returns {Promise<Object>} - Registration payload
+   */
+  const registerAdmin = useCallback(async (email, password, name = '') => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!email || !password) {
+        throw new Error('Email and password are required');
+      }
+
+      const emailRegex = /^[A-Za-z0-9._%+-]+@ispace\.com$/i;
+      if (!emailRegex.test(email)) {
+        throw new Error('Email must be a valid @ispace.com address');
+      }
+
+      const normalizedName = String(name || '').trim();
+      const nameParts = normalizedName.split(/\s+/).filter(Boolean);
+      const firstName = nameParts[0] || undefined;
+      const lastName = nameParts.slice(1).join(' ') || undefined;
+
+      const response = await API.post(AUTH_ENDPOINTS.registerSuperAdmin, {
+        email: email.trim().toLowerCase(),
+        password,
+        firstName,
+        lastName,
+      });
+
+      const responsePayload = response?.data;
+      if (!responsePayload?.success) {
+        throw new Error(responsePayload?.message || 'Registration failed');
+      }
+
+      return responsePayload?.data || {};
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Registration failed';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -244,7 +312,9 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     login,
+    registerAdmin,
     logout,
+    updateCurrentUser,
     hasRole,
     getAuthStatus,
     getUser,

@@ -6,11 +6,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar } from 'react-icons/fi';
+import { usePunch } from '../../context/PunchContext';
+import { FiHome, FiClock, FiCheckCircle, FiAlertCircle, FiArrowRight, FiCalendar, FiLogIn, FiMapPin } from 'react-icons/fi';
 
 const Dashboard = () => {
   const { colors } = useTheme();
   const navigate = useNavigate();
+  const {
+    canPunch, punchStatus, punchInTime, punchOutTime,
+    punchInLocation, punchOutLocation, workingHours,
+    attendanceStatus, loading: punchLoading, locationLabel, punchIn, punchOut,
+  } = usePunch();
 
   const statsCards = [
     {
@@ -80,7 +86,52 @@ const Dashboard = () => {
               <p className={`${colors.text.tertiary} text-sm`}>Today</p>
               <p className={`${colors.text.primary} font-semibold`}>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
             </div>
-            {/* Punch Button */}
+            {/* Punch In/Out Widget */}
+            {canPunch && (
+              <div className={`rounded-xl border p-4 min-w-[220px] ${punchStatus === 'in' ? 'bg-green-50 border-green-200' : punchStatus === 'out' ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Today's Attendance</p>
+                  {attendanceStatus && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{attendanceStatus}</span>
+                  )}
+                </div>
+
+                {punchInTime && (
+                  <div className="mb-1">
+                    <p className="text-xs text-slate-500">In: <span className="font-semibold text-green-700">{punchInTime}</span></p>
+                    {punchInLocation && <p className="text-xs text-slate-400 flex items-center gap-1"><FiMapPin size={10} />{punchInLocation}</p>}
+                  </div>
+                )}
+                {punchOutTime && (
+                  <div className="mb-1">
+                    <p className="text-xs text-slate-500">Out: <span className="font-semibold text-red-600">{punchOutTime}</span></p>
+                    {punchOutLocation && <p className="text-xs text-slate-400 flex items-center gap-1"><FiMapPin size={10} />{punchOutLocation}</p>}
+                    {workingHours != null && <p className="text-xs font-semibold text-blue-600">{workingHours}h worked</p>}
+                  </div>
+                )}
+
+                <div className="mt-2">
+                  {punchStatus === 'in' ? (
+                    <button
+                      onClick={punchOut}
+                      disabled={punchLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
+                    >
+                      <FiLogIn size={12} className="rotate-180" />{punchLoading ? 'Recording…' : 'Punch Out'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={punchIn}
+                      disabled={punchLoading}
+                      title={locationLabel}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
+                    >
+                      <FiLogIn size={12} />{punchLoading ? 'Recording…' : 'Punch In'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
