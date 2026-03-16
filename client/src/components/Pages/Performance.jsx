@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { FiAward, FiTrendingUp, FiTarget, FiUsers } from 'react-icons/fi';
+import { FiAward, FiStar, FiTarget, FiTrendingUp, FiUsers } from 'react-icons/fi';
 import API from '../../api/client';
 import { ANNOUNCEMENT_ENDPOINTS, ATTENDANCE_ENDPOINTS, EMPLOYEE_ENDPOINTS, LEAVE_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
@@ -206,7 +206,11 @@ const Performance = () => {
               <div key={idx} className="p-4 bg-slate-700/30 border border-slate-700/50 rounded-xl">
                 <div className="flex items-start justify-between mb-2">
                   <p className={`${colors.text.primary} font-semibold`}>{review.reviewer}</p>
-                  <span className="text-yellow-400">{'⭐'.repeat(review.rating)}</span>
+                  <span className="flex items-center gap-1 text-yellow-400">
+                    {Array.from({ length: review.rating }).map((_, starIndex) => (
+                      <FiStar key={`${review.reviewer}-${starIndex}`} size={14} />
+                    ))}
+                  </span>
                 </div>
                 <p className={`${colors.text.secondary} text-sm mb-2`}>{review.feedback}</p>
                 <p className={colors.text.muted}>{review.date}</p>

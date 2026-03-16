@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import { FiDollarSign, FiDownload, FiEye } from 'react-icons/fi';
+import { FiCheckCircle, FiDollarSign, FiDownload, FiEye, FiTrendingDown, FiUsers } from 'react-icons/fi';
 
 const HRPayroll = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   const { colors } = useTheme();
@@ -52,7 +52,7 @@ const HRPayroll = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
       {/* Header */}
       <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
         <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-          💰 Payroll Management
+          <FiDollarSign size={36} /> Payroll Management
         </h1>
         <p className="text-slate-600">Manage salary structures and payroll processing</p>
       </div>
@@ -60,21 +60,25 @@ const HRPayroll = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[
-          { label: 'Total Salary', value: `₹${payrollSummary.totalSalary.toLocaleString()}`, icon: '💵', color: 'from-green-500 to-emerald-500' },
-          { label: 'Deductions', value: `₹${payrollSummary.totalDeductions.toLocaleString()}`, icon: '📉', color: 'from-red-500 to-orange-500' },
-          { label: 'Net Payable', value: `₹${payrollSummary.netPayable.toLocaleString()}`, icon: '✅', color: 'from-blue-500 to-cyan-500' },
-          { label: 'Employees', value: payrollSummary.employees, icon: '👥', color: 'from-purple-500 to-pink-500' },
-        ].map((card, idx) => (
-          <div key={idx} className="stat-card animate-fadeInUp hover-lift" style={{ animationDelay: `${idx * 0.1}s` }}>
-            <div className={`icon-box bg-gradient-to-br ${card.color} text-white`}>
-              <span className="text-2xl">{card.icon}</span>
+          { label: 'Total Salary', value: `₹${payrollSummary.totalSalary.toLocaleString()}`, icon: FiDollarSign, color: 'from-green-500 to-emerald-500' },
+          { label: 'Deductions', value: `₹${payrollSummary.totalDeductions.toLocaleString()}`, icon: FiTrendingDown, color: 'from-red-500 to-orange-500' },
+          { label: 'Net Payable', value: `₹${payrollSummary.netPayable.toLocaleString()}`, icon: FiCheckCircle, color: 'from-blue-500 to-cyan-500' },
+          { label: 'Employees', value: payrollSummary.employees, icon: FiUsers, color: 'from-purple-500 to-pink-500' },
+        ].map((card, idx) => {
+          const CardIcon = card.icon;
+
+          return (
+            <div key={idx} className="stat-card animate-fadeInUp hover-lift" style={{ animationDelay: `${idx * 0.1}s` }}>
+              <div className={`icon-box bg-gradient-to-br ${card.color} text-white`}>
+                <CardIcon size={22} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">{card.label}</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{card.value}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">{card.label}</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{card.value}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Payroll Runs */}

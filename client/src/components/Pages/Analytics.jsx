@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiBarChart2, FiTrendingUp, FiUsers, FiTarget, FiCalendar, FiDownload, FiFilter } from 'react-icons/fi';
+import { FiAward, FiBarChart2, FiTrendingUp, FiUsers, FiTarget, FiCalendar, FiDownload, FiFilter, FiStar } from 'react-icons/fi';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS, EMPLOYEE_ENDPOINTS, LEAVE_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
@@ -162,7 +162,7 @@ const Analytics = () => {
           rank: index + 1,
           name: fullName,
           score,
-          icon: index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐',
+          icon: index < 3 ? FiAward : FiStar,
         };
       });
 
@@ -351,18 +351,31 @@ const Analytics = () => {
           <h2 className={`text-xl font-bold ${colors.text.primary} mb-6`}>Top Performers</h2>
 
           <div className="space-y-4">
-            {topPerformers.map((performer) => (
-              <div key={performer.rank} className="flex items-center justify-between p-3 bg-slate-700/30 border border-slate-700/50 rounded-lg hover:bg-slate-700/50 transition-colors duration-300">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{performer.icon}</span>
-                  <div>
-                    <p className="text-white font-semibold">{performer.name}</p>
-                    <p className="text-slate-400 text-xs">#{performer.rank} Rank</p>
+            {topPerformers.map((performer) => {
+              const PerformerIcon = performer.icon;
+              const iconColor = performer.rank === 1
+                ? 'text-yellow-300'
+                : performer.rank === 2
+                ? 'text-slate-300'
+                : performer.rank === 3
+                ? 'text-amber-400'
+                : 'text-slate-400';
+
+              return (
+                <div key={performer.rank} className="flex items-center justify-between p-3 bg-slate-700/30 border border-slate-700/50 rounded-lg hover:bg-slate-700/50 transition-colors duration-300">
+                  <div className="flex items-center gap-3">
+                    <span className={iconColor}>
+                      <PerformerIcon size={20} />
+                    </span>
+                    <div>
+                      <p className="text-white font-semibold">{performer.name}</p>
+                      <p className="text-slate-400 text-xs">#{performer.rank} Rank</p>
+                    </div>
                   </div>
+                  <span className="text-white font-bold">{performer.score}%</span>
                 </div>
-                <span className="text-white font-bold">{performer.score}%</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

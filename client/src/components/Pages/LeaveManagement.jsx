@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { FiCalendar, FiPlus, FiX } from 'react-icons/fi';
+import { FiCalendar, FiCheckCircle, FiClock, FiPlus, FiX } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
 
 const LeaveManagement = () => {
@@ -20,9 +20,9 @@ const LeaveManagement = () => {
   ];
 
   const leaveRequests = [
-    { id: 1, type: 'Annual Leave', reason: 'Vacation', start: '2024-12-20', end: '2024-12-25', days: 6, status: 'Approved', icon: '✅' },
-    { id: 2, type: 'Sick Leave', reason: 'Medical checkup', start: '2024-12-10', end: '2024-12-10', days: 1, status: 'Pending', icon: '⏳' },
-    { id: 3, type: 'Casual Leave', reason: 'Personal work', start: '2024-12-15', end: '2024-12-15', days: 1, status: 'Approved', icon: '✅' }
+    { id: 1, type: 'Annual Leave', reason: 'Vacation', start: '2024-12-20', end: '2024-12-25', days: 6, status: 'Approved', icon: FiCheckCircle },
+    { id: 2, type: 'Sick Leave', reason: 'Medical checkup', start: '2024-12-10', end: '2024-12-10', days: 1, status: 'Pending', icon: FiClock },
+    { id: 3, type: 'Casual Leave', reason: 'Personal work', start: '2024-12-15', end: '2024-12-15', days: 1, status: 'Approved', icon: FiCheckCircle }
   ];
 
   return (
@@ -78,31 +78,37 @@ const LeaveManagement = () => {
         <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Leave Requests</h2>
 
         <div className="space-y-4">
-          {leaveRequests.map((request) => (
-            <div
-              key={request.id}
-              className="flex items-center justify-between p-4 bg-slate-700/30 border border-slate-700/50 rounded-xl hover:border-slate-600 hover:bg-slate-700/50 transition-all"
-            >
-              <div className="flex items-center gap-4 flex-1">
-                <span className="text-2xl">{request.icon}</span>
-                <div className="flex-1">
-                  <p className={`${colors.text.primary} font-semibold`}>{request.type}</p>
-                  <p className={`${colors.text.tertiary} text-sm`}>{request.reason}</p>
-                  <p className={`${colors.text.muted} text-xs mt-1`}>{request.start} to {request.end} • {request.days} day(s)</p>
-                </div>
-              </div>
+          {leaveRequests.map((request) => {
+            const RequestIcon = request.icon;
 
-              <span className={`px-4 py-2 rounded-lg font-semibold text-sm ${
-                request.status === 'Approved'
-                  ? 'bg-green-500/20 text-green-400'
-                  : request.status === 'Pending'
-                  ? 'bg-yellow-500/20 text-yellow-400'
-                  : 'bg-red-500/20 text-red-400'
-              }`}>
-                {request.status}
-              </span>
-            </div>
-          ))}
+            return (
+              <div
+                key={request.id}
+                className="flex items-center justify-between p-4 bg-slate-700/30 border border-slate-700/50 rounded-xl hover:border-slate-600 hover:bg-slate-700/50 transition-all"
+              >
+                <div className="flex items-center gap-4 flex-1">
+                  <span className="text-slate-300">
+                    <RequestIcon size={22} />
+                  </span>
+                  <div className="flex-1">
+                    <p className={`${colors.text.primary} font-semibold`}>{request.type}</p>
+                    <p className={`${colors.text.tertiary} text-sm`}>{request.reason}</p>
+                    <p className={`${colors.text.muted} text-xs mt-1`}>{request.start} to {request.end} • {request.days} day(s)</p>
+                  </div>
+                </div>
+
+                <span className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                  request.status === 'Approved'
+                    ? 'bg-green-500/20 text-green-400'
+                    : request.status === 'Pending'
+                    ? 'bg-yellow-500/20 text-yellow-400'
+                    : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {request.status}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

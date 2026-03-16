@@ -12,7 +12,7 @@
 
 import React, { useMemo, useCallback, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiMoreVertical, FiMail } from 'react-icons/fi';
+import { FiCheckCircle, FiCheckSquare, FiEdit2, FiMail, FiMoreVertical, FiPlus, FiSearch, FiTrash2, FiUser, FiUsers } from 'react-icons/fi';
 
 const VALIDATION_RULES = {
   MIN_NAME_LENGTH: 2,
@@ -169,7 +169,7 @@ const HRUserManagement = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
       <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
         <div>
           <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-            👤 User Management
+            <FiUser size={36} /> User Management
           </h1>
           <p className="text-slate-600">Create and manage employee accounts</p>
         </div>
@@ -265,24 +265,28 @@ const HRUserManagement = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Users', value: users.length, icon: '👥', color: 'from-blue-500 to-cyan-500' },
-          { label: 'Active Users', value: users.filter((u) => u.status === 'active').length, icon: '✅', color: 'from-green-500 to-emerald-500' },
-          { label: 'Selected', value: selectedUsers.length, icon: '☑️', color: 'from-purple-500 to-pink-500' },
-        ].map((stat, idx) => (
-          <div
-            key={idx}
-            className="stat-card animate-fadeInUp"
-            style={{ animationDelay: `${0.4 + idx * 0.1}s` }}
-          >
-            <div className={`icon-box bg-gradient-to-br ${stat.color} text-white`}>
-              <span className="text-2xl">{stat.icon}</span>
+          { label: 'Total Users', value: users.length, icon: FiUsers, color: 'from-blue-500 to-cyan-500' },
+          { label: 'Active Users', value: users.filter((u) => u.status === 'active').length, icon: FiCheckCircle, color: 'from-green-500 to-emerald-500' },
+          { label: 'Selected', value: selectedUsers.length, icon: FiCheckSquare, color: 'from-purple-500 to-pink-500' },
+        ].map((stat, idx) => {
+          const StatIcon = stat.icon;
+
+          return (
+            <div
+              key={idx}
+              className="stat-card animate-fadeInUp"
+              style={{ animationDelay: `${0.4 + idx * 0.1}s` }}
+            >
+              <div className={`icon-box bg-gradient-to-br ${stat.color} text-white`}>
+                <StatIcon size={22} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">{stat.label}</p>
+                <p className="text-3xl font-bold text-gray-800 mt-1">{stat.value}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 font-medium">{stat.label}</p>
-              <p className="text-3xl font-bold text-gray-800 mt-1">{stat.value}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

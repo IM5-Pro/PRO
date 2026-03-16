@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { FiMenu, FiX } from 'react-icons/fi';
+import { FiCircle, FiMenu, FiX } from 'react-icons/fi';
 
 /**
  * HRSidebar Component
@@ -123,13 +123,14 @@ const HRSidebar = ({
    * @param {Object} item - Menu item object
    * @param {string} item.id - Unique identifier
    * @param {string} item.label - Display label
-   * @param {string} item.icon - Icon emoji string
+  * @param {React.ComponentType} item.icon - React icon component
    * @param {string} item.description - Accessibility description
    * @returns {JSX.Element} Menu item button
    */
   const renderMenuItem = useCallback(
     (item) => {
       const isActive = currentPage === item.id;
+      const Icon = typeof item.icon === 'function' ? item.icon : FiCircle;
 
       return (
         <button
@@ -149,7 +150,7 @@ const HRSidebar = ({
           aria-current={isActive ? 'page' : undefined}
         >
           <span className="text-lg w-5 flex justify-center">
-            {item.icon}
+            <Icon size={18} />
           </span>
 
           <span className="font-medium text-sm md:text-base">

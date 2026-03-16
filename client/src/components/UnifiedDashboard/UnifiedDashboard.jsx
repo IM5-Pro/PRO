@@ -46,6 +46,26 @@ import MastersPage from '../Pages/HR/Masters';
 import AdminPanelConfigPage from '../Pages/HR/AdminPanelConfig';
 import { ROLES } from '../../utils/roles';
 import {
+  FiBell,
+  FiBookOpen,
+  FiBriefcase,
+  FiCalendar,
+  FiCircle,
+  FiDollarSign,
+  FiFileText,
+  FiGrid,
+  FiHome,
+  FiLock,
+  FiLogOut,
+  FiMapPin,
+  FiRefreshCw,
+  FiSettings,
+  FiShield,
+  FiTrendingUp,
+  FiUser,
+  FiUsers,
+} from 'react-icons/fi';
+import {
   approveLeaveRequest,
   assignPermissionToRole,
   assignRoleToPermission,
@@ -55,6 +75,46 @@ import {
   processPayrollRun,
   rejectLeaveRequest,
 } from '../../services/unifiedDashboardApi';
+
+const PAGE_ICON_COMPONENTS = {
+  dashboard: FiHome,
+  attendance: FiCalendar,
+  announcements: FiBell,
+  analytics: FiTrendingUp,
+  'employee-profile': FiUser,
+  team: FiUsers,
+  employees: FiUsers,
+  'leave-management': FiCalendar,
+  leaves: FiCalendar,
+  payroll: FiDollarSign,
+  performance: FiTrendingUp,
+  reports: FiBookOpen,
+  settings: FiSettings,
+  'team-collaboration': FiUsers,
+  'dashboard-overview': FiHome,
+  'leaves-attendance': FiCalendar,
+  'manpower-planning': FiBriefcase,
+  'hr-payroll': FiDollarSign,
+  'exit-clearance': FiLogOut,
+  'meeting-room': FiMapPin,
+  workflows: FiRefreshCw,
+  'letter-templates': FiFileText,
+  'user-management': FiUser,
+  masters: FiGrid,
+  'admin-panel-config': FiSettings,
+  departments: FiBriefcase,
+  'roles-permissions': FiLock,
+  'system-settings': FiSettings,
+  'audit-logs': FiFileText,
+  'ui-components': FiGrid,
+};
+
+const attachMonoIconsToPages = (pages = []) => {
+  return pages.map((page) => ({
+    ...page,
+    icon: typeof page.icon === 'function' ? page.icon : PAGE_ICON_COMPONENTS[page.id] || FiCircle,
+  }));
+};
 
 const ROLE_DASHBOARD_CONFIG = {
   [ROLES.EMPLOYEE]: {
@@ -68,14 +128,14 @@ const ROLE_DASHBOARD_CONFIG = {
       { key: 'payslip', title: 'Payslips Available', value: '0', note: 'Payroll statements available for secure download' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Dashboard', icon: '🏠', category: 'main', description: 'Personal HR summary and quick actions' },
-      { id: 'attendance', label: 'Attendance', icon: '🕒', category: 'work', description: 'Daily punch history and attendance status' },
-      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'work', description: 'Company updates and important notices' },
-      { id: 'employee-profile', label: 'Employee Profile', icon: '👤', category: 'work', description: 'Personal information and employment details' },
-      { id: 'leaves', label: 'Leaves', icon: '🌴', category: 'work', description: 'Apply leave and track request progress' },
-      { id: 'payroll', label: 'Payroll', icon: '💵', category: 'work', description: 'Payslips, deductions, and payroll details' },
-      { id: 'performance', label: 'Performance', icon: '📈', category: 'work', description: 'Goals, ratings, and review insights' },
-      { id: 'settings', label: 'Settings', icon: '⚙️', category: 'work', description: 'Update profile preferences and account settings' },
+      { id: 'dashboard', label: 'Dashboard', icon: FiHome, category: 'main', description: 'Personal HR summary and quick actions' },
+      { id: 'attendance', label: 'Attendance', icon: FiCalendar, category: 'work', description: 'Daily punch history and attendance status' },
+      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'work', description: 'Company updates and important notices' },
+      { id: 'employee-profile', label: 'Employee Profile', icon: FiUser, category: 'work', description: 'Personal information and employment details' },
+      { id: 'leaves', label: 'Leaves', icon: FiCalendar, category: 'work', description: 'Apply leave and track request progress' },
+      { id: 'payroll', label: 'Payroll', icon: FiDollarSign, category: 'work', description: 'Payslips, deductions, and payroll details' },
+      { id: 'performance', label: 'Performance', icon: FiTrendingUp, category: 'work', description: 'Goals, ratings, and review insights' },
+      { id: 'settings', label: 'Settings', icon: FiSettings, category: 'work', description: 'Update profile preferences and account settings' },
     ],
   },
   [ROLES.MANAGER]: {
@@ -89,18 +149,18 @@ const ROLE_DASHBOARD_CONFIG = {
       { key: 'team-members', title: 'Direct Reports', value: '0', note: 'Active team members assigned to your reporting line' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Dashboard', icon: '🏠', category: 'main', description: 'Team KPIs and actionable updates' },
-      { id: 'attendance', label: 'Attendance', icon: '🕒', category: 'operations', description: 'Daily attendance and punctuality tracking' },
-      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'operations', description: 'Company updates and important notices' },
-      { id: 'analytics', label: 'Analytics', icon: '📈', category: 'operations', description: 'Team analytics and productivity trends' },
-      { id: 'employee-profile', label: 'Employee Profile', icon: '👤', category: 'operations', description: 'Profile and role details' },
-      { id: 'team', label: 'Team', icon: '👥', category: 'operations', description: 'Direct reports and team member details' },
-      { id: 'leaves', label: 'Leaves', icon: '🌴', category: 'operations', description: 'Approve and track leave requests' },
-      { id: 'payroll', label: 'Payroll', icon: '💵', category: 'operations', description: 'Payroll summaries and payouts' },
-      { id: 'performance', label: 'Performance', icon: '🎯', category: 'operations', description: 'Performance reviews and goals' },
-      { id: 'reports', label: 'Reports', icon: '📊', category: 'operations', description: 'Attendance and performance reports' },
-      { id: 'settings', label: 'Settings', icon: '⚙️', category: 'operations', description: 'Manager preferences and account settings' },
-      { id: 'team-collaboration', label: 'Team Collaboration', icon: '🤝', category: 'operations', description: 'Collaborate, communicate, and coordinate with teams' },
+      { id: 'dashboard', label: 'Dashboard', icon: FiHome, category: 'main', description: 'Team KPIs and actionable updates' },
+      { id: 'attendance', label: 'Attendance', icon: FiCalendar, category: 'operations', description: 'Daily attendance and punctuality tracking' },
+      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'operations', description: 'Company updates and important notices' },
+      { id: 'analytics', label: 'Analytics', icon: FiTrendingUp, category: 'operations', description: 'Team analytics and productivity trends' },
+      { id: 'employee-profile', label: 'Employee Profile', icon: FiUser, category: 'operations', description: 'Profile and role details' },
+      { id: 'team', label: 'Team', icon: FiUsers, category: 'operations', description: 'Direct reports and team member details' },
+      { id: 'leaves', label: 'Leaves', icon: FiCalendar, category: 'operations', description: 'Approve and track leave requests' },
+      { id: 'payroll', label: 'Payroll', icon: FiDollarSign, category: 'operations', description: 'Payroll summaries and payouts' },
+      { id: 'performance', label: 'Performance', icon: FiTrendingUp, category: 'operations', description: 'Performance reviews and goals' },
+      { id: 'reports', label: 'Reports', icon: FiBookOpen, category: 'operations', description: 'Attendance and performance reports' },
+      { id: 'settings', label: 'Settings', icon: FiSettings, category: 'operations', description: 'Manager preferences and account settings' },
+      { id: 'team-collaboration', label: 'Team Collaboration', icon: FiUsers, category: 'operations', description: 'Collaborate, communicate, and coordinate with teams' },
     ],
   },
   [ROLES.HR_ADMIN]: {
@@ -114,18 +174,18 @@ const ROLE_DASHBOARD_CONFIG = {
       { key: 'payroll-processing', title: 'Payroll Runs', value: '0', note: 'Payroll cycle status across ongoing runs' },
     ],
     pages: [
-      { id: 'dashboard', label: 'HR Overview', icon: '🏠', category: 'main', description: 'Organization-wide HR health summary' },
-      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'operations', description: 'Create and send company announcements' },
-      { id: 'leaves-attendance', label: 'Leaves & Attendance', icon: '📅', category: 'operations', description: 'Manage leave flow and attendance records' },
-      { id: 'manpower-planning', label: 'Manpower Planning', icon: '🧠', category: 'operations', description: 'Workforce planning and staffing insights' },
-      { id: 'hr-payroll', label: 'HR Payroll', icon: '💰', category: 'operations', description: 'Payroll operations and payouts' },
-      { id: 'exit-clearance', label: 'Exit Clearance', icon: '🚪', category: 'operations', description: 'Handle separation and clearance process' },
-      { id: 'meeting-room', label: 'Meeting Room', icon: '📍', category: 'operations', description: 'Schedule meetings and room usage' },
-      { id: 'workflows', label: 'Workflows', icon: '🔁', category: 'operations', description: 'Automate HR approval workflows' },
-      { id: 'letter-templates', label: 'Letter Templates', icon: '✉️', category: 'operations', description: 'Generate HR letters and documents' },
-      { id: 'user-management', label: 'User Management', icon: '👤', category: 'operations', description: 'Manage user accounts and access' },
-      { id: 'masters', label: 'Masters', icon: '🗂️', category: 'operations', description: 'Departments, designations, and masters' },
-      { id: 'admin-panel-config', label: 'Admin Panel Config', icon: '⚙️', category: 'operations', description: 'Configure HR admin panel behavior' },
+      { id: 'dashboard', label: 'HR Overview', icon: FiHome, category: 'main', description: 'Organization-wide HR health summary' },
+      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'operations', description: 'Create and send company announcements' },
+      { id: 'leaves-attendance', label: 'Leaves & Attendance', icon: FiCalendar, category: 'operations', description: 'Manage leave flow and attendance records' },
+      { id: 'manpower-planning', label: 'Manpower Planning', icon: FiBriefcase, category: 'operations', description: 'Workforce planning and staffing insights' },
+      { id: 'hr-payroll', label: 'HR Payroll', icon: FiDollarSign, category: 'operations', description: 'Payroll operations and payouts' },
+      { id: 'exit-clearance', label: 'Exit Clearance', icon: FiLogOut, category: 'operations', description: 'Handle separation and clearance process' },
+      { id: 'meeting-room', label: 'Meeting Room', icon: FiMapPin, category: 'operations', description: 'Schedule meetings and room usage' },
+      { id: 'workflows', label: 'Workflows', icon: FiRefreshCw, category: 'operations', description: 'Automate HR approval workflows' },
+      { id: 'letter-templates', label: 'Letter Templates', icon: FiFileText, category: 'operations', description: 'Generate HR letters and documents' },
+      { id: 'user-management', label: 'User Management', icon: FiUser, category: 'operations', description: 'Manage user accounts and access' },
+      { id: 'masters', label: 'Masters', icon: FiGrid, category: 'operations', description: 'Departments, designations, and masters' },
+      { id: 'admin-panel-config', label: 'Admin Panel Config', icon: FiSettings, category: 'operations', description: 'Configure HR admin panel behavior' },
     ],
   },
   [ROLES.SUPER_ADMIN]: {
@@ -139,14 +199,14 @@ const ROLE_DASHBOARD_CONFIG = {
       { key: 'department-stats', title: 'Departments', value: '0', note: 'Department structure and coverage across the company' },
     ],
     pages: [
-      { id: 'dashboard', label: 'Overview', icon: '🛡️', category: 'main', description: 'Enterprise risk, usage, and control summary' },
-      { id: 'employees', label: 'Global Employees', icon: '👥', category: 'governance', description: 'Cross-organization employee governance controls' },
-      { id: 'departments', label: 'Department Admin', icon: '🏢', category: 'governance', description: 'Department setup and structural governance' },
-      { id: 'announcements', label: 'Announcements', icon: '📢', category: 'governance', description: 'Create and send announcements to employees' },
-      { id: 'roles-permissions', label: 'Access Control', icon: '🔐', category: 'governance', description: 'Roles, permissions, and assignment management' },
-      { id: 'system-settings', label: 'Platform Settings', icon: '⚙️', category: 'system', description: 'Core tenant and policy configuration' },
-      { id: 'audit-logs', label: 'Compliance Logs', icon: '📜', category: 'system', description: 'Security and compliance activity trails' },
-      { id: 'ui-components', label: 'UI Components', icon: '🧩', category: 'system', description: 'Browse all dashboard widgets and cards' },
+      { id: 'dashboard', label: 'Overview', icon: FiShield, category: 'main', description: 'Enterprise risk, usage, and control summary' },
+      { id: 'employees', label: 'Global Employees', icon: FiUsers, category: 'governance', description: 'Cross-organization employee governance controls' },
+      { id: 'departments', label: 'Department Admin', icon: FiBriefcase, category: 'governance', description: 'Department setup and structural governance' },
+      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'governance', description: 'Create and send announcements to employees' },
+      { id: 'roles-permissions', label: 'Access Control', icon: FiLock, category: 'governance', description: 'Roles, permissions, and assignment management' },
+      { id: 'system-settings', label: 'Platform Settings', icon: FiSettings, category: 'system', description: 'Core tenant and policy configuration' },
+      { id: 'audit-logs', label: 'Compliance Logs', icon: FiFileText, category: 'system', description: 'Security and compliance activity trails' },
+      { id: 'ui-components', label: 'UI Components', icon: FiGrid, category: 'system', description: 'Browse all dashboard widgets and cards' },
     ],
   },
 };
@@ -662,20 +722,25 @@ const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading 
       {/* Quick Access */}
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Quick Access</p>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {quickPages.map((page) => (
-          <button
-            key={page.id}
-            onClick={() => onNavigate(page.id)}
-            className="text-left p-4 bg-white rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all group"
-            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
-          >
-            <span className="text-xl block mb-2">{page.icon}</span>
-            <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 leading-tight">{page.label}</p>
-            {page.description && (
-              <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{page.description}</p>
-            )}
-          </button>
-        ))}
+        {quickPages.map((page) => {
+          const PageIcon = page.icon || FiCircle;
+          return (
+            <button
+              key={page.id}
+              onClick={() => onNavigate(page.id)}
+              className="text-left p-4 bg-white rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all group"
+              style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+            >
+              <span className="text-xl block mb-2 text-slate-700">
+                <PageIcon size={20} />
+              </span>
+              <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 leading-tight">{page.label}</p>
+              {page.description && (
+                <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{page.description}</p>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -1374,7 +1439,11 @@ const UnifiedDashboard = () => {
   const userRole = user?.role || ROLES.EMPLOYEE;
   const isSingleDashboardLayout = SINGLE_DASHBOARD_ROLES.includes(userRole);
   const roleConfig = useMemo(() => {
-    return ROLE_DASHBOARD_CONFIG[userRole] || ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE];
+    const baseConfig = ROLE_DASHBOARD_CONFIG[userRole] || ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE];
+    return {
+      ...baseConfig,
+      pages: attachMonoIconsToPages(baseConfig.pages),
+    };
   }, [userRole]);
 
   const [currentPage, setCurrentPage] = useState(() => searchParams.get('page') || 'dashboard');
@@ -1511,7 +1580,7 @@ const UnifiedDashboard = () => {
       {
         id: 'dashboard',
         label: layoutLabel,
-        icon: '🧩',
+        icon: FiGrid,
         category: 'main',
         description: 'Single role-based workspace with live modules',
       },

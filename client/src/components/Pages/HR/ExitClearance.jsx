@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import { FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
+import { FiAlertCircle, FiCheckCircle, FiClock, FiLogOut } from 'react-icons/fi';
 
 const ExitClearance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   const { colors } = useTheme();
@@ -63,7 +63,7 @@ const ExitClearance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) 
       <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown flex items-start justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-            🚪 Exit Clearance Department
+            <FiLogOut size={36} /> Exit Clearance Department
           </h1>
           <p className="text-slate-600">Manage employee separation and exit clearance</p>
         </div>

@@ -151,7 +151,7 @@ const LeavesAttendance = ({ user = {}, pageConfig = {}, onUserUpdate = () => {},
       {/* Header */}
         <div className="rounded-2xl p-6 mb-6 bg-white border border-slate-200 shadow-sm animate-slideInDown">
           <h1 className="text-3xl font-bold text-slate-800 mb-1 flex items-center gap-3">
-          📅 Leaves & Attendance
+          <FiCalendar size={30} /> Leaves & Attendance
         </h1>
           <p className="text-slate-500 text-sm">Manage leaves and track attendance records</p>
       </div>

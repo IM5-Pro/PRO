@@ -11,6 +11,7 @@
  */
 
 import React, { useMemo, useCallback } from 'react';
+import { FiBarChart2, FiBriefcase, FiClock, FiDollarSign, FiEdit2, FiTrendingUp, FiUserPlus, FiUsers } from 'react-icons/fi';
 import { useTheme } from '../../../context/ThemeContext';
 
 /**
@@ -45,7 +46,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
         title: 'Total Strength',
         value: 1250,
         unit: 'employees',
-        icon: '👥',
+        icon: FiUsers,
         color: 'from-blue-500 to-cyan-500',
         change: '+15',
         trend: 'up',
@@ -55,7 +56,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
         title: 'Open Positions',
         value: 23,
         unit: 'roles',
-        icon: '💼',
+        icon: FiBriefcase,
         color: 'from-purple-500 to-pink-500',
         change: '+5',
         trend: 'up',
@@ -65,7 +66,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
         title: 'Pending Approvals',
         value: 12,
         unit: 'requests',
-        icon: '⏳',
+        icon: FiClock,
         color: 'from-yellow-500 to-orange-500',
         change: '-3',
         trend: 'down',
@@ -75,7 +76,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
         title: 'Department Efficiency',
         value: 94.2,
         unit: '%',
-        icon: '📊',
+        icon: FiBarChart2,
         color: 'from-green-500 to-emerald-500',
         change: '+2.1',
         trend: 'up',
@@ -152,7 +153,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
       <div className="flex items-center justify-between mb-8 rounded-2xl p-6 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10">
         <div>
           <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-            📊 Manpower Planning
+            <FiBarChart2 size={36} /> Manpower Planning
           </h1>
           <p className={colors.text.tertiary}>
             Workforce forecasting and strategic planning dashboard
@@ -169,31 +170,35 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
 
       {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {statsCards.map((card) => (
-          <div
-            key={card.id}
-            className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:border-slate-400 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} text-white`}>
-                <span className="text-2xl">{card.icon}</span>
-              </div>
-              <span
-                className={`text-xs font-semibold ${
-                  card.trend === 'up' ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                {card.change}
-              </span>
-            </div>
+        {statsCards.map((card) => {
+          const CardIcon = card.icon;
 
-            <p className={`${colors.text.tertiary} text-sm font-medium mb-1`}>{card.title}</p>
-            <div className="flex items-baseline gap-2">
-              <p className={`text-3xl font-bold ${colors.text.primary}`}>{card.value}</p>
-              <p className={colors.text.tertiary}>{card.unit}</p>
+          return (
+            <div
+              key={card.id}
+              className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:border-slate-400 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} text-white`}>
+                  <CardIcon size={24} />
+                </div>
+                <span
+                  className={`text-xs font-semibold ${
+                    card.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                  }`}
+                >
+                  {card.change}
+                </span>
+              </div>
+
+              <p className={`${colors.text.tertiary} text-sm font-medium mb-1`}>{card.title}</p>
+              <div className="flex items-baseline gap-2">
+                <p className={`text-3xl font-bold ${colors.text.primary}`}>{card.value}</p>
+                <p className={colors.text.tertiary}>{card.unit}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Main Content Grid */}
@@ -268,20 +273,24 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} 
 
             <div className="space-y-3">
               {[
-                { label: 'Create Plan', icon: '✏️' },
-                { label: 'View Reports', icon: '📈' },
-                { label: 'Department Stats', icon: '📊' },
-                { label: 'Budget Review', icon: '💰' },
-                { label: 'Recruitment', icon: '👨‍💼' },
-              ].map((action, idx) => (
-                <button
-                  key={idx}
-                  className={`w-full flex items-center gap-3 px-4 py-3 bg-slate-100/30 border ${colors.border.secondary} rounded-xl ${colors.text.tertiary} hover:text-slate-900 hover:bg-slate-200/50 hover:border-slate-400 transition-all duration-300 font-medium`}
-                >
-                  <span className="text-lg">{action.icon}</span>
-                  <span>{action.label}</span>
-                </button>
-              ))}
+                { label: 'Create Plan', icon: FiEdit2 },
+                { label: 'View Reports', icon: FiTrendingUp },
+                { label: 'Department Stats', icon: FiBarChart2 },
+                { label: 'Budget Review', icon: FiDollarSign },
+                { label: 'Recruitment', icon: FiUserPlus },
+              ].map((action, idx) => {
+                const ActionIcon = action.icon;
+
+                return (
+                  <button
+                    key={idx}
+                    className={`w-full flex items-center gap-3 px-4 py-3 bg-slate-100/30 border ${colors.border.secondary} rounded-xl ${colors.text.tertiary} hover:text-slate-900 hover:bg-slate-200/50 hover:border-slate-400 transition-all duration-300 font-medium`}
+                  >
+                    <ActionIcon size={18} />
+                    <span>{action.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

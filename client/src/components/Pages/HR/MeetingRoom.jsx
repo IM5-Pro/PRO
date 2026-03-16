@@ -171,7 +171,7 @@ const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) =>
       <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown flex items-start justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-            📞 Meeting Room Management
+            <FiCalendar size={36} /> Meeting Room Management
           </h1>
           <p className="text-slate-600">Book and manage meeting rooms</p>
         </div>

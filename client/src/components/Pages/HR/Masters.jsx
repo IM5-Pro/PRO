@@ -10,7 +10,7 @@
 
 import React, { useMemo, useCallback, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiEdit2, FiPlus, FiSettings, FiTrash2 } from 'react-icons/fi';
 
 const Masters = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   const { colors } = useTheme();
@@ -51,7 +51,7 @@ const Masters = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
       {/* Header */}
       <div className="rounded-2xl p-6 mb-8 bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 shadow-xl shadow-slate-900/10 animate-slideInDown">
         <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-          ⚙️ Masters Configuration
+          <FiSettings size={36} /> Masters Configuration
         </h1>
         <p className="text-slate-600">Configure master data and organizational structure</p>
       </div>
