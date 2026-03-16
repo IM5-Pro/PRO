@@ -1492,6 +1492,8 @@ const UnifiedDashboard = () => {
   const currentUser = useMemo(
     () => ({
       name: user?.name || 'HRMS User',
+      firstName: user?.firstName,
+      lastName: user?.lastName,
       email: user?.email || 'user@company.com',
       role: userRole,
       avatar: user?.avatar || '👨‍💼',
@@ -1549,15 +1551,15 @@ const UnifiedDashboard = () => {
   const renderPageContent = () => {
     if (userRole === ROLES.HR_ADMIN) {
       if (currentPage === 'dashboard') {
-        return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />;
+        return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
       }
 
       const HrPage = HR_PAGE_COMPONENTS[currentPage];
       if (HrPage) {
-        return <HrPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />;
+        return <HrPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
       }
 
-      return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />;
+      return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
     }
 
     if (userRole === ROLES.MANAGER) {
