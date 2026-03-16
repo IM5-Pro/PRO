@@ -264,6 +264,45 @@ const HRHeader = ({
     return 'Good evening';
   }, [currentTime]);
 
+  /**
+   * Format user's display name with proper capitalization
+   */
+  const userDisplayName = useMemo(() => {
+    // Capitalize first letter of a word
+    const capitalize = (str) => {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    };
+
+    // Prefer firstName + lastName
+    if (user?.firstName) {
+      const first = capitalize(user.firstName);
+      const last = user?.lastName ? capitalize(user.lastName) : '';
+      return last ? `${first} ${last}` : first;
+    }
+
+    // If name exists, try to extract proper format
+    if (user?.name) {
+      const name = String(user.name).trim();
+      
+      // If name contains dots (email-like: satish.yalla), convert to readable name
+      if (name.includes('.') && !name.includes('@')) {
+        const parts = name.split('.');
+        return parts.map(capitalize).join(' ');
+      }
+
+      // If name has spaces, capitalize each word
+      if (name.includes(' ')) {
+        return name.split(' ').map(capitalize).join(' ');
+      }
+
+      // Single word name
+      return capitalize(name);
+    }
+
+    return 'User';
+  }, [user?.firstName, user?.lastName, user?.name]);
+
   const roleLabel = useMemo(() => {
     const normalized = String(user.role || '').replace(/_/g, ' ').trim();
     if (!normalized) {
@@ -324,14 +363,14 @@ const HRHeader = ({
 
           {/* Greeting Text - Mobile */}
           <div className="md:hidden">
-            <p className="text-sm font-semibold text-slate-800">{greeting}, {user.name?.split(' ')[0]}!</p>
+            <p className="text-sm font-semibold text-slate-800">{greeting}, {userDisplayName}!</p>
             <p className="text-xs text-slate-600">{formattedDate}</p>
           </div>
 
           {/* Greeting Text - Desktop */}
           <div className="hidden md:block">
             <p className="text-sm font-semibold text-slate-800">
-              {greeting}, {user.name}!
+              {greeting}, {userDisplayName}!
             </p>
           </div>
         </div>

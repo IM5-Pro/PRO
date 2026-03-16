@@ -28,6 +28,7 @@ export const ATTENDANCE_ENDPOINTS = {
 
 export const LEAVE_ENDPOINTS = {
   create: '/leaves',
+  update: (leaveId) => `/leaves/${leaveId}`,
   own: '/leaves/own',
   team: '/leaves/team',
   all: '/leaves/all',
@@ -100,4 +101,20 @@ export const DEPARTMENT_ENDPOINTS = {
 export const USER_ENDPOINTS = {
   create: '/users/create-user',
   resetPassword: (employeeId) => `/users/${employeeId}/reset-password`,
+};
+
+export const DASHBOARD_ENDPOINTS = {
+  summary: '/dashboard/summary',
+  metrics: '/dashboard/metrics',
+  hrMetrics: '/dashboard/hr-metrics',
+  stats: '/dashboard/stats',
+  activityFeed: '/dashboard/activity-feed',
+};
+
+// Additional endpoints for activity feed data
+export const ACTIVITIES_ENDPOINTS = {
+  announcements: (limit) => withLimit('/announcements', limit),
+  payrollRuns: (limit) => withLimit('/payroll/runs', limit),
+  pendingDepartments: '/departments?status=pending',
+  appraisals: (limit) => withLimit('/performance-reviews/upcoming', limit),
 };
