@@ -1751,7 +1751,7 @@ const UnifiedDashboard = () => {
         <main ref={contentScrollRef} className="flex-1 overflow-auto">
           <div className="p-4 md:p-8">
             <div
-              className="rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/30 ring-1 ring-white/20 overflow-hidden"
+              className="rounded-2xl bg-white/70 border border-slate-200/80 ring-1 ring-white/60 overflow-hidden"
               style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
             >
               {renderPageContent()}

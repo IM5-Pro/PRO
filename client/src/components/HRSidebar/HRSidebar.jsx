@@ -210,7 +210,7 @@ const HRSidebar = ({
       <aside
         className={`
           fixed md:static left-0 top-0 h-screen w-64
-          bg-transparent backdrop-blur-xl text-slate-800 shadow-lg border-r border-white/40
+          bg-white/90 text-slate-800 shadow-sm border-r border-slate-200/80
           transform transition-transform duration-300 md:translate-x-0 z-40
           flex flex-col overflow-hidden
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}

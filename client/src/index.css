@@ -139,7 +139,7 @@ code {
 
   /* Glass and Card Styles */
   .glass {
-    @apply bg-white/40 backdrop-blur-md rounded-2xl border border-white/30;
+    @apply bg-white/65 rounded-2xl border border-white/40;
     box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(255, 255, 255, 0.4);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -306,4 +306,10 @@ code {
 .app-shell .hover\:shadow-xl:hover,
 .app-shell .hover\:shadow-2xl:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Scroll performance tuning for the dashboard shell */
+.app-shell .overflow-auto,
+.app-shell .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }

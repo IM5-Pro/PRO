@@ -336,7 +336,7 @@ const HRHeader = ({
   // ============================================================================
 
   return (
-    <header className="sticky top-0 z-40 bg-white/15 backdrop-blur-xl border-b border-white/40 shadow-md will-change-transform">
+    <header className="sticky top-0 z-40 bg-white/90 border-b border-slate-200/80 shadow-sm">
       <div className="flex items-center justify-between px-4 md:px-8 py-4 gap-4">
         {/* ========================================
             LEFT SECTION - SEARCH
@@ -438,7 +438,7 @@ const HRHeader = ({
             {/* Notifications Dropdown */}
             {showNotifications && (
               <div
-                className="absolute right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl z-50 top-full"
+                className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-50 top-full"
                 role="dialog"
                 aria-label="Notifications"
               >
@@ -503,7 +503,7 @@ const HRHeader = ({
             {/* Profile Dropdown Menu */}
             {showProfileMenu && (
               <div
-                className="absolute right-0 mt-3 w-64 bg-white/95 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl z-50 top-full"
+                className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 top-full"
                 role="menu"
                 aria-label="Profile menu"
               >

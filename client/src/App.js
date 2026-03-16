@@ -76,10 +76,13 @@ const AppContent = () => {
   // hasPunchedInToday allows punch out without forced return to punch screen
   const isPunchedIn = getCookie('isPunchedIn') === 'true';
   const hasPunchedInToday = getCookie('hasPunchedInToday') === 'true';
+  const searchParams = new URLSearchParams(location.search);
+  const hasSelectedDashboardPage = searchParams.has('page');
+  const isHomeEntry = location.pathname === '/' && !hasSelectedDashboardPage;
   
   // For employee, manager, and HR admin roles: check punch status
   const punchRoles = [ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN];
-  if (!isPunchedIn && !hasPunchedInToday && punchRoles.includes(userRole) && location.pathname !== '/punch') {
+  if (!isPunchedIn && !hasPunchedInToday && punchRoles.includes(userRole) && isHomeEntry) {
     return <Navigate to="/punch" replace />;
   }
 
