@@ -28,6 +28,7 @@ export const ATTENDANCE_ENDPOINTS = {
 
 export const LEAVE_ENDPOINTS = {
   create: '/leaves',
+  update: (leaveId) => `/leaves/${leaveId}`,
   own: '/leaves/own',
   team: '/leaves/team',
   all: '/leaves/all',
