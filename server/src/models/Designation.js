@@ -8,9 +8,17 @@ const designationSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      uppercase: true,
+    },
     description: {
       type: String,
       default: "",
+      trim: true,
     },
     // Level hierarchy (1=Entry, 10=Executive)
     level: {
@@ -19,15 +27,22 @@ const designationSchema = new mongoose.Schema(
       max: 10,
       default: 1,
     },
-    // Expected salary range
-    salary: {
+    // Salary band for this designation
+    minSalary: {
       type: Number,
       default: 0,
+      min: 0,
+    },
+    maxSalary: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     // Department this designation belongs to
     department: {
-      type: String,
-      default: "",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
     },
     // Reporting hierarchy
     reportingTo: {
@@ -39,6 +54,11 @@ const designationSchema = new mongoose.Schema(
     employeeCount: {
       type: Number,
       default: 0,
+    },
+    maxHeadcount: {
+      type: Number,
+      default: null,
+      min: 0,
     },
     // Whether this designation is currently available for hiring
     isActive: {
@@ -60,10 +80,19 @@ const designationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for faster queries
+designationSchema.pre("validate", function validateSalaryBand(next) {
+  if (this.minSalary > this.maxSalary) {
+    this.invalidate("maxSalary", "maxSalary must be greater than or equal to minSalary");
+  }
+  next();
+});
+
+// Indexes for faster queries
 designationSchema.index({ department: 1 });
 designationSchema.index({ level: 1 });
+designationSchema.index({ reportingTo: 1 });
 designationSchema.index({ isActive: 1 });
+designationSchema.index({ maxHeadcount: 1 });
 
 const Designation = mongoose.model("Designation", designationSchema);
 

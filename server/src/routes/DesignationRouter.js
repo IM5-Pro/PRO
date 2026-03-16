@@ -2,6 +2,8 @@ import express from "express";
 import {
   createDesignation,
   listDesignations,
+  listDesignationHierarchy,
+  getOrgChart,
   readDesignation,
   updateDesignation,
   deleteDesignation,
@@ -22,11 +24,32 @@ router.post(
   createDesignation
 );
 
-// List designations (All authenticated users)
-router.get("/", listDesignations);
+// Hierarchy and org-chart views
+router.get(
+  "/hierarchy",
+  permissionGuard("designation", "read"),
+  listDesignationHierarchy
+);
 
-// Read single designation (All authenticated users)
-router.get("/:designationId", readDesignation);
+router.get(
+  "/org-chart",
+  permissionGuard("designation", "read"),
+  getOrgChart
+);
+
+// List designations (based on designation list permission)
+router.get(
+  "/",
+  permissionGuard("designation", "list"),
+  listDesignations
+);
+
+// Read single designation (based on designation read permission)
+router.get(
+  "/:designationId",
+  permissionGuard("designation", "read"),
+  readDesignation
+);
 
 // Update designation (Super Admin, HR Admin)
 router.put(

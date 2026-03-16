@@ -13,6 +13,7 @@ const PUNCH_ROLES = ['employee', 'manager', 'hr_admin'];
 const PUNCH_IN_COOKIE = 'isPunchedIn';
 const PUNCH_IN_TIME_COOKIE = 'punchInTime';
 const PUNCHED_TODAY_COOKIE = 'hasPunchedInToday';
+const PUNCH_DAY_COOKIE = 'punchDayKey';
 const DAILY_WORKING_HOURS_COOKIE = 'dailyWorkingHours';
 const PUNCH_COOKIE_MAX_AGE = 24 * 60 * 60;
 
@@ -47,6 +48,8 @@ export const PunchProvider = ({ children }) => {
     if (Number.isNaN(d.getTime())) return '';
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   };
+
+  const getCurrentDayKey = () => toDayKey(new Date());
 
   const extractAttendanceList = (response) => {
     const payload = response?.data || {};
@@ -95,8 +98,10 @@ export const PunchProvider = ({ children }) => {
 
     if (hasPunchedToday) {
       setCookie(PUNCHED_TODAY_COOKIE, 'true', PUNCH_COOKIE_MAX_AGE);
+      setCookie(PUNCH_DAY_COOKIE, getCurrentDayKey(), PUNCH_COOKIE_MAX_AGE);
     } else {
       removeCookie(PUNCHED_TODAY_COOKIE);
+      removeCookie(PUNCH_DAY_COOKIE);
       removeCookie(DAILY_WORKING_HOURS_COOKIE);
     }
   }, []);
@@ -194,8 +199,12 @@ export const PunchProvider = ({ children }) => {
       return;
     }
 
-    if (getCookie(PUNCH_IN_COOKIE) === 'true') {
+    const isCookieCurrent = getCookie(PUNCH_DAY_COOKIE) === getCurrentDayKey();
+
+    if (getCookie(PUNCH_IN_COOKIE) === 'true' && isCookieCurrent) {
       setPunchStatus('in');
+    } else if (!isCookieCurrent) {
+      syncPunchStorage(null, false);
     }
   }, [canPunch, userIdentity, clearPunchState, syncPunchStorage]);
 
@@ -212,11 +221,11 @@ export const PunchProvider = ({ children }) => {
       clearPunchState();
       const res = await API.get(ATTENDANCE_ENDPOINTS.own(5));
       const records = extractAttendanceList(res);
-      const todayKey = toDayKey(new Date());
+      const todayKey = getCurrentDayKey();
 
       const openRecord = records.find((r) => r?.checkInTime && !r?.checkOutTime);
       const datedRecord = records.find((r) => toDayKey(r?.attendanceDate || r?.checkInTime) === todayKey);
-      const todayRecord = openRecord || datedRecord || records[0] || null;
+      const todayRecord = openRecord || datedRecord || null;
 
       if (todayRecord) {
         if (todayRecord.checkInTime) {
@@ -256,11 +265,35 @@ export const PunchProvider = ({ children }) => {
     }
   }, [canPunch, loadTodayStatus]);
 
-  const buildLocationPayload = useCallback(() => ({
-    label: locationLabel,
-    latitude: coords?.latitude ?? null,
-    longitude: coords?.longitude ?? null,
-  }), [locationLabel, coords]);
+  useEffect(() => {
+    if (!canPunch || punchStatus !== 'in') {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      loadTodayStatus();
+    }, 60 * 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [canPunch, punchStatus, loadTodayStatus]);
+
+  const buildLocationPayload = useCallback(() => {
+    const payload = {
+      label: locationLabel,
+    };
+
+    if (typeof coords?.latitude === 'number') {
+      payload.latitude = coords.latitude;
+    }
+
+    if (typeof coords?.longitude === 'number') {
+      payload.longitude = coords.longitude;
+    }
+
+    return payload;
+  }, [locationLabel, coords]);
 
   const punchIn = useCallback(async () => {
     setLoading(true);

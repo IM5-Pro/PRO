@@ -76,6 +76,7 @@ const employeeSchema = new mongoose.Schema(
     managerId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", index: true },
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     salaryTemplateId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SalaryTemplate",

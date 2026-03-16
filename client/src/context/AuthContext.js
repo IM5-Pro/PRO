@@ -17,6 +17,7 @@ const USER_COOKIE = 'user';
 const PUNCH_IN_COOKIE = 'isPunchedIn';
 const PUNCH_IN_TIME_COOKIE = 'punchInTime';
 const PUNCHED_TODAY_COOKIE = 'hasPunchedInToday';
+const PUNCH_DAY_COOKIE = 'punchDayKey';
 const DAILY_WORKING_HOURS_COOKIE = 'dailyWorkingHours';
 const ACCESS_TOKEN_MAX_AGE = 8 * 60 * 60;
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
@@ -25,6 +26,7 @@ const clearPunchFlags = () => {
   removeCookie(PUNCH_IN_COOKIE);
   removeCookie(PUNCH_IN_TIME_COOKIE);
   removeCookie(PUNCHED_TODAY_COOKIE);
+  removeCookie(PUNCH_DAY_COOKIE);
   removeCookie(DAILY_WORKING_HOURS_COOKIE);
 };
 
@@ -114,6 +116,32 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return undefined;
+    }
+
+    const syncSessionWithToken = () => {
+      const token = getCookie(ACCESS_TOKEN_COOKIE);
+      if (!token) {
+        clearAuthStorage();
+        clearPunchFlags();
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    };
+
+    syncSessionWithToken();
+
+    const intervalId = window.setInterval(syncSessionWithToken, 30000);
+    window.addEventListener('visibilitychange', syncSessionWithToken);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('visibilitychange', syncSessionWithToken);
+    };
+  }, [isAuthenticated]);
 
   /**
    * Login user with email and password

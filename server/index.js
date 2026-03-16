@@ -12,11 +12,15 @@ import performanceRoutes from "./src/routes/PerformanceRouter.js";
 import documentRoutes from "./src/routes/DocumentRouter.js";
 import roleRoutes from "./src/routes/RoleRouter.js";
 import permissionRoutes from "./src/routes/PermissionRouter.js";
+import adminRoutes from "./src/routes/AdminRouter.js";
 import employeeRoutes from "./src/routes/EmployeeRouter.js";
 import designationRoutes from "./src/routes/DesignationRouter.js";
 import attendanceRoutes from "./src/routes/AttendanceRouter.js";
 import announcementRoutes from "./src/routes/AnnouncementRouter.js";
 import roleSeeder from "./src/seeders/roleSeeder.js";
+import departmentSeeder from "./src/seeders/departmentSeeder.js";
+import permissionSeeder from "./src/seeders/permissionSeeder.js";
+import designationSeeder from "./src/seeders/designationSeeder.js";
 
 dotenv.config();
 
@@ -25,8 +29,13 @@ const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
 connectDB().then(() => {
-  // seed roles after successful connection
-  roleSeeder();
+  // seed core data after successful connection in dependency order
+  (async () => {
+    await roleSeeder();
+    await permissionSeeder();
+    await departmentSeeder();
+    await designationSeeder();
+  })();
 });
 // Middleware
 app.use(
@@ -50,6 +59,7 @@ app.use("/api/performance", performanceRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/designations", designationRoutes);
 app.use("/api/attendance", attendanceRoutes);

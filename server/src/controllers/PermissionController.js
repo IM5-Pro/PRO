@@ -3,6 +3,23 @@ import Role from "../models/Role.js";
 import { validatePermission, validatePermissionAssignment } from "../utils/roleValidators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 
+const derivePermissionMetadata = (input = {}) => {
+  const normalizedName = String(input.name || "").trim();
+  const explicitModule = String(input.module || "").trim();
+  const derivedModule = normalizedName.includes(".") ? normalizedName.split(".")[0] : "general";
+  const resolvedModule = explicitModule || derivedModule;
+  const resolvedGroup = String(input.group || resolvedModule || "General")
+    .trim()
+    .replace(/[._]/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
+  return {
+    name: normalizedName,
+    module: resolvedModule,
+    group: resolvedGroup || "General",
+  };
+};
+
 /**
  * List all permissions
  */
@@ -74,16 +91,19 @@ const createPermission = async (req, res) => {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
-    const { name, description } = req.body;
+    const { description } = req.body;
+    const metadata = derivePermissionMetadata(req.body);
 
     // Check if permission already exists
-    const existingPermission = await Permission.findOne({ name });
+    const existingPermission = await Permission.findOne({ name: metadata.name });
     if (existingPermission) {
-      return sendError(res, 409, "Permission already exists", { name: `Permission "${name}" already exists` });
+      return sendError(res, 409, "Permission already exists", { name: `Permission "${metadata.name}" already exists` });
     }
 
     const permission = await Permission.create({
-      name,
+      name: metadata.name,
+      module: metadata.module,
+      group: metadata.group,
       description: description || "",
     });
 
@@ -115,18 +135,25 @@ const updatePermission = async (req, res) => {
       return sendError(res, 404, "Permission not found");
     }
 
+    const metadata = derivePermissionMetadata({
+      ...permission.toObject(),
+      ...req.body,
+    });
+
     // Check if new name is unique (if changing name)
-    if (req.body.name && req.body.name !== permission.name) {
-      const existingPermission = await Permission.findOne({ name: req.body.name });
+    if (metadata.name && metadata.name !== permission.name) {
+      const existingPermission = await Permission.findOne({ name: metadata.name });
       if (existingPermission) {
-        return sendError(res, 409, "Permission name already exists", { name: `Permission "${req.body.name}" already exists` });
+        return sendError(res, 409, "Permission name already exists", { name: `Permission "${metadata.name}" already exists` });
       }
     }
 
     const updatedPermission = await Permission.findByIdAndUpdate(
       permissionId,
       {
-        name: req.body.name || permission.name,
+        name: metadata.name || permission.name,
+        module: metadata.module || permission.module,
+        group: metadata.group || permission.group,
         description: req.body.description !== undefined ? req.body.description : permission.description,
       },
       { new: true }

@@ -12,7 +12,13 @@ import { setCookie } from '../../utils/cookies';
 import { usePunch } from '../../context/PunchContext';
 
 const PUNCHED_TODAY_COOKIE = 'hasPunchedInToday';
+const PUNCH_DAY_COOKIE = 'punchDayKey';
 const PUNCH_COOKIE_MAX_AGE = 24 * 60 * 60;
+
+const getPunchDayKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+};
 
 /**
  * PunchInOut Component
@@ -74,6 +80,7 @@ const PunchInOut = () => {
   const handleSkip = () => {
     // Mark that user has seen punch screen today to prevent forced redirect
     setCookie(PUNCHED_TODAY_COOKIE, 'true', PUNCH_COOKIE_MAX_AGE);
+    setCookie(PUNCH_DAY_COOKIE, getPunchDayKey(), PUNCH_COOKIE_MAX_AGE);
     navigate('/');
   };
 

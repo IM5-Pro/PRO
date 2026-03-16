@@ -61,6 +61,7 @@ const LeavesAttendance = ({
   const [formError, setFormError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
 
   // ============================================================================
   // API HOOKS & DATA FETCHING
@@ -172,6 +173,7 @@ const LeavesAttendance = ({
     async (e) => {
       e.preventDefault();
       setFormError('');
+      setActionSuccess('');
 
       const validationError = validateLeaveForm(formValues);
       if (validationError) {
@@ -184,6 +186,7 @@ const LeavesAttendance = ({
       if (result.error) {
         setFormError(result.error);
       } else {
+        setActionSuccess('Leave request submitted successfully.');
         setShowLeaveForm(false);
         setFormValues({
           leaveTypeId: '',
@@ -202,12 +205,14 @@ const LeavesAttendance = ({
     async (requestId) => {
       setActionLoading(requestId);
       setActionError('');
+      setActionSuccess('');
 
       const result = await leaveActions.approve(requestId);
 
       if (result.error) {
         setActionError(result.error);
       } else {
+        setActionSuccess('Leave request approved successfully.');
         // Refresh data
         dashboardData.refetch();
       }
@@ -221,12 +226,14 @@ const LeavesAttendance = ({
     async (requestId) => {
       setActionLoading(requestId);
       setActionError('');
+      setActionSuccess('');
 
       const result = await leaveActions.reject(requestId);
 
       if (result.error) {
         setActionError(result.error);
       } else {
+        setActionSuccess('Leave request rejected successfully.');
         // Refresh data
         dashboardData.refetch();
       }
@@ -240,12 +247,14 @@ const LeavesAttendance = ({
     async (requestId) => {
       setActionLoading(requestId);
       setActionError('');
+      setActionSuccess('');
 
       const result = await leaveActions.cancel(requestId);
 
       if (result.error) {
         setActionError(result.error);
       } else {
+        setActionSuccess('Leave request cancelled successfully.');
         // Refresh data
         dashboardData.refetch();
       }
@@ -323,6 +332,15 @@ const LeavesAttendance = ({
           <p className="text-red-700">{actionError}</p>
           <button onClick={() => setActionError('')}>
             <FiX className="text-red-500" />
+          </button>
+        </div>
+      )}
+
+      {actionSuccess && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+          <p className="text-green-700">{actionSuccess}</p>
+          <button onClick={() => setActionSuccess('')}>
+            <FiX className="text-green-600" />
           </button>
         </div>
       )}

@@ -18,6 +18,11 @@ import PunchInOut from './components/PunchInOut/PunchInOut';
 import { getCookie } from './utils/cookies';
 import { ROLES } from './utils/roles';
 
+const getPunchDayKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+};
+
 /**
  * AppContent Component
  * Main routing logic with authentication and role-based dashboard routing
@@ -74,8 +79,9 @@ const AppContent = () => {
 
   // Check if user needs to punch in/out first (only on initial login)
   // hasPunchedInToday allows punch out without forced return to punch screen
-  const isPunchedIn = getCookie('isPunchedIn') === 'true';
-  const hasPunchedInToday = getCookie('hasPunchedInToday') === 'true';
+  const isPunchCookieCurrent = getCookie('punchDayKey') === getPunchDayKey();
+  const isPunchedIn = getCookie('isPunchedIn') === 'true' && isPunchCookieCurrent;
+  const hasPunchedInToday = getCookie('hasPunchedInToday') === 'true' && isPunchCookieCurrent;
   const searchParams = new URLSearchParams(location.search);
   const hasSelectedDashboardPage = searchParams.has('page');
   const isHomeEntry = location.pathname === '/' && !hasSelectedDashboardPage;

@@ -61,11 +61,6 @@ const HRSidebar = ({
     return groups;
   }, [pageConfigs]);
 
-  const currentPageLabel = useMemo(() => {
-    const currentConfig = pageConfigs.find((page) => page.id === currentPage);
-    return currentConfig?.label || 'Overview';
-  }, [currentPage, pageConfigs]);
-
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
@@ -222,9 +217,6 @@ const HRSidebar = ({
         <div className="p-6 border-b border-white/40">
           <h1 className="text-2xl font-bold">HRMS Suite</h1>
           <p className="text-slate-600 text-sm">{portalLabel}</p>
-          <p className="mt-3 text-xs text-slate-700 bg-white/40 border border-white/50 rounded-md px-2 py-1 inline-block">
-            Viewing: {currentPageLabel}
-          </p>
         </div>
 
         {/* ========================================

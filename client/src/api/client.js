@@ -4,7 +4,15 @@ import { getCookie, removeCookie } from '../utils/cookies';
 const AUTH_COOKIE = 'authToken';
 const REFRESH_COOKIE = 'refreshToken';
 const USER_COOKIE = 'user';
-const PUNCH_COOKIES = ['isPunchedIn', 'punchInTime', 'hasPunchedInToday', 'dailyWorkingHours'];
+const PUNCH_COOKIES = ['isPunchedIn', 'punchInTime', 'hasPunchedInToday', 'punchDayKey', 'dailyWorkingHours'];
+const AUTH_EXEMPT_401_PATHS = [
+  '/auth/login',
+  '/auth/register-superadmin',
+  '/auth/forgot-username',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/complete-initial-password',
+];
 
 const clearSessionCookies = () => {
   removeCookie(AUTH_COOKIE);
@@ -17,6 +25,11 @@ const redirectToLoginWithCurrentPath = () => {
   const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   const redirect = encodeURIComponent(currentPath || '/');
   window.location.replace(`/login?redirect=${redirect}`);
+};
+
+const isAuthExemptRequest = (url = '') => {
+  const normalizedUrl = String(url || '');
+  return AUTH_EXEMPT_401_PATHS.some((path) => normalizedUrl.includes(path));
 };
 
 const API = axios.create({
@@ -40,11 +53,12 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    const hasAuthHeader = Boolean(error?.config?.headers?.Authorization);
+    const requestUrl = error?.config?.url || '';
+    const isAuthExempt = isAuthExemptRequest(requestUrl);
 
     // 403 can be a valid permission denial for logged-in users.
-    // Only 401 should force logout + redirect.
-    if (status === 401 && hasAuthHeader) {
+    // Any non-auth 401 means the user session is no longer valid.
+    if (status === 401 && !isAuthExempt) {
       clearSessionCookies();
       if (!window.location.pathname.startsWith('/login')) {
         redirectToLoginWithCurrentPath();

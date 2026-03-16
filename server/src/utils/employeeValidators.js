@@ -22,8 +22,8 @@ const validateEmployeeData = (body, isUpdate = false) => {
 
     if (!body.lastName || typeof body.lastName !== "string") {
       errors.lastName = "Last name is required";
-    } else if (body.lastName.trim().length < 2) {
-      errors.lastName = "Last name must be at least 2 characters";
+    } else if (body.lastName.trim().length === 0) {
+      errors.lastName = "Last name is required";
     }
   }
 
@@ -34,6 +34,8 @@ const validateEmployeeData = (body, isUpdate = false) => {
 
   if (body.lastName && typeof body.lastName !== "string") {
     errors.lastName = "Last name must be a string";
+  } else if (typeof body.lastName === "string" && body.lastName.trim().length === 0) {
+    errors.lastName = "Last name is required";
   }
 
   if (body.department && typeof body.department !== "string") {

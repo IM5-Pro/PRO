@@ -1,6 +1,8 @@
+import mongoose from "mongoose";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
+import EmployeeDesignationHistory from "../models/EmployeeDesignationHistory.js";
 import {
   validateEmployeeData,
   validateDocumentUpload,
@@ -14,6 +16,7 @@ import {
   getCurrentSalary,
   listEmployeesWithPagination,
 } from "../services/employeeService.js";
+import { assignDesignationToEmployee } from "../services/designationAssignmentService.js";
 import { generateSignedDocumentUrl } from "../utils/documentSigner.js";
 
 const resolveCurrentEmployee = async (userId, employeeIdHint = null) => {
@@ -711,54 +714,80 @@ const transferDepartment = async (req, res) => {
  * Change employee designation
  */
 const changeDesignation = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
     const { employeeId } = req.params;
-    const { designation } = req.body;
+    const designationRef = req.body.designationId || req.body.designation;
+    const { effectiveDate, reason } = req.body;
 
-    if (!employeeId || !designation) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee ID and designation are required",
+    if (!employeeId || !designationRef) {
+      await session.endSession();
+      return sendError(res, 400, "Validation failed", {
+        employeeId: "Employee ID is required",
+        designation: "Designation is required",
       });
     }
 
-    const employee = await Employee.findById(employeeId);
-    if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: "Employee not found",
-      });
-    }
+    await session.startTransaction();
 
-    const oldDesignation = employee.designation;
-    const updatedEmployee = await Employee.findByIdAndUpdate(
+    const assignment = await assignDesignationToEmployee({
+      actorId: req.user.id,
       employeeId,
-      { designation },
-      { new: true }
-    );
-
-    // Log action
-    await AuditLog.create({
-      userId: req.user.id,
-      action: "employee.change_designation",
-      entityType: "Employee",
-      entityId: employeeId,
-      description: `Changed designation for ${employee.firstName} ${employee.lastName} from ${oldDesignation} to ${designation}`,
-      changes: { designation: { old: oldDesignation, new: designation } },
+      designationId: designationRef,
+      effectiveDate,
+      reason,
+      session,
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Designation changed successfully",
-      data: updatedEmployee,
+    if (assignment.wasNoOp) {
+      await session.commitTransaction();
+      await session.endSession();
+      return sendSuccess(res, 200, "Employee already has this designation", {
+        data: assignment.employee,
+        designation: assignment.designation,
+        effectiveDate: assignment.effectiveDate,
+        reason: assignment.reason,
+      });
+    }
+
+    await AuditLog.create([
+      {
+        userId: req.user.id,
+        action: "employee.change_designation",
+        entityType: "Employee",
+        entityId: employeeId,
+        description: `Changed designation for ${assignment.employee.firstName} ${assignment.employee.lastName} to ${assignment.designation.name}`,
+        changes: {
+          designation: {
+            old: assignment.previousDesignation?.name || assignment.previousDesignation?._id?.toString() || "None",
+            new: assignment.designation.name,
+          },
+          effectiveDate: assignment.effectiveDate,
+          reason: assignment.reason,
+        },
+      },
+    ], { session });
+
+    await session.commitTransaction();
+    await session.endSession();
+
+    return sendSuccess(res, 200, "Designation changed successfully", {
+      data: assignment.employee,
+      designation: assignment.designation,
+      effectiveDate: assignment.effectiveDate,
+      reason: assignment.reason,
     });
   } catch (err) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    await session.endSession();
+    if (err?.statusCode) {
+      return sendError(res, err.statusCode, err.message, err.details);
+    }
     console.error("Change designation error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: err.message,
-    });
+    return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };
 
@@ -1027,10 +1056,19 @@ const viewHistory = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50);
 
+    const designationHistory = await EmployeeDesignationHistory.find({ employeeId })
+      .populate("designationId", "name code level")
+      .populate("departmentId", "name code")
+      .populate("changedBy", "firstName lastName email")
+      .sort({ effectiveFrom: -1 })
+      .limit(50)
+      .lean();
+
     res.status(200).json({
       success: true,
       message: "History retrieved successfully",
       data: history,
+      designationHistory,
     });
   } catch (err) {
     console.error("View history error:", err);

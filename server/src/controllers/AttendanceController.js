@@ -19,6 +19,8 @@ const DEFAULT_SHIFT_START = "09:00";
 const DEFAULT_SHIFT_END = "18:00";
 const DEFAULT_GRACE_PERIOD_MINUTES = 15;
 const DEFAULT_EARLY_CHECKOUT_THRESHOLD_MINUTES = 30;
+const MAX_PUNCH_WINDOW_HOURS = 12;
+const MAX_PUNCH_WINDOW_MS = MAX_PUNCH_WINDOW_HOURS * 60 * 60 * 1000;
 
 const getDayStart = (date = new Date()) => {
   const day = new Date(date);
@@ -210,6 +212,115 @@ const deriveStatus = ({ checkInTime, checkOutTime, attendanceDate, workingHours,
   };
 };
 
+const getMaxCheckoutTime = (checkInTime) => {
+  return new Date(new Date(checkInTime).getTime() + MAX_PUNCH_WINDOW_MS);
+};
+
+const hasExceededPunchWindow = (attendance, referenceTime = new Date()) => {
+  if (!attendance?.checkInTime || attendance?.checkOutTime) {
+    return false;
+  }
+
+  return referenceTime.getTime() >= getMaxCheckoutTime(attendance.checkInTime).getTime();
+};
+
+const findLatestOpenAttendance = async (employeeId) => {
+  return Attendance.findOne({
+    employee: employeeId,
+    isArchived: false,
+    checkInTime: { $ne: null },
+    checkOutTime: null,
+  }).sort({ checkInTime: -1, attendanceDate: -1 });
+};
+
+const finalizeAttendanceCheckout = async ({
+  attendance,
+  employeeId,
+  actorId,
+  checkOutTime,
+  checkOutLocation,
+  action,
+  description,
+}) => {
+  const breakSummary = computeBreakDuration(attendance.breaks || [], checkOutTime);
+  const grossWorkingHours =
+    (checkOutTime - attendance.checkInTime) / (1000 * 60 * 60);
+  const netWorkingHours = Math.max(
+    0,
+    grossWorkingHours - breakSummary.totalMinutes / 60,
+  );
+  const attendanceDate = attendance.attendanceDate || getDayStart(checkOutTime);
+  const shiftConfig = await resolveShiftConfigForAttendance({
+    employeeId,
+    attendanceDate,
+    attendance,
+  });
+  const derivedStatus = deriveStatus({
+    checkInTime: attendance.checkInTime,
+    checkOutTime,
+    attendanceDate,
+    workingHours: netWorkingHours,
+    shiftConfig,
+  });
+
+  attendance.checkOutTime = checkOutTime;
+  attendance.checkOutLocation = checkOutLocation;
+  attendance.breaks = breakSummary.normalizedBreaks;
+  attendance.breakDurationMinutes = breakSummary.totalMinutes;
+  attendance.workingHours = Math.round(netWorkingHours * 100) / 100;
+  attendance.status = derivedStatus.status;
+  attendance.remarks = [
+    derivedStatus.isLate ? "Late check-in" : "",
+    derivedStatus.isEarlyCheckout ? "Early checkout" : "",
+    attendance.workingHours < 4 ? "Half-day due to low working hours" : "",
+    action === "AUTO_CHECK_OUT" ? `Auto check-out after ${MAX_PUNCH_WINDOW_HOURS} hours limit` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  attendance.updatedBy = actorId;
+  attendance.approvalStatus = "Approved";
+
+  const resolvedDescription = typeof description === "function"
+    ? description(attendance, checkOutLocation)
+    : description;
+
+  await attendance.save();
+
+  await AuditLog.create({
+    userId: actorId,
+    action,
+    entityType: "Attendance",
+    entityId: attendance._id,
+    description: resolvedDescription,
+  });
+
+  return attendance;
+};
+
+const syncOpenAttendanceWindow = async ({ req, employeeId }) => {
+  const openAttendance = await findLatestOpenAttendance(employeeId);
+  if (!openAttendance || !hasExceededPunchWindow(openAttendance)) {
+    return null;
+  }
+
+  const autoCheckoutTime = getMaxCheckoutTime(openAttendance.checkInTime);
+  const autoCheckoutLocation = normalizeLocationPayload(
+    { label: `Auto punch-out (${MAX_PUNCH_WINDOW_HOURS} hour limit)` },
+    req,
+    `Auto punch-out (${MAX_PUNCH_WINDOW_HOURS} hour limit)`,
+  );
+
+  return finalizeAttendanceCheckout({
+    attendance: openAttendance,
+    employeeId,
+    actorId: req.user?.id || null,
+    checkOutTime: autoCheckoutTime,
+    checkOutLocation: autoCheckoutLocation,
+    action: "AUTO_CHECK_OUT",
+    description: (updatedAttendance, location) => `Employee automatically checked out after reaching the ${MAX_PUNCH_WINDOW_HOURS}-hour limit at ${location?.label || "Office"}. Working hours: ${updatedAttendance.workingHours}`,
+  });
+};
+
 /**
  * Check-in: Employee marks attendance (automatic)
  */
@@ -238,6 +349,8 @@ export const checkIn = async (req, res) => {
         employee: "The requested employee does not exist",
       });
     }
+
+    await syncOpenAttendanceWindow({ req, employeeId: employee });
 
     // Get today's date (without time)
     const today = new Date();
@@ -359,15 +472,31 @@ export const checkOut = async (req, res) => {
       });
     }
 
+    const autoClosedAttendance = await syncOpenAttendanceWindow({ req, employeeId: employee });
+    if (autoClosedAttendance) {
+      return sendSuccess(
+        res,
+        200,
+        `Attendance automatically punched out after ${MAX_PUNCH_WINDOW_HOURS} hours`,
+        autoClosedAttendance,
+      );
+    }
+
     // Get today's date
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Check if attendance record exists for today
-    const attendance = await Attendance.findOne({
-      employee,
-      attendanceDate: today,
-    });
+    // Prefer the latest open attendance record so users can punch out the next day
+    // if they forgot to close the previous day's shift.
+    let attendance = await findLatestOpenAttendance(employee);
+
+    if (!attendance) {
+      attendance = await Attendance.findOne({
+        employee,
+        attendanceDate: today,
+        isArchived: false,
+      });
+    }
 
     if (!attendance) {
       return sendError(res, 404, "No check-in found for today", {
@@ -387,53 +516,15 @@ export const checkOut = async (req, res) => {
       });
     }
 
-    // Calculate working hours
     const checkOutTime = new Date();
-    const breakSummary = computeBreakDuration(attendance.breaks || [], checkOutTime);
-    const grossWorkingHours =
-      (checkOutTime - attendance.checkInTime) / (1000 * 60 * 60);
-    const netWorkingHours = Math.max(
-      0,
-      grossWorkingHours - breakSummary.totalMinutes / 60,
-    );
-    const shiftConfig = await resolveShiftConfigForAttendance({
-      employeeId: employee,
-      attendanceDate: today,
+    await finalizeAttendanceCheckout({
       attendance,
-    });
-    const derivedStatus = deriveStatus({
-      checkInTime: attendance.checkInTime,
+      employeeId: employee,
+      actorId: req.user.id,
       checkOutTime,
-      attendanceDate: today,
-      workingHours: netWorkingHours,
-      shiftConfig,
-    });
-
-    attendance.checkOutTime = checkOutTime;
-    attendance.checkOutLocation = normalizedLocation;
-    attendance.breaks = breakSummary.normalizedBreaks;
-    attendance.breakDurationMinutes = breakSummary.totalMinutes;
-    attendance.workingHours = Math.round(netWorkingHours * 100) / 100;
-    attendance.status = derivedStatus.status;
-    attendance.remarks = [
-      derivedStatus.isLate ? "Late check-in" : "",
-      derivedStatus.isEarlyCheckout ? "Early checkout" : "",
-      attendance.workingHours < 4 ? "Half-day due to low working hours" : "",
-    ]
-      .filter(Boolean)
-      .join(" | ");
-    attendance.updatedBy = req.user.id;
-    attendance.approvalStatus = "Approved"; // Auto-approve for check-out
-
-    await attendance.save();
-
-    // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+      checkOutLocation: normalizedLocation,
       action: "CHECK_OUT",
-      entityType: "Attendance",
-      entityId: attendance._id,
-      description: `Employee checked out at ${attendance.checkOutLocation?.label || "Office"}. Working hours: ${attendance.workingHours}`,
+      description: (updatedAttendance, location) => `Employee checked out at ${location?.label || "Office"}. Working hours: ${updatedAttendance.workingHours}`,
     });
 
     return sendSuccess(res, 200, "Check-out recorded successfully", attendance);
@@ -564,6 +655,8 @@ export const viewOwn = async (req, res) => {
         employee: "No employee record is linked to this account",
       });
     }
+
+    await syncOpenAttendanceWindow({ req, employeeId });
 
     // Build query
     let query = { employee: employeeId, isArchived: false };

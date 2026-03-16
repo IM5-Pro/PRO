@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import AuditLog from "../models/AuditLog.js";
 import SalaryHistory from "../models/SalaryHistory.js";
+import { assignDesignationToEmployee } from "./designationAssignmentService.js";
 import { createUser } from "./userService.js";
 import {
   countByQuery,
@@ -96,6 +97,7 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
 
   try {
     const normalizedEmail = normalizeEmail(body.email);
+    const requestedDesignation = body.designationId || body.designation || "";
 
     const existingEmployee = await findByEmail(normalizedEmail, session);
     if (existingEmployee) {
@@ -118,7 +120,7 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
       firstName: body.firstName,
       lastName: body.lastName,
       department: body.department || "",
-      designation: body.designation || "",
+      designation: "",
       salary: body.salary || 0,
       managerID: body.managerID || body.managerId || null,
       managerId: body.managerId || body.managerID || null,
@@ -151,6 +153,18 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
     } catch (error) {
       error.statusCode = error.statusCode || error.status || 400;
       throw error;
+    }
+
+    if (requestedDesignation) {
+      await assignDesignationToEmployee({
+        actorId,
+        employeeId: employee._id,
+        designationId: requestedDesignation,
+        employee,
+        effectiveDate: body.joinDate || employee.joinDate || new Date(),
+        reason: "INITIAL_HIRE",
+        session,
+      });
     }
 
     if (Number.isFinite(body.salary) && body.salary >= 0) {
@@ -271,6 +285,7 @@ const bulkImportEmployees = async ({ employees, actorId }) => {
     email: normalizeEmail(employee.email),
     isActive: true,
     createdBy: actorId,
+    updatedBy: actorId,
   }));
 
   const failedRows = [];
@@ -299,6 +314,7 @@ const bulkImportEmployees = async ({ employees, actorId }) => {
 
   const existing = await findByEmails([...seen]);
   const existingSet = new Set(existing.map((e) => e.email));
+  const requestedDesignationByEmail = new Map();
 
   const validEmployees = [];
   normalizedEmployees.forEach((employee, index) => {
@@ -328,7 +344,15 @@ const bulkImportEmployees = async ({ employees, actorId }) => {
       return;
     }
 
-    validEmployees.push(employee);
+    requestedDesignationByEmail.set(
+      employee.email,
+      employee.designationId || employee.designation || "",
+    );
+
+    validEmployees.push({
+      ...employee,
+      designation: "",
+    });
   });
 
   let createdEmployees = [];
@@ -349,6 +373,29 @@ const bulkImportEmployees = async ({ employees, actorId }) => {
       } else {
         throw error;
       }
+    }
+  }
+
+  for (const employee of createdEmployees) {
+    const requestedDesignation = requestedDesignationByEmail.get(employee.email);
+    if (!requestedDesignation) {
+      continue;
+    }
+
+    try {
+      await assignDesignationToEmployee({
+        actorId,
+        employeeId: employee._id,
+        designationId: requestedDesignation,
+        employee,
+        effectiveDate: employee.joinDate || employee.joiningDate || new Date(),
+        reason: "BULK_IMPORT",
+      });
+    } catch (error) {
+      failedRows.push({
+        email: employee.email,
+        error: error?.message || "Designation assignment failed during import",
+      });
     }
   }
 
