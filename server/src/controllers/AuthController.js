@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import User from "../models/User.js";
+import Employee from "../models/Employee.js";
 import Role from "../models/Role.js";
 import Roles from "../constants/roles.js";
 import {
@@ -24,6 +25,34 @@ const LOGIN_LOCK_MINUTES = 15;
 const PASSWORD_RESET_TOKEN_TTL_MINUTES = 15;
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PASSWORD_VALIDATION_MESSAGE = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character";
+
+const isEmployeeLoginBlocked = (employee) => {
+  if (!employee) {
+    return false;
+  }
+
+  const normalizedStatus = String(employee.status || "").trim().toUpperCase();
+  return employee.isActive === false || (normalizedStatus && normalizedStatus !== "ACTIVE");
+};
+
+const ensureLinkedEmployeeCanAuthenticate = async (user) => {
+  if (!user?.employeeId) {
+    return { isBlocked: false };
+  }
+
+  const employee = await Employee.findById(user.employeeId)
+    .select("isActive status")
+    .lean();
+
+  if (isEmployeeLoginBlocked(employee)) {
+    return {
+      isBlocked: true,
+      message: "Employee is deactivated. Please contact HR",
+    };
+  }
+
+  return { isBlocked: false };
+};
 
 const normalizeEmail = (email) => {
   if (typeof email !== "string") {
@@ -146,6 +175,11 @@ const login = async (req, res) => {
       return sendError(res, 403, "Account is disabled");
     }
 
+    const employeeAuthStatus = await ensureLinkedEmployeeCanAuthenticate(user);
+    if (employeeAuthStatus.isBlocked) {
+      return sendError(res, 403, employeeAuthStatus.message);
+    }
+
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       return sendError(res, 423, "Account temporarily locked due to failed login attempts");
     }
@@ -240,6 +274,11 @@ const refreshToken = async (req, res) => {
 
     if (!user.isActive) {
       return sendError(res, 403, "Account is disabled");
+    }
+
+    const employeeAuthStatus = await ensureLinkedEmployeeCanAuthenticate(user);
+    if (employeeAuthStatus.isBlocked) {
+      return sendError(res, 403, employeeAuthStatus.message);
     }
 
     if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt < new Date()) {
