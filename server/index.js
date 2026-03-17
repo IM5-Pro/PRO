@@ -17,6 +17,7 @@ import employeeRoutes from "./src/routes/EmployeeRouter.js";
 import designationRoutes from "./src/routes/DesignationRouter.js";
 import attendanceRoutes from "./src/routes/AttendanceRouter.js";
 import announcementRoutes from "./src/routes/AnnouncementRouter.js";
+import manpowerPlanningRoutes from "./src/routes/ManpowerPlanningRouter.js";
 import roleSeeder from "./src/seeders/roleSeeder.js";
 import departmentSeeder from "./src/seeders/departmentSeeder.js";
 import permissionSeeder from "./src/seeders/permissionSeeder.js";
@@ -64,6 +65,7 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/designations", designationRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/announcements", announcementRoutes);
+app.use("/api/manpower-planning", manpowerPlanningRoutes);
 
 // start server only when not running tests
 if (process.env.NODE_ENV !== "test") {
