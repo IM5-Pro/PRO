@@ -516,24 +516,24 @@ const Employees = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">First Name</label>
                   <input
                     type="text"
                     value={createForm.firstName}
                     onChange={updateCreateForm('firstName')}
                     placeholder="Enter first name"
-                    className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Last Name</label>
                   <input
                     type="text"
                     value={createForm.lastName}
                     onChange={updateCreateForm('lastName')}
                     placeholder="Enter last name"
-                    className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -541,24 +541,35 @@ const Employees = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Work Email</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Work Email</label>
                   <input
                     type="email"
                     value={createForm.email}
                     onChange={updateCreateForm('email')}
                     placeholder="name@ispace.com"
-                    className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Phone Number</label>
                   <input
                     type="text"
                     value={createForm.phoneNumber}
                     onChange={updateCreateForm('phoneNumber')}
                     placeholder="10-digit phone"
-                    className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={createForm.dateOfBirth || ''}
+                    onChange={updateCreateForm('dateOfBirth')}
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    required
                   />
                 </div>
                   </div>

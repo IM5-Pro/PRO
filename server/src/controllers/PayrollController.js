@@ -357,7 +357,7 @@ const processPayroll = async (req, res) => {
         },
         {
           upsert: true,
-          new: true,
+          returnDocument: 'after',
           setDefaultsOnInsert: true,
           session,
         },

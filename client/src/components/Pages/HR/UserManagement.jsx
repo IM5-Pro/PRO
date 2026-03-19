@@ -1104,7 +1104,8 @@ const HRUserManagement = () => {
                     </select>
                     <input value={createForm.salary} onChange={setCreateValue('salary')} placeholder="Salary" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     <input type="date" value={createForm.joinDate} onChange={setCreateValue('joinDate')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    <input value={createForm.phoneNumber} onChange={setCreateValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <input value={createForm.phoneNumber} onChange={setCreateValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
+                    <input type="date" value={createForm.dateOfBirth || ''} onChange={setCreateValue('dateOfBirth')} placeholder="Date of Birth" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                     <select value={createForm.accountRole} onChange={setCreateValue('accountRole')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                       <option value="EMPLOYEE">EMPLOYEE</option>
                       <option value="MANAGER">MANAGER</option>
@@ -1213,38 +1214,82 @@ const HRUserManagement = () => {
                       </div>
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        <input required value={editForm.firstName} onChange={setEditValue('firstName')} placeholder="First name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input required value={editForm.lastName} onChange={setEditValue('lastName')} placeholder="Last name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input required type="email" value={editForm.email} onChange={setEditValue('email')} placeholder="name@ispace.com" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input value={editForm.phoneNumber} onChange={setEditValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input type="date" value={editForm.joinDate} onChange={setEditValue('joinDate')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input type="date" value={editForm.dateOfBirth} onChange={setEditValue('dateOfBirth')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-
-                        <select value={editForm.department} onChange={setEditValue('department')} disabled={referenceLoading} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
-                          <option value="">Select department</option>
-                          {departmentOptions.map((department) => (
-                            <option key={department.id} value={department.name}>{department.name}</option>
-                          ))}
-                        </select>
-                        <select value={editForm.designation} onChange={setEditValue('designation')} disabled={referenceLoading || designationLookupLoading || editDesignationOptions.length === 0} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
-                          <option value="">{referenceLoading || designationLookupLoading ? 'Checking designations...' : editDesignationOptions.length === 0 ? 'No designations available' : 'Select designation'}</option>
-                          {editDesignationOptions.map((designation) => (
-                            <option key={designation.id} value={designation.id}>
-                              {designation.name}{designation.departmentName ? ` (${designation.departmentName})` : ''}
-                            </option>
-                          ))}
-                        </select>
-                        <input value={editForm.salary} onChange={setEditValue('salary')} placeholder="Salary" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-
-                        <input value={editForm.city} onChange={setEditValue('city')} placeholder="City" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input value={editForm.state} onChange={setEditValue('state')} placeholder="State" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input value={editForm.zipCode} onChange={setEditValue('zipCode')} placeholder="Zip code" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-
-                        <input value={editForm.addressLine} onChange={setEditValue('addressLine')} placeholder="Address line" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 md:col-span-2 lg:col-span-3" />
-
-                        <input value={editForm.emergencyContactName} onChange={setEditValue('emergencyContactName')} placeholder="Emergency contact name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input value={editForm.emergencyContactRelation} onChange={setEditValue('emergencyContactRelation')} placeholder="Emergency contact relation" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                        <input value={editForm.emergencyContactPhone} onChange={setEditValue('emergencyContactPhone')} placeholder="Emergency contact phone" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">First Name</label>
+                          <input required value={editForm.firstName} onChange={setEditValue('firstName')} placeholder="First name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Last Name</label>
+                          <input required value={editForm.lastName} onChange={setEditValue('lastName')} placeholder="Last name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Work Email</label>
+                          <input required type="email" value={editForm.email} onChange={setEditValue('email')} placeholder="name@ispace.com" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Phone Number</label>
+                          <input value={editForm.phoneNumber} onChange={setEditValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Join Date</label>
+                          <input type="date" value={editForm.joinDate} onChange={setEditValue('joinDate')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Date of Birth</label>
+                          <input type="date" value={editForm.dateOfBirth} onChange={setEditValue('dateOfBirth')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Department</label>
+                          <select value={editForm.department} onChange={setEditValue('department')} disabled={referenceLoading} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
+                            <option value="">Select department</option>
+                            {departmentOptions.map((department) => (
+                              <option key={department.id} value={department.name}>{department.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Designation</label>
+                          <select value={editForm.designation} onChange={setEditValue('designation')} disabled={referenceLoading || designationLookupLoading || editDesignationOptions.length === 0} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
+                            <option value="">{referenceLoading || designationLookupLoading ? 'Checking designations...' : editDesignationOptions.length === 0 ? 'No designations available' : 'Select designation'}</option>
+                            {editDesignationOptions.map((designation) => (
+                              <option key={designation.id} value={designation.id}>
+                                {designation.name}{designation.departmentName ? ` (${designation.departmentName})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Salary</label>
+                          <input value={editForm.salary} onChange={setEditValue('salary')} placeholder="Salary" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">City</label>
+                          <input value={editForm.city} onChange={setEditValue('city')} placeholder="City" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">State</label>
+                          <input value={editForm.state} onChange={setEditValue('state')} placeholder="State" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Zip Code</label>
+                          <input value={editForm.zipCode} onChange={setEditValue('zipCode')} placeholder="Zip code" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div className="md:col-span-2 lg:col-span-3">
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Address Line</label>
+                          <input value={editForm.addressLine} onChange={setEditValue('addressLine')} placeholder="Address line" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Emergency Contact Name</label>
+                          <input value={editForm.emergencyContactName} onChange={setEditValue('emergencyContactName')} placeholder="Emergency contact name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Emergency Contact Relation</label>
+                          <input value={editForm.emergencyContactRelation} onChange={setEditValue('emergencyContactRelation')} placeholder="Emergency contact relation" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Emergency Contact Phone</label>
+                          <input value={editForm.emergencyContactPhone} onChange={setEditValue('emergencyContactPhone')} placeholder="Emergency contact phone" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
                       </div>
 
                       {editForm.department && !designationLookupLoading && editDesignationOptions.length === 0 && (

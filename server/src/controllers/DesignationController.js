@@ -833,14 +833,17 @@ export const assignToEmployee = async (req, res) => {
     };
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
-      action: "ASSIGN",
-      entityType: "Designation",
-      entityId: designationId,
-      description: `Assigned designation ${assignment.designation.name} to employee ${assignment.employee.firstName} ${assignment.employee.lastName}`,
-      changes,
-    }, { session });
+    await AuditLog.create([
+      {
+        userId: req.user.id,
+        action: "ASSIGN",
+        entityType: "Designation",
+        entity: "Designation",
+        entityId: designationId,
+        description: `Assigned designation ${assignment.designation.name} to employee ${assignment.employee.firstName} ${assignment.employee.lastName}`,
+        changes,
+      }
+    ], { session });
 
     await session.commitTransaction();
     await session.endSession();

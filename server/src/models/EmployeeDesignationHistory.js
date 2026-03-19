@@ -41,11 +41,13 @@ const employeeDesignationHistorySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-employeeDesignationHistorySchema.pre("validate", function validateDateRange(next) {
+employeeDesignationHistorySchema.pre("validate", function (next) {
   if (this.effectiveTo && this.effectiveTo < this.effectiveFrom) {
     this.invalidate("effectiveTo", "effectiveTo must be greater than or equal to effectiveFrom");
   }
-  next();
+  if (typeof next === 'function') {
+    next();
+  }
 });
 
 employeeDesignationHistorySchema.index({ employeeId: 1, effectiveFrom: -1 });

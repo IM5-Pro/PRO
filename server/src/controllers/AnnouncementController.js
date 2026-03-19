@@ -8,7 +8,7 @@ import { sendError, sendSuccess } from "../utils/response.js";
 
 const CREATE_ALLOWED_ROLES = new Set([Roles.SUPER_ADMIN, Roles.HR_ADMIN, Roles.MANAGER]);
 const EDIT_ALLOWED_ROLES = new Set([Roles.SUPER_ADMIN, Roles.HR_ADMIN]);
-const DELETE_ALLOWED_ROLES = new Set([Roles.SUPER_ADMIN]);
+const DELETE_ALLOWED_ROLES = new Set([Roles.SUPER_ADMIN, Roles.HR_ADMIN]);
 
 const ALLOWED_AUDIENCE_BY_ROLE = {
   [Roles.SUPER_ADMIN]: ["ALL", "DEPARTMENT", "ROLE", "LOCATION", "TEAM"],
@@ -488,7 +488,7 @@ const dismissAnnouncement = async (req, res) => {
           viewedBy: userObjectId,
         },
       },
-      { new: true },
+      { returnDocument: 'after' }
     );
 
     if (!announcement) {
