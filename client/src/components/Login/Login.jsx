@@ -17,6 +17,7 @@ import AuthLayout from '../Auth/AuthLayout';
 import FormInput from '../Auth/FormInput';
 import SubmitButton from '../Auth/SubmitButton';
 import AlertMessage from '../Auth/AlertMessage';
+import { createPortal } from 'react-dom';
 
 /**
  * Login Component
@@ -64,7 +65,7 @@ const Login = ({ onLoginSuccess = null }) => {
   const [initialPasswordError, setInitialPasswordError] = useState('');
   const [initialPasswordSuccess, setInitialPasswordSuccess] = useState('');
 
-  // navigation - ensure we leave the login page after a successful sign‑in
+  // navigation - ensure we leave the login page after a successful sign-in
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -183,7 +184,7 @@ const Login = ({ onLoginSuccess = null }) => {
 
       // push the user off the login route so AppContent can render the
       // appropriate dashboard for their role. we navigate to the root
-      // because AppContent handles role‑based routing on '/'.
+      // because AppContent handles role-based routing on '/'.
       navigate(getRedirectPath(), { replace: true });
 
       // Call success callback (legacy prop, still supported)
@@ -271,25 +272,24 @@ const Login = ({ onLoginSuccess = null }) => {
     setForgotUsernameHint('');
     setForgotUsernameValue('');
 
-    const emailValidation = validateEmail(forgotUsernameEmail);
-    if (emailValidation) {
-      setForgotUsernameError(emailValidation);
+    if (!forgotUsernameEmail.trim()) {
+      setForgotUsernameError('Phone number is required');
       return;
     }
 
     setForgotUsernameLoading(true);
     try {
       const response = await API.post(AUTH_ENDPOINTS.forgotUsername, {
-        email: forgotUsernameEmail.trim().toLowerCase(),
+        phoneNumber: forgotUsernameEmail.trim(),
       });
 
       const payload = response?.data || {};
       const responseData = payload?.data || {};
-      setForgotUsernameSuccess(payload?.message || 'Username details were sent successfully');
+      setForgotUsernameSuccess(payload?.message || 'Email ID details were sent successfully');
       setForgotUsernameHint(responseData?.usernameHint || '');
       setForgotUsernameValue(responseData?.username || '');
     } catch (err) {
-      setForgotUsernameError(err?.response?.data?.message || err?.message || 'Failed to process forgot username request');
+      setForgotUsernameError(err?.response?.data?.message || err?.message || 'Failed to process forgot email ID request');
     } finally {
       setForgotUsernameLoading(false);
     }
@@ -433,7 +433,7 @@ const Login = ({ onLoginSuccess = null }) => {
                 onClick={() => openRecovery('username')}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
               >
-                Forgot Username?
+                Forgot Email ID?
               </button>
               <button
                 type="button"
@@ -448,274 +448,270 @@ const Login = ({ onLoginSuccess = null }) => {
       )}
 
       {/* Recovery Dialog */}
-      {activeRecovery && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-y-auto">
-          <div className="flex min-h-full items-start justify-center p-3 sm:p-4 md:items-center">
-            <div className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  {activeRecovery === 'username' ? 'Recover Username' : 'Recover Password'}
-                </h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  {activeRecovery === 'username'
-                    ? 'Enter your registered work email to recover your username.'
-                    : 'Request a reset token and set a new password.'}
-                </p>
+      {activeRecovery &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-md p-3 sm:p-4">
+            <div className="w-full max-w-md max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-6">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {activeRecovery === 'username' ? 'Recover Email ID' : 'Recover Password'}
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {activeRecovery === 'username'
+                      ? 'Enter your registered phone number to recover your email ID.'
+                      : 'Request a reset token and set a new password.'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeRecovery}
+                  className="text-slate-500 hover:text-slate-700 text-sm font-semibold"
+                >
+                  Close
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={closeRecovery}
-                className="text-slate-500 hover:text-slate-700 text-sm font-semibold"
-              >
-                Close
-              </button>
-            </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-
-            {activeRecovery === 'username' && (
-              <form onSubmit={handleForgotUsernameSubmit} className="space-y-4">
-                {forgotUsernameError && (
-                  <AlertMessage
-                    type="error"
-                    title="Recovery Failed"
-                    message={forgotUsernameError}
-                    onClose={() => setForgotUsernameError('')}
-                  />
-                )}
-
-                {forgotUsernameSuccess && (
-                  <AlertMessage
-                    type="success"
-                    title="Request Processed"
-                    message={forgotUsernameSuccess}
-                    onClose={() => setForgotUsernameSuccess('')}
-                  />
-                )}
-
-                <FormInput
-                  label="Work Email"
-                  type="email"
-                  id="forgot-username-email"
-                  value={forgotUsernameEmail}
-                  onChange={(e) => setForgotUsernameEmail(e.target.value)}
-                  placeholder="name@ispace.com"
-                  disabled={forgotUsernameLoading}
-                />
-
-                {forgotUsernameHint && (
-                  <div className="text-sm text-slate-700 bg-slate-100 border border-slate-200 rounded-lg p-3 break-words">
-                    Username hint: <span className="font-semibold">{forgotUsernameHint}</span>
-                  </div>
-                )}
-
-                {forgotUsernameValue && (
-                  <div className="text-sm text-slate-700 bg-blue-50 border border-blue-200 rounded-lg p-3 break-words">
-                    Username: <span className="font-semibold">{forgotUsernameValue}</span>
-                  </div>
-                )}
-
-                <SubmitButton
-                  label="Recover Username"
-                  loadingLabel="Processing..."
-                  isLoading={forgotUsernameLoading}
-                  disabled={forgotUsernameLoading}
-                />
-              </form>
-            )}
-
-            {activeRecovery === 'password' && (
-              <div className="space-y-5">
-                <form onSubmit={handleForgotPasswordRequest} className="space-y-4">
-                  {forgotPasswordError && (
-                    <AlertMessage
-                      type="error"
-                      title="Request Failed"
-                      message={forgotPasswordError}
-                      onClose={() => setForgotPasswordError('')}
-                    />
-                  )}
-
-                  {forgotPasswordSuccess && (
-                    <AlertMessage
-                      type="success"
-                      title="Request Submitted"
-                      message={forgotPasswordSuccess}
-                      onClose={() => setForgotPasswordSuccess('')}
-                    />
-                  )}
-
-                  <FormInput
-                    label="Work Email"
-                    type="email"
-                    id="forgot-password-email"
-                    value={forgotPasswordEmail}
-                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    placeholder="name@ispace.com"
-                    disabled={forgotPasswordLoading}
-                  />
-
-                  <SubmitButton
-                    label="Request Reset Token"
-                    loadingLabel="Requesting..."
-                    isLoading={forgotPasswordLoading}
-                    disabled={forgotPasswordLoading}
-                  />
-                </form>
-
-                <div className="border-t border-slate-200 pt-5">
-                  <form onSubmit={handleResetPassword} className="space-y-4">
-                    {resetPasswordError && (
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+                {activeRecovery === 'username' && (
+                  <form onSubmit={handleForgotUsernameSubmit} className="space-y-4">
+                    {forgotUsernameError && (
                       <AlertMessage
                         type="error"
-                        title="Reset Failed"
-                        message={resetPasswordError}
-                        onClose={() => setResetPasswordError('')}
+                        title="Recovery Failed"
+                        message={forgotUsernameError}
+                        onClose={() => setForgotUsernameError('')}
                       />
                     )}
 
-                    {resetPasswordSuccess && (
+                    {forgotUsernameSuccess && (
                       <AlertMessage
                         type="success"
-                        title="Password Updated"
-                        message={resetPasswordSuccess}
-                        onClose={() => setResetPasswordSuccess('')}
+                        title="Request Processed"
+                        message={forgotUsernameSuccess}
+                        onClose={() => setForgotUsernameSuccess('')}
                       />
                     )}
 
                     <FormInput
-                      label="Reset Token"
+                      label="Phone Number"
                       type="text"
-                      id="reset-token"
-                      value={resetToken}
-                      onChange={(e) => setResetToken(e.target.value)}
-                      placeholder="Paste reset token"
-                      helperText="In development, token is shown after requesting. In production, use the token from email."
-                      disabled={resetPasswordLoading}
+                      id="forgot-username-phone"
+                      value={forgotUsernameEmail}
+                      onChange={(e) => setForgotUsernameEmail(e.target.value)}
+                      placeholder="Enter phone number"
+                      disabled={forgotUsernameLoading}
                     />
 
-                    <FormInput
-                      label="New Password"
-                      type="password"
-                      id="new-password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      helperText="Must be at least 8 characters and include uppercase, lowercase, number, and symbol."
-                      disabled={resetPasswordLoading}
-                    />
-
-                    <FormInput
-                      label="Confirm New Password"
-                      type="password"
-                      id="confirm-new-password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Re-enter new password"
-                      disabled={resetPasswordLoading}
-                    />
+                    {forgotUsernameValue && (
+                      <div className="text-sm text-slate-700 bg-blue-50 border border-blue-200 rounded-lg p-3 break-words">
+                        Email ID: <span className="font-semibold">{forgotUsernameValue}</span>
+                      </div>
+                    )}
 
                     <SubmitButton
-                      label="Reset Password"
-                      loadingLabel="Resetting..."
-                      isLoading={resetPasswordLoading}
-                      disabled={resetPasswordLoading}
+                      label="Recover Email ID"
+                      loadingLabel="Processing..."
+                      isLoading={forgotUsernameLoading}
+                      disabled={forgotUsernameLoading}
                     />
                   </form>
-                </div>
+                )}
+
+                {activeRecovery === 'password' && (
+                  <div className="space-y-5">
+                    <form onSubmit={handleForgotPasswordRequest} className="space-y-4">
+                      {forgotPasswordError && (
+                        <AlertMessage
+                          type="error"
+                          title="Request Failed"
+                          message={forgotPasswordError}
+                          onClose={() => setForgotPasswordError('')}
+                        />
+                      )}
+
+                      {forgotPasswordSuccess && (
+                        <AlertMessage
+                          type="success"
+                          title="Request Submitted"
+                          message={forgotPasswordSuccess}
+                          onClose={() => setForgotPasswordSuccess('')}
+                        />
+                      )}
+
+                      <FormInput
+                        label="Work Email"
+                        type="email"
+                        id="forgot-password-email"
+                        value={forgotPasswordEmail}
+                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                        placeholder="name@ispace.com"
+                        disabled={forgotPasswordLoading}
+                      />
+
+                      <SubmitButton
+                        label="Request Reset Token"
+                        loadingLabel="Requesting..."
+                        isLoading={forgotPasswordLoading}
+                        disabled={forgotPasswordLoading}
+                      />
+                    </form>
+
+                    <div className="border-t border-slate-200 pt-5">
+                      <form onSubmit={handleResetPassword} className="space-y-4">
+                        {resetPasswordError && (
+                          <AlertMessage
+                            type="error"
+                            title="Reset Failed"
+                            message={resetPasswordError}
+                            onClose={() => setResetPasswordError('')}
+                          />
+                        )}
+
+                        {resetPasswordSuccess && (
+                          <AlertMessage
+                            type="success"
+                            title="Password Updated"
+                            message={resetPasswordSuccess}
+                            onClose={() => setResetPasswordSuccess('')}
+                          />
+                        )}
+
+                        <FormInput
+                          label="Reset Token"
+                          type="text"
+                          id="reset-token"
+                          value={resetToken}
+                          onChange={(e) => setResetToken(e.target.value)}
+                          placeholder="Paste reset token"
+                          helperText="In development, token is shown after requesting. In production, use the token from email."
+                          disabled={resetPasswordLoading}
+                        />
+
+                        <FormInput
+                          label="New Password"
+                          type="password"
+                          id="new-password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Enter new password"
+                          helperText="Must be at least 8 characters and include uppercase, lowercase, number, and symbol."
+                          disabled={resetPasswordLoading}
+                        />
+
+                        <FormInput
+                          label="Confirm New Password"
+                          type="password"
+                          id="confirm-new-password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Re-enter new password"
+                          disabled={resetPasswordLoading}
+                        />
+
+                        <SubmitButton
+                          label="Reset Password"
+                          loadingLabel="Resetting..."
+                          isLoading={resetPasswordLoading}
+                          disabled={resetPasswordLoading}
+                        />
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
             </div>
-          </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {showInitialPasswordSetup && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 overflow-y-auto">
           <div className="flex min-h-full items-start justify-center p-3 sm:p-4 md:items-center">
             <div className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
-            <div className="border-b border-slate-200 px-4 py-4 sm:px-6">
-              <h2 className="text-xl font-bold text-slate-900">Create Your Password</h2>
-              <p className="text-sm text-slate-600 mt-1">
-                You signed in with a generated temporary password. Enter your new password and confirm it to continue.
-              </p>
+              <div className="border-b border-slate-200 px-4 py-4 sm:px-6">
+                <h2 className="text-xl font-bold text-slate-900">Create Your Password</h2>
+                <p className="text-sm text-slate-600 mt-1">
+                  You signed in with a generated temporary password. Enter your new password and confirm it to continue.
+                </p>
+              </div>
+
+              <form onSubmit={handleInitialPasswordSetup} className="min-h-0 flex flex-1 flex-col">
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+                  <div className="space-y-4">
+                    {initialPasswordError && (
+                      <AlertMessage
+                        type="error"
+                        title="Password Setup Failed"
+                        message={initialPasswordError}
+                        onClose={() => setInitialPasswordError('')}
+                      />
+                    )}
+
+                    {initialPasswordSuccess && (
+                      <AlertMessage
+                        type="success"
+                        title="Password Created"
+                        message={initialPasswordSuccess}
+                        closable={false}
+                      />
+                    )}
+
+                    <FormInput
+                      label="Enter Password"
+                      type="password"
+                      id="initial-password"
+                      value={initialPassword}
+                      onChange={(e) => setInitialPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      helperText="Must be at least 8 characters and include uppercase, lowercase, number, and symbol."
+                      disabled={initialPasswordLoading}
+                    />
+
+                    <FormInput
+                      label="Confirm Password"
+                      type="password"
+                      id="initial-confirm-password"
+                      value={initialConfirmPassword}
+                      onChange={(e) => setInitialConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      disabled={initialPasswordLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await logout();
+                        setShowInitialPasswordSetup(false);
+                        setInitialPassword('');
+                        setInitialConfirmPassword('');
+                        setInitialPasswordError('');
+                        setInitialPasswordSuccess('');
+                      }}
+                      className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors duration-300 font-medium"
+                      disabled={initialPasswordLoading}
+                    >
+                      Sign Out
+                    </button>
+                    <div className="flex-1">
+                      <SubmitButton
+                        label="Save Password"
+                        loadingLabel="Saving..."
+                        isLoading={initialPasswordLoading}
+                        disabled={initialPasswordLoading}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleInitialPasswordSetup} className="min-h-0 flex flex-1 flex-col">
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-              <div className="space-y-4">
-              {initialPasswordError && (
-                <AlertMessage
-                  type="error"
-                  title="Password Setup Failed"
-                  message={initialPasswordError}
-                  onClose={() => setInitialPasswordError('')}
-                />
-              )}
-
-              {initialPasswordSuccess && (
-                <AlertMessage
-                  type="success"
-                  title="Password Created"
-                  message={initialPasswordSuccess}
-                  closable={false}
-                />
-              )}
-
-              <FormInput
-                label="Enter Password"
-                type="password"
-                id="initial-password"
-                value={initialPassword}
-                onChange={(e) => setInitialPassword(e.target.value)}
-                placeholder="Enter new password"
-                helperText="Must be at least 8 characters and include uppercase, lowercase, number, and symbol."
-                disabled={initialPasswordLoading}
-              />
-
-              <FormInput
-                label="Confirm Password"
-                type="password"
-                id="initial-confirm-password"
-                value={initialConfirmPassword}
-                onChange={(e) => setInitialConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                disabled={initialPasswordLoading}
-              />
-              </div>
-              </div>
-
-              <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
-                <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await logout();
-                    setShowInitialPasswordSetup(false);
-                    setInitialPassword('');
-                    setInitialConfirmPassword('');
-                    setInitialPasswordError('');
-                    setInitialPasswordSuccess('');
-                  }}
-                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors duration-300 font-medium"
-                  disabled={initialPasswordLoading}
-                >
-                  Sign Out
-                </button>
-                <div className="flex-1">
-                  <SubmitButton
-                    label="Save Password"
-                    loadingLabel="Saving..."
-                    isLoading={initialPasswordLoading}
-                    disabled={initialPasswordLoading}
-                  />
-                </div>
-                </div>
-              </div>
-            </form>
-          </div>
           </div>
         </div>
       )}

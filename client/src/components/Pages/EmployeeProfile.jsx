@@ -95,19 +95,44 @@ const EmployeeProfile = () => {
     };
   }, [user?.avatar, user?.department, user?.email, user?.name, user?.phone, user?.role]);
 
-  const attendanceStats = useMemo(() => ({
-    present: 20,
-    absent: 2,
-    late: 1,
-    percentage: 91,
-  }), []);
+  // Live attendance and leave stats
+  const [attendanceStats, setAttendanceStats] = useState({ present: 0, absent: 0, late: 0, percentage: 0 });
+  const [leaveStats, setLeaveStats] = useState({ totalLeaves: 0, usedLeaves: 0, sickLeaves: 0, casualLeaves: 0 });
 
-  const leaveStats = useMemo(() => ({
-    totalLeaves: 24,
-    usedLeaves: 8,
-    sickLeaves: 8,
-    casualLeaves: 16,
-  }), []);
+  useEffect(() => {
+    // Fetch attendance summary
+    const fetchAttendanceStats = async () => {
+      try {
+        const res = await API.get('/attendance/monthly-summary');
+        const d = res.data?.data || {};
+        setAttendanceStats({
+          present: d.daysPresent ?? d.presentDays ?? 0,
+          absent: d.daysAbsent ?? d.absentDays ?? 0,
+          late: d.lateDays ?? d.late ?? 0,
+          percentage: d.attendancePercentage ?? d.percentage ?? 0,
+        });
+      } catch {
+        setAttendanceStats({ present: 0, absent: 0, late: 0, percentage: 0 });
+      }
+    };
+    // Fetch leave stats
+    const fetchLeaveStats = async () => {
+      try {
+        const res = await API.get('/leaves/balance');
+        const d = res.data?.data || {};
+        setLeaveStats({
+          totalLeaves: d.totalLeaves ?? 0,
+          usedLeaves: d.usedLeaves ?? 0,
+          sickLeaves: d.sickLeaves ?? 0,
+          casualLeaves: d.casualLeaves ?? 0,
+        });
+      } catch {
+        setLeaveStats({ totalLeaves: 0, usedLeaves: 0, sickLeaves: 0, casualLeaves: 0 });
+      }
+    };
+    fetchAttendanceStats();
+    fetchLeaveStats();
+  }, []);
 
   const handleDraftChange = (field, value) => {
     setDraftProfile((previousProfile) => ({

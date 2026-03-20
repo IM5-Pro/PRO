@@ -153,7 +153,6 @@ const registerHrAdmin = async (req, res) => registerUser(req, res, Roles.HR_ADMI
 const registerManager = async (req, res) => registerUser(req, res, Roles.MANAGER);
 const registerEmployee = async (req, res) => registerUser(req, res, Roles.EMPLOYEE);
 
-
 const login = async (req, res) => {
   try {
     // Validate request body
@@ -352,35 +351,42 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// Forgot username: provide masked username hint, and full username in non-production
+// Forgot username: now works as Forgot Email ID using phone number
 const forgotUsername = async (req, res) => {
   try {
-    const { email } = req.body;
-    const normalizedEmail = normalizeEmail(email);
+    const { phoneNumber } = req.body;
+    const normalizedPhoneNumber = String(phoneNumber || "").trim();
 
-    if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
-      return sendError(res, 400, "A valid email is required");
+    if (!normalizedPhoneNumber) {
+      return sendError(res, 400, "Phone number is required");
     }
 
-    const user = await User.findOne({ email: normalizedEmail }).select("email");
+    const employee = await Employee.findOne({ phoneNumber: normalizedPhoneNumber })
+      .select("_id")
+      .lean();
+
     const responseData = {};
 
-    if (user?.email) {
-      const [localPart, domainPart] = user.email.split("@");
-      const safeLocal = String(localPart || "");
-      const maskedLocal =
-        safeLocal.length <= 2
-          ? `${safeLocal.slice(0, 1)}*`
-          : `${safeLocal.slice(0, 1)}${"*".repeat(Math.max(1, safeLocal.length - 2))}${safeLocal.slice(-1)}`;
+    if (employee?._id) {
+      const user = await User.findOne({ employeeId: employee._id }).select("email").lean();
 
-      responseData.usernameHint = `${maskedLocal}@${domainPart || "ispace.com"}`;
+      if (user?.email) {
+        const [localPart, domainPart] = user.email.split("@");
+        const safeLocal = String(localPart || "");
+        const maskedLocal =
+          safeLocal.length <= 2
+            ? `${safeLocal.slice(0, 1)}*`
+            : `${safeLocal.slice(0, 1)}${"*".repeat(Math.max(1, safeLocal.length - 2))}${safeLocal.slice(-1)}`;
 
-      if (process.env.NODE_ENV !== "production") {
-        responseData.username = user.email;
+        responseData.usernameHint = `${maskedLocal}@${domainPart || "ispace.com"}`;
+
+        if (process.env.NODE_ENV !== "production") {
+          responseData.username = user.email;
+        }
       }
     }
 
-    return sendSuccess(res, 200, "If the email exists, username details have been sent", {
+    return sendSuccess(res, 200, "If the phone number exists, email ID details have been sent", {
       data: responseData,
     });
   } catch (err) {
