@@ -215,3 +215,44 @@ export const ACTIVITIES_ENDPOINTS = {
   pendingDepartments: '/departments?status=pending',
   appraisals: (limit) => withLimit('/performance-reviews/upcoming', limit),
 };
+
+export const EDUCATION_ENDPOINTS = {
+  list: (employeeId) => `/education/${employeeId}`,
+  add: (employeeId) => `/education/${employeeId}`,
+  update: (id) => `/education/${id}`,
+  delete: (id) => `/education/${id}`,
+};
+
+export const EXPERIENCE_ENDPOINTS = {
+  list: (employeeId) => `/experience/${employeeId}`,
+  add: (employeeId) => `/experience/${employeeId}`,
+  update: (id) => `/experience/${id}`,
+  delete: (id) => `/experience/${id}`,
+};
+
+export const PAYROLL_DETAIL_ENDPOINTS = {
+  get: (employeeId) => `/payroll/${employeeId}`,
+  update: (employeeId) => `/payroll/${employeeId}`,
+};
+
+export const PERFORMANCE_ENDPOINTS = {
+  get: (employeeId) => `/performance/${employeeId}`,
+  update: (employeeId) => `/performance/${employeeId}`,
+};
+
+export const DOCUMENT_ENDPOINTS = {
+  list: (employeeId) => `/documents/${employeeId}`,
+  upload: (employeeId) => `/documents/${employeeId}`,
+};
+
+export const ASSET_ENDPOINTS = {
+  list: (employeeId) => `/assets/${employeeId}`,
+  add: (employeeId) => `/assets/${employeeId}`,
+  update: (id) => `/assets/${id}`,
+  delete: (id) => `/assets/${id}`,
+};
+
+export const SYSTEM_ACCESS_ENDPOINTS = {
+  get: (employeeId) => `/system-access/${employeeId}`,
+  update: (employeeId) => `/system-access/${employeeId}`,
+};
