@@ -17,7 +17,7 @@ const AttendanceSheet = () => {
   const [error, setError] = useState(null);
 
   // Stats
-  const [stats, setStats] = useState({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
+  // const [stats, setStats] = useState({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -34,7 +34,7 @@ const AttendanceSheet = () => {
         const attendanceArr = res.data?.attendance || [];
         // Map array to calendar object
         const calendarObj = {};
-        let present = 0, absent = 0, totalHours = 0;
+        // let present = 0, absent = 0, totalHours = 0;
         attendanceArr.forEach((record) => {
           const day = new Date(record.attendanceDate).getDate();
           calendarObj[day] = {
@@ -44,21 +44,21 @@ const AttendanceSheet = () => {
             offType: record.status === 'Absent' ? 'Absent' : null,
             status: record.status,
           };
-          if (record.status === 'Present' || record.status === 'Late' || record.status === 'EarlyCheckout' || record.status === 'HalfDay') present++;
-          if (record.status === 'Absent') absent++;
-          if (record.workingHours) totalHours += record.workingHours;
+          if (record.status === 'Present' || record.status === 'Late' || record.status === 'EarlyCheckout' || record.status === 'HalfDay');
+          // if (record.status === 'Absent') absent++;
+          // if (record.workingHours) totalHours += record.workingHours;
         });
         setAttendanceData(calendarObj);
-        setStats({
-          present,
-          absent,
-          totalHours: totalHours.toFixed(2),
-          avgHours: present ? (totalHours / present).toFixed(2) : '0.00',
-        });
+        // setStats({
+        //   present,
+        //   absent,
+        //   totalHours: totalHours.toFixed(2),
+        //   avgHours: present ? (totalHours / present).toFixed(2) : '0.00',
+        // });
       } catch (err) {
         setError('Failed to load attendance');
         setAttendanceData({});
-        setStats({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
+        // setStats({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
       } finally {
         setLoading(false);
       }
@@ -103,12 +103,14 @@ const AttendanceSheet = () => {
     const data = attendanceData[day] || {};
     const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
     const isWeekend = [0, 6].includes(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay());
+    const defaultShift = 'Day Shift:08:00-20:00';
+    const shiftDisplay = data.shift || defaultShift;
     return (
-      <div className={`min-h-32 rounded-xl shadow-sm transition-all duration-300 ${isToday ? 'bg-gradient-to-br from-blue-100 to-blue-50 border-blue-400 border-2' : isWeekend ? 'bg-gray-50 border-gray-300' : 'bg-white border border-gray-200'} hover:shadow-lg hover:bg-blue-50`}> 
-        <div className={`text-lg font-semibold mb-2 ${isToday ? 'text-blue-700' : 'text-gray-700'}`}>{day}</div>
+      <div className={`min-h-32 rounded-xl shadow-sm transition-all duration-300 ${isToday ? 'bg-gradient-to-br from-blue-100 to-blue-50 border-blue-400 border-2' : isWeekend ? ' text-white border-red-600' : 'bg-white border border-gray-200'} hover:shadow-lg hover:shadow-red-500/40 hover:-translate-y-0.5`}>
+        <div className={`text-lg font-semibold mb-2 ${isToday ? 'text-blue-700' : isWeekend ? 'text-white' : 'text-gray-700'}`}>{day}</div>
         <div className="space-y-1 text-xs">
-          {data.shift && (
-            <div className="bg-gradient-to-r from-amber-700 to-yellow-400 text-white px-2 py-1 rounded font-medium shadow-sm">{data.shift}</div>
+          {shiftDisplay && (
+            <div className="bg-gradient-to-r from-red-700 to-yellow-700 text-white px-2 py-1 rounded font-medium shadow-sm">{shiftDisplay}</div>
           )}
           {data.timeEntry && (
             <div className="bg-gradient-to-r from-blue-500 to-blue-300 text-white px-2 py-1 rounded shadow-sm">{data.timeEntry}</div>
@@ -118,6 +120,9 @@ const AttendanceSheet = () => {
           )}
           {data.offType && (
             <div className="bg-gradient-to-r from-red-500 to-pink-400 text-white px-2 py-1 rounded font-medium shadow-sm">{data.offType}</div>
+          )}
+          {isWeekend && !data.shift && !data.timeEntry && !data.breakTime && !data.offType && (
+            <div className="text-red-600 px-2 py-1 rounded font-medium shadow-sm"></div>
           )}
         </div>
       </div>
@@ -171,25 +176,6 @@ const AttendanceSheet = () => {
             <FiRefreshCw size={18} className="animate-bounce-soft" />
             Sync Attendance
           </button>
-        </div>
-      </div>
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-          <span className="text-green-500 text-2xl font-bold">{stats.present}</span>
-          <span className="text-gray-600 text-sm mt-2">Days Present</span>
-        </div>
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-          <span className="text-red-500 text-2xl font-bold">{stats.absent}</span>
-          <span className="text-gray-600 text-sm mt-2">Days Absent</span>
-        </div>
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-          <span className="text-blue-500 text-2xl font-bold">{stats.totalHours}</span>
-          <span className="text-gray-600 text-sm mt-2">Total Hours</span>
-        </div>
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-          <span className="text-purple-500 text-2xl font-bold">{stats.avgHours}</span>
-          <span className="text-gray-600 text-sm mt-2">Avg Hours/Day</span>
         </div>
       </div>
       {/* Calendar */}

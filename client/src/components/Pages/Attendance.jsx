@@ -30,6 +30,7 @@ const Attendance = () => {
   const [monthlySummary, setMonthlySummary] = useState({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
   const [apiError, setApiError] = useState(null);
   const locationError = !locationLabel && !locationLoading ? 'Location unknown' : null;
+  
 
   // Live clock tick
   useEffect(() => {
@@ -41,13 +42,28 @@ const Attendance = () => {
   const loadMonthlySummary = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await API.get(ATTENDANCE_ENDPOINTS.monthlySummary);
-      const d = res.data?.data || {};
+      const now = new Date();
+      const res = await API.get(ATTENDANCE_ENDPOINTS.own(), {
+        params: {
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+          limit: 31,
+        },
+      });
+      const attendanceArr = res.data?.attendance || [];
+      let present = 0, absent = 0, totalHours = 0;
+      attendanceArr.forEach((record) => {
+        if (record.status === 'Present' || record.status === 'Late' || record.status === 'EarlyCheckout' || record.status === 'HalfDay') {
+          present++;
+        }
+        if (record.status === 'Absent') absent++;
+        if (record.workingHours) totalHours += record.workingHours;
+      });
       setMonthlySummary({
-        present: d.daysPresent ?? d.presentDays ?? 0,
-        absent: d.daysAbsent ?? d.absentDays ?? 0,
-        totalHours: typeof d.totalWorkingHours === 'number' ? d.totalWorkingHours.toFixed(1) : '0.0',
-        avgHours: typeof d.averageWorkingHours === 'number' ? d.averageWorkingHours.toFixed(1) : '0.0',
+        present,
+        absent,
+        totalHours: totalHours.toFixed(1),
+        avgHours: present ? (totalHours / present).toFixed(1) : '0.0',
       });
     } catch {
       // keep defaults
