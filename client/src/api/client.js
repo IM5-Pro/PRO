@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getCookie, removeCookie } from '../utils/cookies';
+import { getCookie, setCookie, removeCookie } from '../utils/cookies';
 
 const AUTH_COOKIE = 'authToken';
 const REFRESH_COOKIE = 'refreshToken';
@@ -51,7 +51,7 @@ API.interceptors.request.use(
 
 API.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error?.response?.status;
     const requestUrl = error?.config?.url || '';
     const isAuthExempt = isAuthExemptRequest(requestUrl);
@@ -59,6 +59,31 @@ API.interceptors.response.use(
     // 403 can be a valid permission denial for logged-in users.
     // Any non-auth 401 means the user session is no longer valid.
     if (status === 401 && !isAuthExempt) {
+      const refreshToken = getCookie(REFRESH_COOKIE);
+      if (refreshToken && !requestUrl.includes('/refresh-token')) {
+        try {
+          const refreshResponse = await axios.post(
+            `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:7888/api'}/auth/refresh-token`,
+            { refreshToken }
+          );
+
+          const refreshed = refreshResponse?.data?.data;
+          if (refreshed?.accessToken) {
+            setCookie(AUTH_COOKIE, refreshed.accessToken, 8 * 60 * 60); // 8h as in AuthContext
+            if (refreshed?.refreshToken) {
+              setCookie(REFRESH_COOKIE, refreshed.refreshToken, 7 * 24 * 60 * 60);
+            }
+            // retry original request with new access token
+            const originalConfig = error.config;
+            originalConfig.headers = originalConfig.headers || {};
+            originalConfig.headers.Authorization = `Bearer ${refreshed.accessToken}`;
+            return axios(originalConfig);
+          }
+        } catch (refreshError) {
+          // refresh failed, continue to logout below
+        }
+      }
+
       clearSessionCookies();
       if (!window.location.pathname.startsWith('/login')) {
         redirectToLoginWithCurrentPath();
