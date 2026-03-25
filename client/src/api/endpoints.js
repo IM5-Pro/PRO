@@ -95,6 +95,7 @@ export const EMPLOYEE_ENDPOINTS = {
   },
   myTeam: (limit) => withLimit('/employees/my-team', limit),
   myProfile: '/employees/me/profile',
+  updateProfile: '/employees/profile/update',
   profile: (employeeId) => `/employees/${employeeId}/profile`,
   activate: (employeeId) => `/employees/${employeeId}/activate`,
   deactivate: (employeeId) => `/employees/${employeeId}/deactivate`,
