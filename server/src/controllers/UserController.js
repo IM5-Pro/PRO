@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import User from "../models/User.js";
+import User from "../models/User.js"; 
 import { sendError, sendSuccess } from "../utils/response.js";
 import { createUserOrThrow } from "../services/userService.js";
 
