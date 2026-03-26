@@ -15,7 +15,7 @@ import {
 } from "../utils/attendanceValidators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 
-const DEFAULT_SHIFT_START = "09:00";
+const DEFAULT_SHIFT_START = "10:00";
 const DEFAULT_SHIFT_END = "18:00";
 const DEFAULT_GRACE_PERIOD_MINUTES = 15;
 const DEFAULT_EARLY_CHECKOUT_THRESHOLD_MINUTES = 30;

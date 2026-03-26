@@ -392,7 +392,7 @@ const ROLE_PERMISSIONS = {
       download_slip: true,
       export: false,
       update_salary: false,
-      view_salary_structure: false,
+      view_salary_structure: true,
       update_salary_structure: false,
       tax_calculate: false,
       tax_update: false,

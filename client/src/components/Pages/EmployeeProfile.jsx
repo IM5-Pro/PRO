@@ -34,10 +34,9 @@ const DEFAULT_PHONE = '+1-234-567-8900';
 const DEFAULT_EMAIL = 'employee@company.com';
 const DEFAULT_BIO = 'Focused on delivering reliable outcomes and collaborating effectively with the team.';
 
+
 const EmployeeProfile = () => {
   const { user = {} } = useAuth();
-  // Removed unused: loading, error, isEditing
-
   const [profile, setProfile] = useState({
     name: user?.name || 'Employee',
     role: formatRole(user?.role || 'EMPLOYEE'),
@@ -49,18 +48,23 @@ const EmployeeProfile = () => {
     joinDate: '',
     bio: DEFAULT_BIO,
     avatar: user?.avatar || '👨‍💼',
+    city: '',
+    state: '',
+    zipCode: '',
+    address: '',
+    emergencyContact: { name: '', relation: '', phone: '' },
   });
-
-  // Removed unused: draftProfile
+  const [editMode, setEditMode] = useState(false);
+  const [editProfile, setEditProfile] = useState(profile);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
-
     const loadProfile = async () => {
       try {
         const response = await API.get(EMPLOYEE_ENDPOINTS.myProfile);
         const employee = response?.data?.data || response?.data || {};
-
         const nextProfile = {
           name: [employee?.firstName, employee?.lastName].filter(Boolean).join(' ') || user?.name || 'Employee',
           role: formatRole(user?.role || 'EMPLOYEE'),
@@ -69,21 +73,23 @@ const EmployeeProfile = () => {
           email: employee?.email || user?.email || DEFAULT_EMAIL,
           phone: employee?.phoneNumber || employee?.phone || user?.phone || DEFAULT_PHONE,
           location: getLocation(employee),
-          joinDate: employee?.joinDate || employee?.joiningDate || '',
           bio: DEFAULT_BIO,
           avatar: user?.avatar || '👨‍💼',
+          city: employee?.city || employee?.address?.city || '',
+          state: employee?.state || employee?.address?.state || '',
+          zipCode: employee?.zipCode || employee?.address?.zipCode || '',
+          address: employee?.addressLine || employee?.address?.street || '',
+          emergencyContact: employee?.emergencyContact || { name: '', relation: '', phone: '' },
         };
-
         if (mounted) {
           setProfile(nextProfile);
+          setEditProfile(nextProfile);
         }
       } catch (err) {
         // Optionally handle error
       }
     };
-
     loadProfile();
-
     return () => {
       mounted = false;
     };
@@ -128,7 +134,54 @@ const EmployeeProfile = () => {
     fetchLeaveStats();
   }, []);
 
-  // Edit handlers are currently unused, reserved for future edit mode
+
+  // Edit handlers
+  const handleEdit = () => {
+    setEditProfile(profile);
+    setEditMode(true);
+    setError('');
+  };
+
+  const handleCancel = () => {
+    setEditMode(false);
+    setEditProfile(profile);
+    setError('');
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setEditProfile((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEmergencyChange = (e) => {
+    const { name, value } = e.target;
+    setEditProfile((prev) => ({
+      ...prev,
+      emergencyContact: { ...prev.emergencyContact, [name]: value },
+    }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      const payload = {
+        phoneNumber: editProfile.phone,
+        address: editProfile.address,
+        city: editProfile.city,
+        state: editProfile.state,
+        zipCode: editProfile.zipCode,
+        emergencyContact: editProfile.emergencyContact,
+      };
+      await API.put(EMPLOYEE_ENDPOINTS.updateProfile, payload);
+      setProfile((prev) => ({ ...prev, ...editProfile }));
+      setEditMode(false);
+    } catch (err) {
+      setError('Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Tab state and config
   const [activeTab, setActiveTab] = useState('overview');
@@ -147,7 +200,7 @@ const EmployeeProfile = () => {
         name={profile.name}
         role={profile.designation || profile.role}
         status={true ? 'active' : 'inactive'}
-        onEdit={() => {}}
+        onEdit={handleEdit}
         onDownload={() => {}}
         onMore={() => {}}
       />
@@ -171,27 +224,72 @@ const EmployeeProfile = () => {
           />
         </div>
         <main className="flex-1 min-w-0">
-          <TabbedContent tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
-            {/* Render tab content based on activeTab */}
-            {activeTab === 'overview' && (
-              <OverviewTab profile={profile} attendanceStats={attendanceStats} leaveStats={leaveStats} />
-            )}
-            {activeTab === 'personal' && (
-              <PersonalTab profile={profile} />
-            )}
-            {activeTab === 'job' && (
-              <JobTab profile={profile} experience={user.experience || []} />
-            )}
-            {activeTab === 'payroll' && (
-              <PayrollTab payroll={user.payroll || { salary: '-', bankName: '-', accountNumber: '-', ifsc: '-', pan: '-', pfNumber: '-', esiNumber: '-', payslips: [] }} />
-            )}
-            {activeTab === 'documents' && (
-              <DocumentsTab documents={user.documents || []} />
-            )}
-            {activeTab === 'performance' && (
-              <PerformanceTab performance={user.performance || { rating: '-', lastReview: '-', goalsMet: '-', feedback: '-', timeline: [] }} />
-            )}
-          </TabbedContent>
+          {editMode ? (
+            <div className="bg-white rounded shadow p-6 max-w-xl mx-auto">
+              <h2 className="text-lg font-semibold mb-4">Edit Profile</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-500">Phone</label>
+                  <input className="input input-bordered w-full" name="phone" value={editProfile.phone} onChange={handleChange} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">Address</label>
+                  <input className="input input-bordered w-full" name="address" value={editProfile.address} onChange={handleChange} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">City</label>
+                  <input className="input input-bordered w-full" name="city" value={editProfile.city} onChange={handleChange} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">State</label>
+                  <input className="input input-bordered w-full" name="state" value={editProfile.state} onChange={handleChange} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">Zip Code</label>
+                  <input className="input input-bordered w-full" name="zipCode" value={editProfile.zipCode} onChange={handleChange} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">Emergency Contact Name</label>
+                  <input className="input input-bordered w-full" name="name" value={editProfile.emergencyContact?.name || ''} onChange={handleEmergencyChange} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">Emergency Contact Relation</label>
+                  <input className="input input-bordered w-full" name="relation" value={editProfile.emergencyContact?.relation || ''} onChange={handleEmergencyChange} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">Emergency Contact Phone</label>
+                  <input className="input input-bordered w-full" name="phone" value={editProfile.emergencyContact?.phone || ''} onChange={handleEmergencyChange} />
+                </div>
+              </div>
+              {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+              <div className="flex gap-2 mt-6">
+                <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <TabbedContent tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
+              {/* Render tab content based on activeTab */}
+              {activeTab === 'overview' && (
+                <OverviewTab profile={profile} attendanceStats={attendanceStats} leaveStats={leaveStats} />
+              )}
+              {activeTab === 'personal' && (
+                <PersonalTab profile={profile} />
+              )}
+              {activeTab === 'job' && (
+                <JobTab profile={profile} experience={user.experience || []} />
+              )}
+              {activeTab === 'payroll' && (
+                <PayrollTab payroll={user.payroll || { salary: '-', bankName: '-', accountNumber: '-', ifsc: '-', pan: '-', pfNumber: '-', esiNumber: '-', payslips: [] }} />
+              )}
+              {activeTab === 'documents' && (
+                <DocumentsTab documents={user.documents || []} />
+              )}
+              {activeTab === 'performance' && (
+                <PerformanceTab performance={user.performance || { rating: '-', lastReview: '-', goalsMet: '-', feedback: '-', timeline: [] }} />
+              )}
+            </TabbedContent>
+          )}
         </main>
       </div>
     </div>
