@@ -335,6 +335,8 @@ export const createEmployeeRecord = async ({
   salary,
   joinDate,
   phoneNumber,
+  managerName,
+  managerEmail,
   managerId,
   city,
   state,

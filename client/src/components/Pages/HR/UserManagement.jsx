@@ -104,7 +104,7 @@ const toDepartmentOption = (department, index) => {
     code: String(department?.code || '').trim(),
     status: String(department?.status || '').trim().toLowerCase(),
     isActive: department?.isActive !== false,
-  };
+  }; 
 };
 
 const toDesignationOption = (designation, index) => {
@@ -1085,32 +1085,66 @@ const HRUserManagement = () => {
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    <input required value={createForm.firstName} onChange={setCreateValue('firstName')} placeholder="First name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    <input required value={createForm.lastName} onChange={setCreateValue('lastName')} placeholder="Last name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    <input required type="email" value={createForm.email} onChange={setCreateValue('email')} placeholder="name@ispace.com" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    <select value={createForm.department} onChange={setCreateValue('department')} disabled={referenceLoading} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
-                      <option value="">Select department</option>
-                      {departmentOptions.map((department) => (
-                        <option key={department.id} value={department.name}>{department.name}</option>
-                      ))}
-                    </select>
-                    <select value={createForm.designation} onChange={setCreateValue('designation')} disabled={referenceLoading || designationLookupLoading || createDesignationOptions.length === 0} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
-                      <option value="">{referenceLoading || designationLookupLoading ? 'Checking designations...' : createDesignationOptions.length === 0 ? 'No designations available' : 'Select designation'}</option>
-                      {createDesignationOptions.map((designation) => (
-                        <option key={designation.id} value={designation.id}>
-                          {designation.name}{designation.departmentName ? ` (${designation.departmentName})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <input value={createForm.salary} onChange={setCreateValue('salary')} placeholder="Salary" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    <input type="date" value={createForm.joinDate} onChange={setCreateValue('joinDate')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    <input value={createForm.phoneNumber} onChange={setCreateValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                    <input type="date" value={createForm.dateOfBirth || ''} onChange={setCreateValue('dateOfBirth')} placeholder="Date of Birth" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                    <select value={createForm.accountRole} onChange={setCreateValue('accountRole')} className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                      <option value="EMPLOYEE">EMPLOYEE</option>
-                      <option value="MANAGER">MANAGER</option>
-                      <option value="HR_ADMIN">HR_ADMIN</option>
-                    </select>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">First Name*</label>
+                      <input required value={createForm.firstName} onChange={setCreateValue('firstName')} placeholder="First name" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Last Name*</label>
+                      <input required value={createForm.lastName} onChange={setCreateValue('lastName')} placeholder="Last name" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Work Email*</label>
+                      <input required type="email" value={createForm.email} onChange={setCreateValue('email')} placeholder="name@ispace.com" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Department*</label>
+                      <select value={createForm.department} onChange={setCreateValue('department')} disabled={referenceLoading} className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
+                        <option value="">Select department</option>
+                        {departmentOptions.map((department) => (
+                          <option key={department.id} value={department.name}>{department.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Designation*</label>
+                      <select value={createForm.designation} onChange={setCreateValue('designation')} disabled={referenceLoading || designationLookupLoading || createDesignationOptions.length === 0} className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500">
+                        <option value="">{referenceLoading || designationLookupLoading ? 'Checking designations...' : createDesignationOptions.length === 0 ? 'No designations available' : 'Select designation'}</option>
+                        {createDesignationOptions.map((designation) => (
+                          <option key={designation.id} value={designation.id}>
+                            {designation.name}{designation.departmentName ? ` (${designation.departmentName})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Salary</label>
+                      <input value={createForm.salary} onChange={setCreateValue('salary')} placeholder="Salary" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Join Date</label>
+                      <input type="date" value={createForm.joinDate} onChange={setCreateValue('joinDate')} className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Phone Number*</label>
+                      <input value={createForm.phoneNumber} onChange={setCreateValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Manager Name</label>
+                      <input value={createForm.managerName} onChange={setCreateValue('managerName')} placeholder="Manager name" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Manager Email</label>
+                      <input type="email" value={createForm.managerEmail} onChange={setCreateValue('managerEmail')} placeholder="manager@ispace.com" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Account Role</label>
+                      <select value={createForm.accountRole} onChange={setCreateValue('accountRole')} className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <option value="EMPLOYEE">EMPLOYEE</option>
+                        <option value="MANAGER">MANAGER</option>
+                        <option value="HR_ADMIN">HR_ADMIN</option>
+                      </select>
+                    </div>
                   </div>
 
                   {createForm.department && !designationLookupLoading && createDesignationOptions.length === 0 && (
