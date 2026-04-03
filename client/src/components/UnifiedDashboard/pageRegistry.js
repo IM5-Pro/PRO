@@ -26,6 +26,7 @@ import DepartmentsAdminPage from '../Pages/SuperAdmin/DepartmentsAdmin';
 import RolesPermissionsAdminPage from '../Pages/SuperAdmin/RolesPermissionsAdmin';
 import SystemSettingsAdminPage from '../Pages/SuperAdmin/SystemSettingsAdmin';
 import AuditLogsAdminPage from '../Pages/SuperAdmin/AuditLogsAdmin';
+import RoleTransferAdmin from '../Pages/SuperAdmin/RoleTransferAdmin';
 
 export const STANDARD_PAGE_COMPONENTS = {
   dashboard: DashboardPage,
@@ -45,6 +46,7 @@ export const STANDARD_PAGE_COMPONENTS = {
   'roles-permissions': RolesPermissionsAdminPage,
   'system-settings': SystemSettingsAdminPage,
   'audit-logs': AuditLogsAdminPage,
+  'role-transfer': RoleTransferAdmin,
 };
 
 export const HR_PAGE_COMPONENTS = {

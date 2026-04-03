@@ -257,3 +257,20 @@ export const SYSTEM_ACCESS_ENDPOINTS = {
   get: (employeeId) => `/system-access/${employeeId}`,
   update: (employeeId) => `/system-access/${employeeId}`,
 };
+
+export const NOTIFICATION_ENDPOINTS = {
+  list: (limit) => withLimit('/notifications', limit),
+  all: '/notifications/all',
+  unread: '/notifications/unread-count',
+  mark: (notificationId) => `/notifications/${notificationId}/read`,
+  markAll: '/notifications/mark-all-read',
+  delete: (notificationId) => `/notifications/${notificationId}`,
+  deleteAll: '/notifications/delete-all',
+  summary: '/notifications/summary',
+  pendingApprovals: '/notifications/pending-approvals',
+  leavePending: '/notifications/leaves/pending',
+  attendanceIssues: '/notifications/attendance/issues',
+  payrollUpdates: '/notifications/payroll/updates',
+  announcements: '/notifications/announcements',
+  systemAlerts: '/notifications/system/alerts',
+};

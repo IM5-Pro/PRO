@@ -7,6 +7,7 @@ import User from "../models/User.js";
 import Roles from "../constants/roles.js";
 import mongoose from "mongoose";
 import { sendError, sendSuccess } from "../utils/response.js";
+import * as notificationService from "../services/notificationService.js";
 
 const ACTIVE_LEAVE_STATUSES = ["PENDING", "APPROVED"];
 
@@ -281,6 +282,54 @@ const applyLeave = async (req, res) => {
     );
 
     await session.commitTransaction();
+
+    // Send notifications after transaction commits
+    try {
+      const employee = await Employee.findById(employeeId);
+      console.log('Employee found:', employee?._id, 'managerId:', employee?.managerId);
+      
+      // Get manager's User ID - User has employeeId that references Employee
+      let managerUserId = null;
+      let managerEmployeeId = employee?.managerId;
+      
+      if (managerEmployeeId) {
+        console.log('Looking for manager User with employeeId:', managerEmployeeId);
+        const managerUser = await User.findOne({ employeeId: managerEmployeeId });
+        
+        if (managerUser) {
+          managerUserId = managerUser._id;
+          console.log('✅ Manager User found:', managerUserId, 'with employeeId:', managerEmployeeId);
+        } else {
+          console.log('❌ No User found with employeeId:', managerEmployeeId);
+          console.log('  Checking all users with employeeId...');
+          const allUsersWithEmployeeId = await User.find({ employeeId: { $exists: true } }).select('_id email employeeId');
+          console.log('  Users with employeeId:', allUsersWithEmployeeId.map(u => ({ id: u._id, employeeId: u.employeeId, email: u.email })));
+        }
+      } else {
+        console.log('❌ Employee has no managerId set');
+      }
+      
+      const hrAdminIds = (await User.find({ role: 'HR_ADMIN' })).map(u => u._id);
+      const leaveTypeData = await LeaveType.findById(leaveTypeId);
+      
+      console.log('Creating leave notification for manager:', managerUserId, 'and', hrAdminIds.length, 'HR admins');
+      
+      await notificationService.notifyLeaveRequest({
+        employeeId,
+        managerId: managerUserId,
+        hrAdminIds,
+        leaveId: request._id,
+        leaveType: leaveTypeData?.name || 'Leave',
+        startDate: request.startDate,
+        endDate: request.endDate,
+        reason: request.reason,
+      });
+      
+      console.log('Leave notification created successfully for leave ID:', request._id);
+    } catch (notifError) {
+      console.error('Leave notification error:', notifError.message, notifError.stack);
+      // Don't fail the main operation if notification fails
+    }
 
     return sendSuccess(res, 200, "Leave applied successfully", { data: request });
   } catch (err) {
@@ -611,6 +660,29 @@ const approveLeave = async (req, res) => {
       description: "Approved leave request",
     });
 
+    // Send notification to employee
+    try {
+      const employee = await Employee.findById(request.employeeId);
+      console.log('Approving leave for employee:', request.employeeId, 'Employee name:', employee?.firstName);
+      
+      const leaveTypeData = await LeaveType.findById(request.leaveTypeId);
+      console.log('Leave type:', leaveTypeData?.name);
+      
+      await notificationService.notifyLeaveApproval({
+        employeeId: request.employeeId,
+        leaveId: request._id,
+        leaveType: leaveTypeData?.name || 'Leave',
+        startDate: request.startDate,
+        endDate: request.endDate,
+        approvedBy: req.user.id,
+      });
+      
+      console.log('Leave approval notification created successfully for employee:', request.employeeId);
+    } catch (notifError) {
+      console.error('Leave approval notification error:', notifError.message, notifError.stack);
+      // Don't fail the main operation
+    }
+
     return sendSuccess(res, 200, "Leave approved successfully", { data: request });
   } catch (err) {
     return sendError(res, 500, "Internal server error", { error: err.message });
@@ -660,6 +732,31 @@ const rejectLeave = async (req, res) => {
     );
 
     await session.commitTransaction();
+
+    // Send notification to employee
+    try {
+      const employee = await Employee.findById(request.employeeId);
+      console.log('Rejecting leave for employee:', request.employeeId, 'Employee name:', employee?.firstName);
+      
+      const leaveTypeData = await LeaveType.findById(request.leaveTypeId);
+      console.log('Leave type:', leaveTypeData?.name);
+      
+      await notificationService.notifyLeaveRejection({
+        employeeId: request.employeeId,
+        leaveId: request._id,
+        leaveType: leaveTypeData?.name || 'Leave',
+        startDate: request.startDate,
+        endDate: request.endDate,
+        rejectionReason: req.body.reason || 'Not specified',
+        rejectedBy: req.user.id,
+      });
+      
+      console.log('Leave rejection notification created successfully for employee:', request.employeeId);
+    } catch (notifError) {
+      console.error('Leave rejection notification error:', notifError.message, notifError.stack);
+      // Don't fail the main operation
+    }
+
     return sendSuccess(res, 200, "Leave rejected successfully", { data: request });
   } catch (err) {
     await session.abortTransaction();
