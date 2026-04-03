@@ -51,6 +51,7 @@ const PAGE_ICON_COMPONENTS = {
   'system-settings': FiSettings,
   'audit-logs': FiFileText,
   'ui-components': FiGrid,
+  'role-transfer': FiShield,
 };
 
 export const attachMonoIconsToPages = (pages = []) => {
@@ -151,6 +152,7 @@ export const ROLE_DASHBOARD_CONFIG = {
       { id: 'departments', label: 'Department Admin', icon: FiBriefcase, category: 'governance', description: 'Department setup and structural governance' },
       { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'governance', description: 'Create and send announcements to employees' },
       { id: 'roles-permissions', label: 'Access Control', icon: FiLock, category: 'governance', description: 'Roles, permissions, and assignment management' },
+      { id: 'role-transfer', label: 'Role Transfer', icon: FiShield, category: 'governance', description: 'Transfer super admin credentials to another person' },
       { id: 'system-settings', label: 'Platform Settings', icon: FiSettings, category: 'system', description: 'Core tenant and policy configuration' },
       { id: 'audit-logs', label: 'Compliance Logs', icon: FiFileText, category: 'system', description: 'Security and compliance activity trails' },
       { id: 'ui-components', label: 'UI Components', icon: FiGrid, category: 'system', description: 'Browse all dashboard widgets and cards' },
