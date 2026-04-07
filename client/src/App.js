@@ -10,6 +10,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PunchProvider } from './context/PunchContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Login from './components/Login/Login';
 import Register from './components/Register/Register';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
@@ -104,20 +105,22 @@ const AppContent = () => {
 
   return (
     <ProtectedRoute requiredRole={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN, ROLES.SUPER_ADMIN]}>
-      <Routes>
-        {/* ============================================================
-            PUNCH IN/OUT ROUTE - employee only
-            ============================================================ */}
-        <Route
-          path="/punch"
-          element={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN].includes(userRole) ? <PunchInOut /> : <Navigate to="/" replace />}
-        />
+      <NotificationProvider userRole={userRole}>
+        <Routes>
+          {/* ============================================================
+              PUNCH IN/OUT ROUTE - employee only
+              ============================================================ */}
+          <Route
+            path="/punch"
+            element={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN].includes(userRole) ? <PunchInOut /> : <Navigate to="/" replace />}
+          />
 
-        {/* ============================================================
-            COMMON DASHBOARD FOR ALL ROLES
-            ============================================================ */}
-        <Route path="/*" element={<UnifiedDashboard />} />
-      </Routes>
+          {/* ============================================================
+              COMMON DASHBOARD FOR ALL ROLES
+              ============================================================ */}
+          <Route path="/*" element={<UnifiedDashboard />} />
+        </Routes>
+      </NotificationProvider>
     </ProtectedRoute>
   );
 };

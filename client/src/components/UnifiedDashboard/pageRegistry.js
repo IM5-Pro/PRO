@@ -30,6 +30,7 @@ import RolesPermissionsAdminPage from '../Pages/SuperAdmin/RolesPermissionsAdmin
 import SystemSettingsAdminPage from '../Pages/SuperAdmin/SystemSettingsAdmin';
 import AuditLogsAdminPage from '../Pages/SuperAdmin/AuditLogsAdmin';
 import ResignationAdminViewPage from '../Pages/SuperAdmin/ResignationAdminView';
+import RoleTransferAdmin from '../Pages/SuperAdmin/RoleTransferAdmin';
 
 export const STANDARD_PAGE_COMPONENTS = {
   dashboard: DashboardPage,
@@ -50,6 +51,7 @@ export const STANDARD_PAGE_COMPONENTS = {
   'roles-permissions': RolesPermissionsAdminPage,
   'system-settings': SystemSettingsAdminPage,
   'audit-logs': AuditLogsAdminPage,
+  'role-transfer': RoleTransferAdmin,
 };
 
 export const MANAGER_PAGE_COMPONENTS = {
@@ -83,4 +85,5 @@ export const SUPER_ADMIN_PAGE_COMPONENTS = {
   'system-settings': SystemSettingsAdminPage,
   'audit-logs': AuditLogsAdminPage,
   'resignation': ResignationAdminViewPage,
+  'role-transfer': RoleTransferAdmin,
 };
