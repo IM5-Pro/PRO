@@ -11,6 +11,8 @@ import PerformancePage from '../Pages/Performance';
 import ReportsPage from '../Pages/Reports';
 import SettingsPortalPage from '../Pages/Settings';
 import TeamCollaborationPage from '../Pages/TeamCollaboration';
+import MyResignationPage from '../Pages/MyResignation';
+import ResignationApprovalsPage from '../Pages/ResignationApprovals';
 import DashboardOverviewPage from '../Pages/HR/DashboardOverview';
 import LeavesAttendancePage from '../Pages/HR/LeavesAttendance';
 import ManpowerPlanningPage from '../Pages/HR/ManpowerPlanning';
@@ -22,10 +24,12 @@ import LetterTemplatesPage from '../Pages/HR/LetterTemplates';
 import UserManagementPage from '../Pages/HR/UserManagement';
 import MastersPage from '../Pages/HR/Masters';
 import AdminPanelConfigPage from '../Pages/HR/AdminPanelConfig';
+import ResignationManagementPage from '../Pages/HR/ResignationManagement';
 import DepartmentsAdminPage from '../Pages/SuperAdmin/DepartmentsAdmin';
 import RolesPermissionsAdminPage from '../Pages/SuperAdmin/RolesPermissionsAdmin';
 import SystemSettingsAdminPage from '../Pages/SuperAdmin/SystemSettingsAdmin';
 import AuditLogsAdminPage from '../Pages/SuperAdmin/AuditLogsAdmin';
+import ResignationAdminViewPage from '../Pages/SuperAdmin/ResignationAdminView';
 
 export const STANDARD_PAGE_COMPONENTS = {
   dashboard: DashboardPage,
@@ -41,10 +45,20 @@ export const STANDARD_PAGE_COMPONENTS = {
   reports: ReportsPage,
   settings: SettingsPortalPage,
   'team-collaboration': TeamCollaborationPage,
+  'resignation': MyResignationPage,
   departments: DepartmentsAdminPage,
   'roles-permissions': RolesPermissionsAdminPage,
   'system-settings': SystemSettingsAdminPage,
   'audit-logs': AuditLogsAdminPage,
+};
+
+export const MANAGER_PAGE_COMPONENTS = {
+  dashboard: DashboardPage,
+  attendance: AttendancePage,
+  announcements: AnnouncementsPage,
+  analytics: AnalyticsPage,
+  'team-collaboration': TeamCollaborationPage,
+  'resignation': ResignationApprovalsPage,
 };
 
 export const HR_PAGE_COMPONENTS = {
@@ -60,4 +74,13 @@ export const HR_PAGE_COMPONENTS = {
   'user-management': UserManagementPage,
   masters: MastersPage,
   'admin-panel-config': AdminPanelConfigPage,
+  'resignation': ResignationManagementPage,
+};
+
+export const SUPER_ADMIN_PAGE_COMPONENTS = {
+  departments: DepartmentsAdminPage,
+  'roles-permissions': RolesPermissionsAdminPage,
+  'system-settings': SystemSettingsAdminPage,
+  'audit-logs': AuditLogsAdminPage,
+  'resignation': ResignationAdminViewPage,
 };

@@ -139,6 +139,18 @@ const ROLE_PERMISSIONS = {
       list: true,
       assign: true,
     },
+
+    // Resignation Management
+    resignations: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+      list: true,
+      approve: true,
+      reject: true,
+      cancel: true,
+    },
   },
 
   HR_ADMIN: {
@@ -274,6 +286,18 @@ const ROLE_PERMISSIONS = {
       delete: false, // Cannot delete
       list: true,
       assign: true,
+    },
+
+    // Resignation Management
+    resignations: {
+      create: true,
+      read: true,
+      update: true,
+      delete: false,
+      list: true,
+      approve: true,
+      reject: true,
+      cancel: false,
     },
   },
 
@@ -411,6 +435,18 @@ const ROLE_PERMISSIONS = {
       list: true, // Can list designations
       assign: false,
     },
+
+    // Resignation Management
+    resignations: {
+      create: true,
+      read: true,
+      update: true,
+      delete: false,
+      list: true, // Team resignations
+      approve: true, // Approve team resignations
+      reject: true,
+      cancel: false,
+    },
   },
 
   EMPLOYEE: {
@@ -546,6 +582,18 @@ const ROLE_PERMISSIONS = {
       delete: false,
       list: false,
       assign: false,
+    },
+
+    // Resignation Management
+    resignations: {
+      create: true, // Can submit own resignation
+      read: true,
+      update: true, // Update own pending resignation
+      delete: false,
+      list: false,
+      approve: false,
+      reject: false,
+      cancel: true, // Cancel own pending resignation
     },
   },
 
@@ -693,6 +741,18 @@ const ROLE_PERMISSIONS = {
       list: true,
       assign_manager: false,
     },
+
+    // Resignation Management (department-scoped)
+    resignations: {
+      create: true,
+      read: true,
+      update: true,
+      delete: false,
+      list: true, // Department resignations only
+      approve: true, // Department-scoped approvals
+      reject: true,
+      cancel: false,
+    },
   },
 
   FINANCE: {
@@ -731,6 +791,16 @@ const ROLE_PERMISSIONS = {
       deduction_add: false,
       lock: false,
       unlock: false,
+    },
+    resignations: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false,
+      list: false,
+      approve: false,
+      reject: false,
+      cancel: false,
     },
   },
 };

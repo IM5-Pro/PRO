@@ -257,3 +257,23 @@ export const SYSTEM_ACCESS_ENDPOINTS = {
   get: (employeeId) => `/system-access/${employeeId}`,
   update: (employeeId) => `/system-access/${employeeId}`,
 };
+
+export const RESIGNATION_ENDPOINTS = {
+  create: '/resignations',
+  myResignation: '/resignations/my',
+  teamResignations: '/resignations/team',
+  all: (options = {}) => {
+    const params = [];
+    if (options.status) params.push(`status=${encodeURIComponent(options.status)}`);
+    if (options.limit) params.push(`limit=${encodeURIComponent(options.limit)}`);
+    if (options.skip) params.push(`skip=${encodeURIComponent(options.skip)}`);
+    if (options.sortBy) params.push(`sortBy=${encodeURIComponent(options.sortBy)}`);
+    return params.length > 0 ? `/resignations/all?${params.join('&')}` : '/resignations/all';
+  },
+  get: (resignationId) => `/resignations/${resignationId}`,
+  update: (resignationId) => `/resignations/${resignationId}`,
+  approve: (resignationId) => `/resignations/${resignationId}/approve`,
+  reject: (resignationId) => `/resignations/${resignationId}/reject`,
+  cancel: (resignationId) => `/resignations/${resignationId}/cancel`,
+  stats: '/resignations/stats',
+};

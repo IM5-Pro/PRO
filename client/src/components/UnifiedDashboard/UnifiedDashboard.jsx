@@ -18,7 +18,7 @@ import {
   ROLE_DASHBOARD_CONFIG,
   SINGLE_DASHBOARD_ROLES,
 } from './UnifiedDashboardConfig';
-import { HR_PAGE_COMPONENTS, STANDARD_PAGE_COMPONENTS } from './pageRegistry';
+import { HR_PAGE_COMPONENTS, STANDARD_PAGE_COMPONENTS, MANAGER_PAGE_COMPONENTS, SUPER_ADMIN_PAGE_COMPONENTS } from './pageRegistry';
 import DashboardHome from './components/DashboardHome';
 import RolePage from './components/RolePage';
 import UnifiedComponentsGallery from './components/UnifiedComponentsGallery';
@@ -215,6 +215,47 @@ const UnifiedDashboard = () => {
   }, []);
 
   const renderPageContent = () => {
+    if (userRole === ROLES.SUPER_ADMIN) {
+      if (currentPage === 'dashboard') {
+        return (
+          <DashboardHome
+            heading={roleConfig.heading}
+            subtitle={roleConfig.subtitle}
+            widgets={dashboardWidgets}
+            pages={roleConfig.pages}
+            onNavigate={handleNavigate}
+            loading={dashboardLoading}
+          />
+        );
+      }
+
+      const SuperAdminPage = SUPER_ADMIN_PAGE_COMPONENTS[currentPage];
+      if (SuperAdminPage) {
+        return <SuperAdminPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
+      }
+
+      const superAdminPage = roleConfig.pages.find((item) => item.id === currentPage);
+      if (superAdminPage) {
+        return (
+          <RolePage
+            title={superAdminPage.label}
+            description={superAdminPage.description}
+            role={userRole}
+            pageId={currentPage}
+          />
+        );
+      }
+
+      return (
+        <RolePage
+          title="Admin Module"
+          description="Live module data is unavailable for the selected page."
+          role={userRole}
+          pageId={currentPage}
+        />
+      );
+    }
+
     if (userRole === ROLES.HR_ADMIN) {
       if (currentPage === 'dashboard') {
         return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
@@ -250,9 +291,9 @@ const UnifiedDashboard = () => {
         return <LeavesPage />;
       }
 
-      const ManagerPage = STANDARD_PAGE_COMPONENTS[currentPage];
+      const ManagerPage = MANAGER_PAGE_COMPONENTS[currentPage];
       if (ManagerPage) {
-        return <ManagerPage />;
+        return <ManagerPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
       }
 
       const managerPage = roleConfig.pages.find((item) => item.id === currentPage);
@@ -308,6 +349,13 @@ const UnifiedDashboard = () => {
 
     if (currentPage === 'payroll') {
       return <PayrollPage />;
+    }
+
+    if (userRole === ROLES.SUPER_ADMIN) {
+      const SuperAdminPage = SUPER_ADMIN_PAGE_COMPONENTS[currentPage];
+      if (SuperAdminPage) {
+        return <SuperAdminPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
+      }
     }
 
     const StandardPage = STANDARD_PAGE_COMPONENTS[currentPage];
