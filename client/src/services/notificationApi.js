@@ -239,6 +239,7 @@ const toPayload = (response) => {
 const formatNotification = (notification) => {
   if (!notification) return null;
 
+  
   return {
     id: notification._id || notification.id,
     type: notification.type || NOTIFICATION_TYPES.SYSTEM_ALERT,
