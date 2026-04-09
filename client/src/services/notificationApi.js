@@ -250,6 +250,8 @@ const formatNotification = (notification) => {
     timestamp: notification.createdAt || new Date(),
     read: notification.read || false,
     actionUrl: notification.actionUrl || null,
+    referenceId: notification.referenceId || null,
+    referenceType: notification.referenceType || null,
     metadata: notification.metadata || {},
   };
 };
@@ -723,7 +725,7 @@ export const fetchComprehensiveNotifications = async () => {
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    await API.put(NOTIFICATION_ENDPOINTS.mark(notificationId));
+    await API.patch(NOTIFICATION_ENDPOINTS.mark(notificationId));
     return true;
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -737,7 +739,7 @@ export const markNotificationAsRead = async (notificationId) => {
  */
 export const markAllNotificationsAsRead = async () => {
   try {
-    await API.put(NOTIFICATION_ENDPOINTS.markAll);
+    await API.patch(NOTIFICATION_ENDPOINTS.markAll);
     return true;
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
