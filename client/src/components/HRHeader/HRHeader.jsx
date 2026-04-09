@@ -18,6 +18,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { FiSearch, FiBell, FiChevronDown, FiUser, FiLogOut, FiSettings, FiLogIn } from 'react-icons/fi';
 import { usePunch } from '../../context/PunchContext';
 import { useNotifications } from '../../context/NotificationContext';
+import NotificationsPanel from '../Notifications/NotificationsPanel';
 
 /**
  * Validation constants for header inputs
@@ -58,7 +59,7 @@ const HRHeader = ({
   const { canPunch, punchStatus, loading: punchLoading, locationLabel: punchLocationLabel, punchIn: handlePunchIn, punchOut: handlePunchOut } = usePunch();
 
   // Notification state and actions from context
-  const { notifications, unreadCount, markAllAsRead } = useNotifications();
+  const { unreadCount } = useNotifications();
 
   // ============================================================================
   // EFFECTS
@@ -83,26 +84,23 @@ const HRHeader = ({
    */
   useEffect(() => {
     const handleClickOutside = (e) => {
-      const notificationTrigger = document.querySelector('[data-menu-trigger="notifications"]');
       const profileTrigger = document.querySelector('[data-menu-trigger="profile"]');
       
-      const isNotificationClick = notificationTrigger?.contains(e.target) || e.target.closest('[data-menu-trigger="notifications"]');
       const isProfileClick = profileTrigger?.contains(e.target) || e.target.closest('[data-menu-trigger="profile"]');
       
-      if (!isNotificationClick && showNotifications) {
-        setShowNotifications(false);
-      }
+      // NotificationsPanel is a modal, so don't close it from outside click
+      // It will close through its own onClose handler
       
       if (!isProfileClick && showProfileMenu) {
         setShowProfileMenu(false);
       }
     };
 
-    if (showNotifications || showProfileMenu) {
+    if (showProfileMenu) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [showNotifications, showProfileMenu]);
+  }, [showProfileMenu]);
 
   // ============================================================================
   // VALIDATION FUNCTIONS
@@ -211,17 +209,6 @@ const HRHeader = ({
     [user, onProfileClick, validateUserData]
   );
 
-  /**
-   * Mark all notifications as read
-   */
-  const handleMarkAllAsRead = useCallback(() => {
-    try {
-      markAllAsRead();
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-    }
-  }, [markAllAsRead]);
-
   // ============================================================================
   // FORMATTED DATA
   // ============================================================================
@@ -314,15 +301,6 @@ const HRHeader = ({
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
   }, [user.role]);
-
-  const notificationItems = useMemo(() => {
-    return notifications.slice(0, 3).map((notif) => ({
-      id: notif.id,
-      title: notif.message || notif.title,
-      time: notif.timeAgo || 'Just now',
-      read: notif.read,
-    }));
-  }, [notifications]);
 
   // ============================================================================
   // COMPONENT RENDER
@@ -428,43 +406,11 @@ const HRHeader = ({
               )}
             </button>
 
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <div
-                className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-50 top-full"
-                role="dialog"
-                aria-label="Notifications"
-              >
-                <div className="p-4 border-b border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-slate-800 font-semibold">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllAsRead}
-                        className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  {unreadCount > 0 ? (
-                    <div className="space-y-3">
-                      {notificationItems.map((item) => (
-                        <div key={item.id} className="p-3 bg-slate-100/80 rounded-lg hover:bg-slate-200/80 transition-colors cursor-pointer border border-slate-200">
-                          <p className="text-sm text-slate-800">{item.title}</p>
-                          <p className="text-xs text-slate-600 mt-1">{item.time}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-slate-500 text-center text-sm">No new notifications</p>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* NotificationsPanel Modal */}
+            <NotificationsPanel
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+            />
           </div>
 
           {/* User Profile Menu */}

@@ -9,6 +9,7 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiX,
   FiTrash2,
@@ -36,9 +37,70 @@ const NotificationBadge = ({ count, highlight = false }) => {
 };
 
 /**
+ * Helper function to determine navigation path based on notification type
+ */
+const getNavigationPath = (notification) => {
+  const { type } = notification;
+  
+  // Leave-related notifications
+  if (type.includes('leave')) {
+    return `/?page=leaves`;
+  }
+  
+  // Attendance-related notifications
+  if (type.includes('attendance')) {
+    return `/?page=attendance`;
+  }
+  
+  // Payroll-related notifications
+  if (type.includes('payroll') || type.includes('salary') || type.includes('reimbursement')) {
+    return `/?page=payroll`;
+  }
+  
+  // Performance-related notifications
+  if (type.includes('performance') || type.includes('review') || type.includes('feedback')) {
+    return `/?page=performance`;
+  }
+  
+  // Meeting-related notifications
+  if (type.includes('meeting') || type.includes('one_on_one')) {
+    return `/?page=team-collaboration`;
+  }
+  
+  // Asset-related notifications
+  if (type.includes('asset') || type.includes('system_access')) {
+    return `/?page=team-collaboration`;
+  }
+  
+  // Document-related notifications
+  if (type.includes('document')) {
+    return `/?page=team-collaboration`;
+  }
+  
+  // Training-related notifications
+  if (type.includes('training') || type.includes('certification')) {
+    return `/?page=team-collaboration`;
+  }
+  
+  // Announcement notifications
+  if (type === 'announcement') {
+    return `/?page=announcements`;
+  }
+  
+  // Role/designation/department change
+  if (type.includes('role') || type.includes('designation') || type.includes('department') || type.includes('team_membership')) {
+    return `/?page=employee-profile`;
+  }
+  
+  // Default fallback to dashboard
+  return `/`;
+};
+
+/**
  * Individual notification item
  */
-const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
+const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose }) => {
+  const navigate = useNavigate();
   const [hovering, setHovering] = useState(false);
 
   const handleMarkAsRead = (e) => {
@@ -53,8 +115,25 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
     onDelete(notification.id);
   };
 
+  const handleNotificationClick = () => {
+    // Mark as read if not already
+    if (!notification.read) {
+      onMarkAsRead(notification.id);
+    }
+    
+    // Navigate to the appropriate page
+    const path = getNavigationPath(notification);
+    navigate(path);
+    
+    // Close the notification panel
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <div
+      onClick={handleNotificationClick}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       className={`group p-4 rounded-lg border transition-all duration-200 cursor-pointer ${
@@ -63,9 +142,9 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
           : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
       } ${
         notification.priority === 'urgent'
-          ? 'border-red-300 bg-red-50'
+          ? 'border-red-300 bg-red-50 hover:bg-red-100'
           : notification.priority === 'high'
-          ? 'border-orange-300 bg-orange-50'
+          ? 'border-orange-300 bg-orange-50 hover:bg-orange-100'
           : ''
       }`}
     >
@@ -370,6 +449,7 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
                   notification={notification}
                   onMarkAsRead={markAsRead}
                   onDelete={removeNotification}
+                  onClose={onClose}
                 />
               ))}
             </div>
