@@ -128,10 +128,63 @@ const countNewJoiners = (employees) => {
   const monthEnd = getMonthEnd();
 
   return employees.filter((emp) => {
-    if (!emp?.joiningDate) return false;
-    const joinDate = new Date(emp.joiningDate);
+    const dateValue = emp?.joiningDate || emp?.dateOfJoining || emp?.createdAt;
+    if (!dateValue) return false;
+
+    const joinDate = new Date(dateValue);
+    if (Number.isNaN(joinDate.getTime())) return false;
+
     return joinDate >= monthStart && joinDate <= monthEnd;
   }).length;
+};
+
+const isDateInCurrentMonth = (dateValue) => {
+  if (!dateValue) return false;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+};
+
+const doesLeaveOverlapCurrentMonth = (leaveRequest) => {
+  if (!leaveRequest) return false;
+
+  const start = new Date(leaveRequest.startDate || leaveRequest.start || leaveRequest.createdAt);
+  const end = new Date(leaveRequest.endDate || leaveRequest.end || leaveRequest.createdAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return isDateInCurrentMonth(leaveRequest.createdAt || leaveRequest.updatedAt);
+  }
+
+  const monthStart = getMonthStart();
+  const monthEnd = getMonthEnd();
+  return !(end < monthStart || start > monthEnd);
+};
+
+const countPendingLeaves = (leaveRequests) => {
+  if (!Array.isArray(leaveRequests)) return 0;
+
+  return leaveRequests.filter((req) => {
+    const status = String(req?.status || '').toUpperCase();
+    return status === 'PENDING' && doesLeaveOverlapCurrentMonth(req);
+  }).length;
+};
+
+const getPayrollRunDate = (run) => {
+  if (!run) return null;
+  if (run?.month) {
+    const parsedMonth = new Date(run.month);
+    if (!Number.isNaN(parsedMonth.getTime())) {
+      return parsedMonth;
+    }
+  }
+  if (run?.createdAt) {
+    const createdAt = new Date(run.createdAt);
+    if (!Number.isNaN(createdAt.getTime())) {
+      return createdAt;
+    }
+  }
+  return null;
 };
 
 /**
@@ -142,13 +195,19 @@ const countNewJoiners = (employees) => {
 const calculatePayrollCompletion = (payrollData) => {
   if (!Array.isArray(payrollData) || payrollData.length === 0) return 0;
 
-  // Count processed/completed payroll records
-  const completedCount = payrollData.filter((pr) => {
+  const currentMonthPayrolls = payrollData.filter((pr) => {
+    const payrollDate = getPayrollRunDate(pr);
+    return payrollDate && isDateInCurrentMonth(payrollDate);
+  });
+
+  if (currentMonthPayrolls.length === 0) return 0;
+
+  const completedCount = currentMonthPayrolls.filter((pr) => {
     const status = String(pr?.status || '').toLowerCase();
-    return status === 'processed' || status === 'completed' || status === 'finalized';
+    return status === 'processed' || status === 'paid' || status === 'locked' || status === 'finalized';
   }).length;
 
-  const percentage = (completedCount / payrollData.length) * 100;
+  const percentage = (completedCount / currentMonthPayrolls.length) * 100;
   return Math.round(percentage);
 };
 

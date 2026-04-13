@@ -10,6 +10,7 @@ import AttendanceSheet from '../AttendanceSheet/AttendanceSheet';
 import { usePunch } from '../../context/PunchContext';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
+import { getMonthDateRangeParams } from '../../utils/monthDateRange';
 
 const Attendance = () => {
   const { colors } = useTheme();
@@ -43,11 +44,13 @@ const Attendance = () => {
     setStatsLoading(true);
     try {
       const now = new Date();
+      const { startDate, endDate } = getMonthDateRangeParams(now.getFullYear(), now.getMonth());
       const res = await API.get(ATTENDANCE_ENDPOINTS.own(), {
         params: {
-          month: now.getMonth() + 1,
-          year: now.getFullYear(),
-          limit: 31,
+          startDate,
+          endDate,
+          limit: 62,
+          page: 1,
         },
       });
       const attendanceArr = res.data?.attendance || [];

@@ -8,11 +8,14 @@ import React, { useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiRefreshCw } from 'react-icons/fi';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
+import { getMonthDateRangeParams } from '../../utils/monthDateRange';
+import { fetchOwnLeaveRequests } from '../../services/leavesAttendanceApi';
 
 const AttendanceSheet = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState('month'); // month, week, day
   const [attendanceData, setAttendanceData] = useState({});
+  const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -23,42 +26,80 @@ const AttendanceSheet = () => {
     const fetchAttendance = async () => {
       setLoading(true);
       setError(null);
+      // Avoid showing last month's cells under the new month's grid while the request runs
+      setAttendanceData({});
+      setLeaveRequests([]);
       try {
-        const res = await API.get(ATTENDANCE_ENDPOINTS.own(), {
-          params: {
-            month: currentDate.getMonth() + 1,
-            year: currentDate.getFullYear(),
-            limit: 31,
-          },
+        const y = currentDate.getFullYear();
+        const m = currentDate.getMonth();
+        const { startDate, endDate } = getMonthDateRangeParams(y, m);
+
+        const [attendanceRes, leaveRes] = await Promise.all([
+          API.get(ATTENDANCE_ENDPOINTS.own(), {
+            params: {
+              startDate,
+              endDate,
+              limit: 62,
+              page: 1,
+            },
+          }),
+          fetchOwnLeaveRequests(),
+        ]);
+
+        const attendanceArr = attendanceRes.data?.attendance || [];
+        const leaveArr = Array.isArray(leaveRes?.data) ? leaveRes.data : [];
+
+        const leaveMap = {};
+        leaveArr.forEach((request) => {
+          if (!request?.startDate || !request?.endDate) return;
+          const normalizedStatus = String(request.status || '').toLowerCase();
+          if (!['approved', 'pending'].includes(normalizedStatus)) return;
+
+          const start = new Date(request.startDate);
+          const end = new Date(request.endDate);
+          for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+            if (date.getFullYear() !== y || date.getMonth() !== m) continue;
+            const day = date.getDate();
+            const existing = leaveMap[day];
+            if (!existing || (existing.status === 'pending' && normalizedStatus === 'approved')) {
+              leaveMap[day] = request;
+            }
+          }
         });
-        const attendanceArr = res.data?.attendance || [];
-        // Map array to calendar object
+
         const calendarObj = {};
-        // let present = 0, absent = 0, totalHours = 0;
         attendanceArr.forEach((record) => {
-          const day = new Date(record.attendanceDate).getDate();
+          const d = new Date(record.attendanceDate);
+          // Only map rows that belong to the visible month (safety if API returns extra rows)
+          if (d.getFullYear() !== y || d.getMonth() !== m) return;
+          const day = d.getDate();
           calendarObj[day] = {
-            shift: record.shift ? (record.shift.startTime + '-' + record.shift.endTime) : null,
+            shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
             timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
             breakTime: record.breakDurationMinutes ? `${record.breakDurationMinutes} min break` : null,
             offType: record.status === 'Absent' ? 'Absent' : null,
             status: record.status,
           };
-          if (record.status === 'Present' || record.status === 'Late' || record.status === 'EarlyCheckout' || record.status === 'HalfDay');
-          // if (record.status === 'Absent') absent++;
-          // if (record.workingHours) totalHours += record.workingHours;
         });
+
+        Object.entries(leaveMap).forEach(([dayKey, leaveRequest]) => {
+          const day = Number(dayKey);
+          const existing = calendarObj[day] || {};
+          calendarObj[day] = {
+            ...existing,
+            leaveRequest,
+            status: 'Leave',
+            offType: leaveRequest.status === 'approved' ? 'Leave - Approved' : 'Leave - Applied',
+            leaveType: leaveRequest.type,
+          };
+        });
+
         setAttendanceData(calendarObj);
-        // setStats({
-        //   present,
-        //   absent,
-        //   totalHours: totalHours.toFixed(2),
-        //   avgHours: present ? (totalHours / present).toFixed(2) : '0.00',
-        // });
+        setLeaveRequests(leaveArr);
       } catch (err) {
         setError('Failed to load attendance');
         setAttendanceData({});
-        // setStats({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
+        setLeaveRequests([]);
       } finally {
         setLoading(false);
       }
@@ -99,30 +140,58 @@ const AttendanceSheet = () => {
 
   // Day cell rendering
   const DayCell = ({ day }) => {
-    if (!day) return <div className="bg-gray-50 p-2 min-h-32 rounded-xl"></div>;
+    if (!day) return <div className="bg-gray-50 p-2 min-h-[8.5rem] rounded-xl border border-transparent" />;
     const data = attendanceData[day] || {};
     const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
     const isWeekend = [0, 6].includes(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay());
     const defaultShift = 'Day Shift:08:00-20:00';
-    const shiftDisplay = data.shift || defaultShift;
+    const leaveRequest = data.leaveRequest;
+    const leaveBadge = leaveRequest
+      ? leaveRequest.status === 'approved'
+        ? 'Approved Leave'
+        : 'Applied Leave'
+      : null;
+    const badgeClass = leaveRequest
+      ? leaveRequest.status === 'approved'
+        ? 'bg-purple-600 text-white'
+        : 'bg-indigo-600 text-white'
+      : '';
+    const shiftDisplay = leaveRequest ? null : (data.shift || defaultShift);
+    const cellBase =
+      leaveRequest
+        ? 'bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200'
+        : isToday
+          ? 'bg-gradient-to-br from-blue-100 to-blue-50 border-blue-400 border-2'
+          : isWeekend
+            ? 'bg-red-50 border border-red-200'
+            : 'bg-white border border-gray-200';
     return (
-      <div className={`min-h-32 rounded-xl shadow-sm transition-all duration-300 ${isToday ? 'bg-gradient-to-br from-blue-100 to-blue-50 border-blue-400 border-2' : isWeekend ? ' text-white border-red-600' : 'bg-white border border-gray-200'} hover:shadow-lg hover:shadow-red-500/40 hover:-translate-y-0.5`}>
-        <div className={`text-lg font-semibold mb-2 ${isToday ? 'text-blue-700' : isWeekend ? 'text-white' : 'text-gray-700'}`}>{day}</div>
-        <div className="space-y-1 text-xs">
+      <div
+        className={`flex min-h-[8.5rem] flex-col overflow-hidden rounded-xl p-2 shadow-sm transition-all duration-300 ${cellBase} hover:shadow-md`}
+      >
+        <div
+          className={`mb-1 shrink-0 text-lg font-semibold leading-none ${leaveRequest ? 'text-violet-800' : isToday ? 'text-blue-700' : isWeekend ? 'text-red-800' : 'text-gray-700'}`}
+        >
+          {day}
+        </div>
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto text-xs [overflow-wrap:anywhere]">
+          {leaveRequest && (
+            <div className={`rounded px-2 py-1 font-medium shadow-sm ${badgeClass}`}>{leaveBadge}</div>
+          )}
+          {leaveRequest && leaveRequest.type && (
+            <div className="rounded bg-violet-100 px-2 py-1 text-violet-800 shadow-sm">{leaveRequest.type}</div>
+          )}
           {shiftDisplay && (
-            <div className="bg-gradient-to-r from-red-700 to-yellow-700 text-white px-2 py-1 rounded font-medium shadow-sm">{shiftDisplay}</div>
+            <div className="rounded bg-gradient-to-r from-red-700 to-yellow-700 px-2 py-1 font-medium text-white shadow-sm">{shiftDisplay}</div>
           )}
-          {data.timeEntry && (
-            <div className="bg-gradient-to-r from-blue-500 to-blue-300 text-white px-2 py-1 rounded shadow-sm">{data.timeEntry}</div>
+          {data.timeEntry && !leaveRequest && (
+            <div className="rounded bg-gradient-to-r from-blue-500 to-blue-300 px-2 py-1 text-white shadow-sm">{data.timeEntry}</div>
           )}
-          {data.breakTime && (
-            <div className="bg-gradient-to-r from-lime-400 to-green-200 text-gray-700 px-2 py-1 rounded shadow-sm">{data.breakTime}</div>
+          {data.breakTime && !leaveRequest && (
+            <div className="rounded bg-gradient-to-r from-lime-400 to-green-200 px-2 py-1 text-gray-700 shadow-sm">{data.breakTime}</div>
           )}
-          {data.offType && (
-            <div className="bg-gradient-to-r from-red-500 to-pink-400 text-white px-2 py-1 rounded font-medium shadow-sm">{data.offType}</div>
-          )}
-          {isWeekend && !data.shift && !data.timeEntry && !data.breakTime && !data.offType && (
-            <div className="text-red-600 px-2 py-1 rounded font-medium shadow-sm"></div>
+          {data.offType && !leaveRequest && (
+            <div className="rounded bg-gradient-to-r from-red-500 to-pink-400 px-2 py-1 font-medium text-white shadow-sm">{data.offType}</div>
           )}
         </div>
       </div>
@@ -215,6 +284,14 @@ const AttendanceSheet = () => {
         <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
           <div className="w-4 h-4 bg-gradient-to-r from-lime-400 to-green-200 rounded shadow"></div>
           <span className="text-sm text-gray-600">Break Time</span>
+        </div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-purple-600 rounded shadow"></div>
+          <span className="text-sm text-gray-600">Approved Leave</span>
+        </div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-indigo-600 rounded shadow"></div>
+          <span className="text-sm text-gray-600">Applied Leave</span>
         </div>
       </div>
     </div>

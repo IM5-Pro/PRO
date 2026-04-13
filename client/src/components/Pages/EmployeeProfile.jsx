@@ -165,6 +165,13 @@ const EmployeeProfile = () => {
     setSaving(true);
     setError('');
     try {
+      // Get the employee ID from the user context
+      const employeeId = user?._id || user?.id;
+      if (!employeeId) {
+        setError('User ID not found.');
+        setSaving(false);
+        return;
+      }
       const payload = {
         phoneNumber: editProfile.phone,
         address: editProfile.address,
@@ -173,7 +180,7 @@ const EmployeeProfile = () => {
         zipCode: editProfile.zipCode,
         emergencyContact: editProfile.emergencyContact,
       };
-      await API.put(EMPLOYEE_ENDPOINTS.updateProfile, payload);
+      await API.put(EMPLOYEE_ENDPOINTS.update(employeeId), payload);
       setProfile((prev) => ({ ...prev, ...editProfile }));
       setEditMode(false);
     } catch (err) {

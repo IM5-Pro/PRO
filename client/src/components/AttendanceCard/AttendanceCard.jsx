@@ -37,23 +37,25 @@ const AttendanceCard = ({
    * Attendance stat item component
    */
   const StatItem = ({ icon: Icon, label, value, color }) => (
-    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:shadow-md transition-shadow duration-200">
-      <div className={`p-2 rounded-lg ${color}`}>
+    <div className="flex items-center space-x-4 p-4 bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200">
+      <div className={`w-10 h-10 flex items-center justify-center rounded-full shadow-sm ${color} text-xl`}>
         <Icon size={20} />
       </div>
       <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-lg font-bold text-gray-800">{value}</p>
+        <p className="text-sm font-semibold text-slate-500 mb-0.5">{label}</p>
+        <p className="text-xl font-extrabold text-slate-900" style={{ fontFamily: 'Inter, Roboto, sans-serif' }}>{value}</p>
       </div>
     </div>
   );
 
   return (
-    <div className={`card w-full max-w-sm ${className}`}>
+    <div className={`w-full max-w-sm bg-white rounded-2xl shadow-xl p-7 flex flex-col items-center ${className}`} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-gray-800">Attendance</h2>
-        <FiCalendar className="text-gray-400" size={20} />
+      <div className="flex items-center justify-between w-full mb-4">
+        <h2 className="text-xl font-extrabold text-slate-800 tracking-tight" style={{ fontFamily: 'Inter, Roboto, sans-serif' }}>Attendance</h2>
+        <span className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm">
+          <FiCalendar size={20} />
+        </span>
       </div>
 
       {/* Attendance Percentage Circle */}
@@ -84,38 +86,38 @@ const AttendanceCard = ({
           </svg>
           {/* Percentage text */}
           <div className="text-center relative z-10">
-            <p className={`text-3xl font-bold ${getStatusColor(percentage)}`}>
+            <p className={`text-4xl font-extrabold ${getStatusColor(percentage)}`} style={{ fontFamily: 'Inter, Roboto, sans-serif' }}>
               {percentage}%
             </p>
-            <p className="text-xs text-gray-500">This Month</p>
+            <p className="text-xs text-slate-500 font-medium">This Month</p>
           </div>
         </div>
       </div>
 
       {/* Attendance Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 w-full">
         <StatItem
           icon={FiCheck}
           label="Present"
           value={present}
-          color="text-green-600 bg-green-50"
+          color="bg-green-100 text-green-600"
         />
         <StatItem
           icon={FiX}
           label="Absent"
           value={absent}
-          color="text-red-600 bg-red-50"
+          color="bg-red-100 text-red-600"
         />
         <StatItem
           icon={FiClock}
           label="Late"
           value={late}
-          color="text-yellow-600 bg-yellow-50"
+          color="bg-yellow-100 text-yellow-600"
         />
       </div>
 
       {/* Action Button */}
-      <button className="w-full btn-primary text-sm">View Detailed Report</button>
+      <button className="w-full py-2 rounded-xl bg-blue-600 text-white font-semibold text-sm shadow hover:bg-blue-700 transition-all">View Detailed Report</button>
     </div>
   );
 };

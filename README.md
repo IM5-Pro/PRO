@@ -2,6 +2,8 @@
 
 A cloud-based enterprise solution for comprehensive HR operations management with Indian statutory compliance.
 
+**Detailed documentation:** [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md) — project overview, stack, tools, ready vs backlog features, and API summary.
+
 ## Core Modules
 
 - Employee Management
