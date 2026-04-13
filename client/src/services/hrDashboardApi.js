@@ -211,20 +211,6 @@ const calculatePayrollCompletion = (payrollData) => {
   return Math.round(percentage);
 };
 
-/**
- * Count pending leave requests
- * @param {Array} leaveRequests - Array of leave request objects
- * @returns {number} Count of pending requests
- */
-const countPendingLeaves = (leaveRequests) => {
-  if (!Array.isArray(leaveRequests)) return 0;
-
-  return leaveRequests.filter((req) => {
-    const status = String(req?.status || '').toLowerCase();
-    return status === 'pending';
-  }).length;
-};
-
 // ============================================================================
 // DEDICATED DASHBOARD METRICS FETCH
 // ============================================================================

@@ -234,7 +234,7 @@ const WIDGET_VALUE_FORMATTERS = {
 const getPendingCount = (rows) => {
   return rows.filter((row) => {
     const status = String(row?.status || '').toUpperCase();
-    return status === 'PENDING';
+    return status === 'PENDING' && leaveRequestOverlapsCurrentMonth(row);
   }).length;
 };
 
@@ -255,6 +255,55 @@ const getCurrentMonthJoiners = (rows) => {
     }
 
     return joinDate.getMonth() === month && joinDate.getFullYear() === year;
+  }).length;
+};
+
+const isDateInCurrentMonth = (dateValue) => {
+  if (!dateValue) return false;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+};
+
+const leaveRequestOverlapsCurrentMonth = (leaveRequest) => {
+  if (!leaveRequest) return false;
+
+  const start = new Date(leaveRequest.startDate || leaveRequest.start || leaveRequest.createdAt);
+  const end = new Date(leaveRequest.endDate || leaveRequest.end || leaveRequest.createdAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return isDateInCurrentMonth(leaveRequest.createdAt || leaveRequest.updatedAt);
+  }
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  return !(end < monthStart || start > monthEnd);
+};
+
+const parsePayrollRunDate = (run) => {
+  if (!run) return null;
+  if (run.month) {
+    const parsed = new Date(run.month);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  if (run.createdAt) {
+    const parsed = new Date(run.createdAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+const getCurrentMonthPayrollRuns = (rows) => {
+  return rows.filter((row) => {
+    const date = parsePayrollRunDate(row);
+    return date && isDateInCurrentMonth(date);
   }).length;
 };
 
