@@ -9,7 +9,8 @@
     "mongoose": "^9.2.4",
     "nodemon": "^3.1.11",
     "pdfkit": "^0.17.2",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "winston": "^3.11.0"
   },
   "name": "server",
   "type": "module",

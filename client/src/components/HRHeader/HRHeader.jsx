@@ -1,7 +1,8 @@
 /**
  * HRHeader Component
- * Top navigation header for HR dashboard with search, notifications, and profile menu
- * Features: Real-time search, notification badge, time display, user profile dropdown with actions
+ * Top navigation header for HR dashboard with search, live notifications, and profile menu
+ * Features: Real-time search, live notification badge, time display, user profile dropdown with actions
+ * Notifications are powered by NotificationContext for real-time updates
  * 
  * @component
  * @author HR Team
@@ -10,13 +11,14 @@
  * <HRHeader 
  *   user={currentUser} 
  *   onProfileClick={handleAction}
- *   notificationCount={3}
  * />
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { FiSearch, FiBell, FiChevronDown, FiUser, FiLogOut, FiSettings, FiLogIn } from 'react-icons/fi';
 import { usePunch } from '../../context/PunchContext';
+import { useNotifications } from '../../context/NotificationContext';
+import NotificationsPanel from '../Notifications/NotificationsPanel';
 
 /**
  * Validation constants for header inputs
@@ -29,7 +31,8 @@ const VALIDATION_RULES = {
 
 /**
  * HRHeader Component
- * Displays top navigation with search functionality, notifications, and user profile menu
+ * Displays top navigation with search functionality, live notifications, and user profile menu
+ * Notifications are automatically fetched from NotificationContext based on user role
  * 
  * @param {Object} props - Component props
  * @param {Object} props.user - Current user object
@@ -38,15 +41,11 @@ const VALIDATION_RULES = {
  * @param {string} props.user.avatar - User's avatar emoji or URL
  * @param {string} props.user.role - User's role (super_admin, hr_admin, manager, employee)
  * @param {Function} props.onProfileClick - Callback when profile actions are clicked
- * @param {number} props.notificationCount - Number of unread notifications
- * @param {Function} props.onClearNotifications - Callback to clear notifications
  * @returns {JSX.Element} Header component with all controls and menus
  */
 const HRHeader = ({
   user = { name: 'HR Admin', email: 'hr@company.com', avatar: '👨‍💼', role: 'hr_admin' },
   onProfileClick = () => {},
-  notificationCount = 0,
-  onClearNotifications = () => {},
 }) => {
   // ============================================================================
   // STATE MANAGEMENT
@@ -58,6 +57,9 @@ const HRHeader = ({
 
   // Punch state from shared context
   const { canPunch, punchStatus, loading: punchLoading, locationLabel: punchLocationLabel, punchIn: handlePunchIn, punchOut: handlePunchOut } = usePunch();
+
+  // Notification state and actions from context
+  const { unreadCount } = useNotifications();
 
   // ============================================================================
   // EFFECTS
@@ -82,26 +84,23 @@ const HRHeader = ({
    */
   useEffect(() => {
     const handleClickOutside = (e) => {
-      const notificationTrigger = document.querySelector('[data-menu-trigger="notifications"]');
       const profileTrigger = document.querySelector('[data-menu-trigger="profile"]');
       
-      const isNotificationClick = notificationTrigger?.contains(e.target) || e.target.closest('[data-menu-trigger="notifications"]');
       const isProfileClick = profileTrigger?.contains(e.target) || e.target.closest('[data-menu-trigger="profile"]');
       
-      if (!isNotificationClick && showNotifications) {
-        setShowNotifications(false);
-      }
+      // NotificationsPanel is a modal, so don't close it from outside click
+      // It will close through its own onClose handler
       
       if (!isProfileClick && showProfileMenu) {
         setShowProfileMenu(false);
       }
     };
 
-    if (showNotifications || showProfileMenu) {
+    if (showProfileMenu) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [showNotifications, showProfileMenu]);
+  }, [showProfileMenu]);
 
   // ============================================================================
   // VALIDATION FUNCTIONS
@@ -210,18 +209,6 @@ const HRHeader = ({
     [user, onProfileClick, validateUserData]
   );
 
-  /**
-   * Handle notification clear with feedback
-   */
-  const handleClearNotifications = useCallback(() => {
-    try {
-      onClearNotifications();
-      setShowNotifications(false);
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-    }
-  }, [onClearNotifications]);
-
   // ============================================================================
   // FORMATTED DATA
   // ============================================================================
@@ -315,22 +302,6 @@ const HRHeader = ({
       .join(' ');
   }, [user.role]);
 
-  const notificationItems = useMemo(() => {
-    const templates = [
-      'Pending approvals require your review',
-      'Attendance exceptions are ready for validation',
-      'Payroll cycle status has been refreshed',
-      'Policy acknowledgement reminder is pending',
-      'A shared document has been updated',
-      'Live dashboard data sync completed',
-    ];
-
-    return Array.from({ length: notificationCount }, (_, idx) => ({
-      title: templates[idx % templates.length],
-      time: idx === 0 ? 'Just now' : idx === 1 ? '5 min ago' : 'Today',
-    }));
-  }, [notificationCount]);
-
   // ============================================================================
   // COMPONENT RENDER
   // ============================================================================
@@ -419,59 +390,27 @@ const HRHeader = ({
               data-menu-trigger="notifications"
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 text-slate-700 hover:text-slate-900 hover:bg-white/30 rounded-lg transition-all duration-300"
-              aria-label={`Notifications (${notificationCount} unread)`}
-              title={`${notificationCount} new notifications`}
+              aria-label={`Notifications (${unreadCount} unread)`}
+              title={`${unreadCount} new notifications`}
             >
               <FiBell size={20} />
 
               {/* Notification Badge */}
-              {notificationCount > 0 && (
+              {unreadCount > 0 && (
                 <span
-                  className="absolute top-0 right-0 w-5 h-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-bold"
-                  aria-label={`${notificationCount} new notifications`}
+                  className="absolute top-0 right-0 w-5 h-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse"
+                  aria-label={`${unreadCount} new notifications`}
                 >
-                  {notificationCount > 9 ? '9+' : notificationCount}
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <div
-                className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-50 top-full"
-                role="dialog"
-                aria-label="Notifications"
-              >
-                <div className="p-4 border-b border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-slate-800 font-semibold">Notifications</h3>
-                    {notificationCount > 0 && (
-                      <button
-                        onClick={handleClearNotifications}
-                        className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  {notificationCount > 0 ? (
-                    <div className="space-y-3">
-                      {notificationItems.map((item, idx) => (
-                        <div key={idx} className="p-3 bg-slate-100/80 rounded-lg hover:bg-slate-200/80 transition-colors cursor-pointer border border-slate-200">
-                          <p className="text-sm text-slate-800">{item.title}</p>
-                          <p className="text-xs text-slate-600 mt-1">{item.time}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-slate-500 text-center text-sm">No new notifications</p>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* NotificationsPanel Modal */}
+            <NotificationsPanel
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+            />
           </div>
 
           {/* User Profile Menu */}

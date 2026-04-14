@@ -257,3 +257,40 @@ export const SYSTEM_ACCESS_ENDPOINTS = {
   get: (employeeId) => `/system-access/${employeeId}`,
   update: (employeeId) => `/system-access/${employeeId}`,
 };
+
+export const RESIGNATION_ENDPOINTS = {
+  create: '/resignations',
+  myResignation: '/resignations/my',
+  teamResignations: '/resignations/team',
+  all: (options = {}) => {
+    const params = [];
+    if (options.status) params.push(`status=${encodeURIComponent(options.status)}`);
+    if (options.limit) params.push(`limit=${encodeURIComponent(options.limit)}`);
+    if (options.skip) params.push(`skip=${encodeURIComponent(options.skip)}`);
+    if (options.sortBy) params.push(`sortBy=${encodeURIComponent(options.sortBy)}`);
+    return params.length > 0 ? `/resignations/all?${params.join('&')}` : '/resignations/all';
+  },
+  get: (resignationId) => `/resignations/${resignationId}`,
+  update: (resignationId) => `/resignations/${resignationId}`,
+  approve: (resignationId) => `/resignations/${resignationId}/approve`,
+  reject: (resignationId) => `/resignations/${resignationId}/reject`,
+  cancel: (resignationId) => `/resignations/${resignationId}/cancel`,
+  stats: '/resignations/stats',
+};
+
+export const NOTIFICATION_ENDPOINTS = {
+  list: (limit) => withLimit('/notifications', limit),
+  all: '/notifications/all',
+  unread: '/notifications/unread-count',
+  mark: (notificationId) => `/notifications/${notificationId}/read`,
+  markAll: '/notifications/mark-all-read',
+  delete: (notificationId) => `/notifications/${notificationId}`,
+  deleteAll: '/notifications/delete-all',
+  summary: '/notifications/summary',
+  pendingApprovals: '/notifications/pending-approvals',
+  leavePending: '/notifications/leaves/pending',
+  attendanceIssues: '/notifications/attendance/issues',
+  payrollUpdates: '/notifications/payroll/updates',
+  announcements: '/notifications/announcements',
+  systemAlerts: '/notifications/system/alerts',
+};

@@ -11,6 +11,7 @@ import {
   ROLE_ENDPOINTS,
 } from '../api/endpoints';
 import { ROLES } from '../utils/roles';
+import { getMonthDateRangeParams } from '../utils/monthDateRange';
 
 const getByPath = (input, path) => {
   if (!path) {
@@ -93,16 +94,78 @@ const toErrorMessage = (err) => {
   return err?.response?.data?.message || err?.message || 'Failed to load data';
 };
 
+/** Query params for /attendance/own and /attendance/team: API only filters by month when startDate & endDate are set. */
+const currentMonthAttendanceRangeParams = () => {
+  const now = new Date();
+  const { startDate, endDate } = getMonthDateRangeParams(now.getFullYear(), now.getMonth());
+  return { startDate, endDate, limit: 62, page: 1 };
+};
+
+const isDateInCurrentMonth = (dateValue) => {
+  if (!dateValue) return false;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+};
+
+const leaveRequestOverlapsCurrentMonth = (leaveRequest) => {
+  if (!leaveRequest) return false;
+
+  const start = new Date(leaveRequest.startDate || leaveRequest.start || leaveRequest.createdAt);
+  const end = new Date(leaveRequest.endDate || leaveRequest.end || leaveRequest.createdAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return isDateInCurrentMonth(leaveRequest.createdAt || leaveRequest.updatedAt);
+  }
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  return !(end < monthStart || start > monthEnd);
+};
+
+const parsePayrollRunDate = (run) => {
+  if (!run) return null;
+  if (run.month) {
+    const parsed = new Date(run.month);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  if (run.createdAt) {
+    const parsed = new Date(run.createdAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+const filterLeavesForCurrentMonth = (rows) => rows.filter(leaveRequestOverlapsCurrentMonth);
+
+const filterApprovedLeavesCurrentMonth = (rows) => rows.filter((row) => 
+  String(row?.status || '').toUpperCase() === 'APPROVED' && leaveRequestOverlapsCurrentMonth(row)
+);
+
+const filterPayrollDetailsForCurrentMonth = (rows) =>
+  rows.filter((row) => {
+    const run = row.payrollRunId || row.payrollRun;
+    const d = parsePayrollRunDate(run);
+    return d && isDateInCurrentMonth(d);
+  });
+
 const DASHBOARD_WIDGET_SOURCES = {
   [ROLES.EMPLOYEE]: [
-    { key: 'attendance', endpoint: ATTENDANCE_ENDPOINTS.own(10) },
-    { key: 'leaves', endpoint: LEAVE_ENDPOINTS.own },
+    { key: 'attendance', endpoint: ATTENDANCE_ENDPOINTS.own(), params: currentMonthAttendanceRangeParams },
+    { key: 'leaves', endpoint: LEAVE_ENDPOINTS.own, filterRows: filterApprovedLeavesCurrentMonth },
     { key: 'holidays', endpoint: LEAVE_ENDPOINTS.policy },
-    { key: 'payslip', endpoint: PAYROLL_ENDPOINTS.own },
+    { key: 'payslip', endpoint: PAYROLL_ENDPOINTS.own, filterRows: filterPayrollDetailsForCurrentMonth },
   ],
   [ROLES.MANAGER]: [
-    { key: 'team-attendance', endpoint: ATTENDANCE_ENDPOINTS.team(20) },
-    { key: 'leave-requests', endpoint: LEAVE_ENDPOINTS.team },
+    { key: 'team-attendance', endpoint: ATTENDANCE_ENDPOINTS.team(), params: currentMonthAttendanceRangeParams },
+    { key: 'leave-requests', endpoint: LEAVE_ENDPOINTS.team, filterRows: filterLeavesForCurrentMonth },
     { key: 'team-performance', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, countPath: 'summary.averageWorkingHours' },
     { key: 'team-members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(20) },
   ],
@@ -123,9 +186,30 @@ const DASHBOARD_WIDGET_SOURCES = {
 const ROLE_PAGE_SOURCES = {
   [ROLES.EMPLOYEE]: {
     'my-profile': [{ key: 'profile', label: 'Profile', endpoint: EMPLOYEE_ENDPOINTS.myProfile }],
-    attendance: [{ key: 'attendance', label: 'Attendance Records', endpoint: ATTENDANCE_ENDPOINTS.own(25) }],
-    leaves: [{ key: 'leaves', label: 'Leave Requests', endpoint: LEAVE_ENDPOINTS.own }],
-    payroll: [{ key: 'payroll', label: 'Payroll Details', endpoint: PAYROLL_ENDPOINTS.own }],
+    attendance: [
+      {
+        key: 'attendance',
+        label: 'Attendance Records',
+        endpoint: ATTENDANCE_ENDPOINTS.own(),
+        params: currentMonthAttendanceRangeParams,
+      },
+    ],
+    leaves: [
+      {
+        key: 'leaves',
+        label: 'Leave Requests',
+        endpoint: LEAVE_ENDPOINTS.own,
+        filterRows: filterLeavesForCurrentMonth,
+      },
+    ],
+    payroll: [
+      {
+        key: 'payroll',
+        label: 'Payroll Details',
+        endpoint: PAYROLL_ENDPOINTS.own,
+        filterRows: filterPayrollDetailsForCurrentMonth,
+      },
+    ],
     documents: [{ key: 'documents', label: 'Employee Documents', endpoint: EMPLOYEE_ENDPOINTS.myProfile }],
   },
   [ROLES.MANAGER]: {
@@ -183,10 +267,26 @@ const toNumberLike = (value) => {
 
 const fetchSource = async (source) => {
   try {
-    const response = await API.get(source.endpoint);
+    const requestConfig = {};
+    if (typeof source.params === 'function') {
+      requestConfig.params = source.params();
+    } else if (source.params && typeof source.params === 'object') {
+      requestConfig.params = source.params;
+    }
+
+    const response = await API.get(
+      source.endpoint,
+      Object.keys(requestConfig).length > 0 ? requestConfig : undefined,
+    );
     const payload = toPayload(response);
-    const rows = extractRows(payload, source.arrayKey);
-    const countValue = extractCount(payload, rows, source.countPath);
+    let rows = extractRows(payload, source.arrayKey);
+    if (typeof source.filterRows === 'function') {
+      rows = source.filterRows(rows);
+    }
+    let countValue = extractCount(payload, rows, source.countPath);
+    if (source.filterRows) {
+      countValue = rows.length;
+    }
 
     return {
       key: source.key,
@@ -256,48 +356,6 @@ const getCurrentMonthJoiners = (rows) => {
 
     return joinDate.getMonth() === month && joinDate.getFullYear() === year;
   }).length;
-};
-
-const isDateInCurrentMonth = (dateValue) => {
-  if (!dateValue) return false;
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return false;
-
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-};
-
-const leaveRequestOverlapsCurrentMonth = (leaveRequest) => {
-  if (!leaveRequest) return false;
-
-  const start = new Date(leaveRequest.startDate || leaveRequest.start || leaveRequest.createdAt);
-  const end = new Date(leaveRequest.endDate || leaveRequest.end || leaveRequest.createdAt);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return isDateInCurrentMonth(leaveRequest.createdAt || leaveRequest.updatedAt);
-  }
-
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-  return !(end < monthStart || start > monthEnd);
-};
-
-const parsePayrollRunDate = (run) => {
-  if (!run) return null;
-  if (run.month) {
-    const parsed = new Date(run.month);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
-  }
-  if (run.createdAt) {
-    const parsed = new Date(run.createdAt);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
-  }
-  return null;
 };
 
 const getCurrentMonthPayrollRuns = (rows) => {

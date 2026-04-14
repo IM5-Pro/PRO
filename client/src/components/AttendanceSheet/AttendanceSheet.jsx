@@ -11,11 +11,32 @@ import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
 import { getMonthDateRangeParams } from '../../utils/monthDateRange';
 import { fetchOwnLeaveRequests } from '../../services/leavesAttendanceApi';
 
+const HOLIDAYS_DATA = [
+  { occasion: "New Year Day", day: "Thursday", date: "01-01-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Makara Sankranthi", day: "Wednesday", date: "14-01-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Republic Day", day: "Monday", date: "26-01-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Presidents' Day (USA)", day: "Monday", date: "16-02-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "May Day", day: "Friday", date: "01-05-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Memorial day (USA)", day: "Monday", date: "25-05-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Bakrid / EID AI Adha", day: "Wednesday", date: "27-05-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Telangana Formation Day", day: "Tuesday", date: "02-06-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Juneteenth", day: "Friday", date: "19-06-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Independence Day – (USA)", day: "Friday", date: "03-07-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Labor Day - USA", day: "Monday", date: "07-09-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Ganesh Chaturthi", day: "Monday", date: "14-09-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Mahatma Gandhi Jayanthi/Vijayadashami", day: "Friday", date: "02-10-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Dussehra", day: "Tuesday", date: "20-10-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Thanksgiving Day", day: "Thursday", date: "26-11-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Day after Thanksgiving Day", day: "Friday", date: "27-11-2026", category: "Project Development", department: "Technical", division: "IT" },
+  { occasion: "Christmas", day: "Friday", date: "25-12-2026", category: "All", department: "All", division: "All" },
+];
+
 const AttendanceSheet = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState('month'); // month, week, day
   const [attendanceData, setAttendanceData] = useState({});
   const [leaveRequests, setLeaveRequests] = useState([]);
+  const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -48,6 +69,7 @@ const AttendanceSheet = () => {
 
         const attendanceArr = attendanceRes.data?.attendance || [];
         const leaveArr = Array.isArray(leaveRes?.data) ? leaveRes.data : [];
+        const holidayArr = HOLIDAYS_DATA;
 
         const leaveMap = {};
         leaveArr.forEach((request) => {
@@ -64,6 +86,18 @@ const AttendanceSheet = () => {
             if (!existing || (existing.status === 'pending' && normalizedStatus === 'approved')) {
               leaveMap[day] = request;
             }
+          }
+        });
+
+        const holidayMap = {};
+        holidayArr.forEach((holiday) => {
+          if (!holiday?.date) return;
+          const dateStr = holiday.date; // e.g., "01-01-2026"
+          const [dayStr, monthStr, yearStr] = dateStr.split('-');
+          const holidayDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
+          if (holidayDate.getFullYear() === y && holidayDate.getMonth() === m) {
+            const day = holidayDate.getDate();
+            holidayMap[day] = holiday;
           }
         });
 
@@ -94,12 +128,26 @@ const AttendanceSheet = () => {
           };
         });
 
+        Object.entries(holidayMap).forEach(([dayKey, holiday]) => {
+          const day = Number(dayKey);
+          const existing = calendarObj[day] || {};
+          calendarObj[day] = {
+            ...existing,
+            holiday,
+            status: 'Holiday',
+            offType: 'Holiday',
+            holidayName: holiday.occasion,
+          };
+        });
+
         setAttendanceData(calendarObj);
         setLeaveRequests(leaveArr);
+        setHolidays(holidayArr);
       } catch (err) {
         setError('Failed to load attendance');
         setAttendanceData({});
         setLeaveRequests([]);
+        setHolidays([]);
       } finally {
         setLoading(false);
       }
@@ -146,6 +194,7 @@ const AttendanceSheet = () => {
     const isWeekend = [0, 6].includes(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay());
     const defaultShift = 'Day Shift:08:00-20:00';
     const leaveRequest = data.leaveRequest;
+    const holiday = data.holiday;
     const leaveBadge = leaveRequest
       ? leaveRequest.status === 'approved'
         ? 'Approved Leave'
@@ -156,25 +205,33 @@ const AttendanceSheet = () => {
         ? 'bg-purple-600 text-white'
         : 'bg-indigo-600 text-white'
       : '';
-    const shiftDisplay = leaveRequest ? null : (data.shift || defaultShift);
+    const shiftDisplay = leaveRequest || holiday ? null : (data.shift || defaultShift);
     const cellBase =
-      leaveRequest
-        ? 'bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200'
-        : isToday
-          ? 'bg-gradient-to-br from-blue-100 to-blue-50 border-blue-400 border-2'
-          : isWeekend
-            ? 'bg-red-50 border border-red-200'
-            : 'bg-white border border-gray-200';
+      holiday
+        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'
+        : leaveRequest
+          ? 'bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200'
+          : isToday
+            ? 'bg-gradient-to-br from-blue-100 to-blue-50 border-blue-400 border-2'
+            : isWeekend
+              ? 'bg-red-50 border border-red-200'
+              : 'bg-white border border-gray-200';
     return (
       <div
         className={`flex min-h-[8.5rem] flex-col overflow-hidden rounded-xl p-2 shadow-sm transition-all duration-300 ${cellBase} hover:shadow-md`}
       >
         <div
-          className={`mb-1 shrink-0 text-lg font-semibold leading-none ${leaveRequest ? 'text-violet-800' : isToday ? 'text-blue-700' : isWeekend ? 'text-red-800' : 'text-gray-700'}`}
+          className={`mb-1 shrink-0 text-lg font-semibold leading-none ${holiday ? 'text-green-800' : leaveRequest ? 'text-violet-800' : isToday ? 'text-blue-700' : isWeekend ? 'text-red-800' : 'text-gray-700'}`}
         >
           {day}
         </div>
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto text-xs [overflow-wrap:anywhere]">
+          {holiday && (
+            <div className="rounded bg-green-600 px-2 py-1 font-medium text-white shadow-sm">Holiday</div>
+          )}
+          {holiday && holiday.occasion && (
+            <div className="rounded bg-green-100 px-2 py-1 text-green-800 shadow-sm">{holiday.occasion}</div>
+          )}
           {leaveRequest && (
             <div className={`rounded px-2 py-1 font-medium shadow-sm ${badgeClass}`}>{leaveBadge}</div>
           )}
@@ -184,13 +241,13 @@ const AttendanceSheet = () => {
           {shiftDisplay && (
             <div className="rounded bg-gradient-to-r from-red-700 to-yellow-700 px-2 py-1 font-medium text-white shadow-sm">{shiftDisplay}</div>
           )}
-          {data.timeEntry && !leaveRequest && (
+          {data.timeEntry && !leaveRequest && !holiday && (
             <div className="rounded bg-gradient-to-r from-blue-500 to-blue-300 px-2 py-1 text-white shadow-sm">{data.timeEntry}</div>
           )}
-          {data.breakTime && !leaveRequest && (
+          {data.breakTime && !leaveRequest && !holiday && (
             <div className="rounded bg-gradient-to-r from-lime-400 to-green-200 px-2 py-1 text-gray-700 shadow-sm">{data.breakTime}</div>
           )}
-          {data.offType && !leaveRequest && (
+          {data.offType && !leaveRequest && !holiday && (
             <div className="rounded bg-gradient-to-r from-red-500 to-pink-400 px-2 py-1 font-medium text-white shadow-sm">{data.offType}</div>
           )}
         </div>
@@ -290,8 +347,8 @@ const AttendanceSheet = () => {
           <span className="text-sm text-gray-600">Approved Leave</span>
         </div>
         <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-indigo-600 rounded shadow"></div>
-          <span className="text-sm text-gray-600">Applied Leave</span>
+          <div className="w-4 h-4 bg-green-600 rounded shadow"></div>
+          <span className="text-sm text-gray-600">Holiday</span>
         </div>
       </div>
     </div>

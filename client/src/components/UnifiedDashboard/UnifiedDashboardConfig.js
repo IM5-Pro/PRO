@@ -51,6 +51,7 @@ const PAGE_ICON_COMPONENTS = {
   'system-settings': FiSettings,
   'audit-logs': FiFileText,
   'ui-components': FiGrid,
+  'role-transfer': FiShield,
 };
 
 export const attachMonoIconsToPages = (pages = []) => {
@@ -80,7 +81,7 @@ export const ROLE_DASHBOARD_CONFIG = {
       { id: 'payroll', label: 'Payroll', icon: FiDollarSign, category: 'work', description: 'Payslips, deductions, and payroll details' },
       { id: 'performance', label: 'Performance', icon: FiTrendingUp, category: 'work', description: 'Goals, ratings, and review insights' },
       { id: 'settings', label: 'Settings', icon: FiSettings, category: 'work', description: 'Update profile preferences and account settings' },
-      { id: 'Resignation', label: 'Resignation', icon: FiLogOut, category: 'work', description: 'Initiate and manage resignation processes' },
+      { id: 'resignation', label: 'Resignation', icon: FiLogOut, category: 'work', description: 'Initiate and manage resignation processes' },
     ],
   },
   [ROLES.MANAGER]: {
@@ -106,7 +107,7 @@ export const ROLE_DASHBOARD_CONFIG = {
       { id: 'reports', label: 'Reports', icon: FiBookOpen, category: 'operations', description: 'Attendance and performance reports' },
       { id: 'settings', label: 'Settings', icon: FiSettings, category: 'operations', description: 'Manager preferences and account settings' },
       { id: 'team-collaboration', label: 'Team Collaboration', icon: FiUsers, category: 'operations', description: 'Collaborate, communicate, and coordinate with teams' },
-      { id: 'Resignation', label: 'Resignation', icon: FiLogOut, category: 'work', description: 'Initiate and manage resignation processes' },
+      { id: 'resignation', label: 'Resignation', icon: FiLogOut, category: 'work', description: 'Approve and manage team resignation requests' },
     ],
   },
   [ROLES.HR_ADMIN]: {
@@ -132,7 +133,7 @@ export const ROLE_DASHBOARD_CONFIG = {
       { id: 'user-management', label: 'User Management', icon: FiUser, category: 'operations', description: 'Manage user accounts and access' },
       { id: 'masters', label: 'Masters', icon: FiGrid, category: 'operations', description: 'Departments, designations, and masters' },
       { id: 'admin-panel-config', label: 'Admin Panel Config', icon: FiSettings, category: 'operations', description: 'Configure HR admin panel behavior' },
-      { id: 'Resignation', label: 'Resignation', icon: FiLogOut, category: 'work', description: 'Initiate and manage resignation processes' },
+      { id: 'resignation', label: 'Resignation Management', icon: FiLogOut, category: 'work', description: 'Manage and approve all resignation requests' },
     ],
   },
   [ROLES.SUPER_ADMIN]: {
@@ -151,10 +152,11 @@ export const ROLE_DASHBOARD_CONFIG = {
       { id: 'departments', label: 'Department Admin', icon: FiBriefcase, category: 'governance', description: 'Department setup and structural governance' },
       { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'governance', description: 'Create and send announcements to employees' },
       { id: 'roles-permissions', label: 'Access Control', icon: FiLock, category: 'governance', description: 'Roles, permissions, and assignment management' },
+      { id: 'role-transfer', label: 'Role Transfer', icon: FiShield, category: 'governance', description: 'Transfer super admin credentials to another person' },
       { id: 'system-settings', label: 'Platform Settings', icon: FiSettings, category: 'system', description: 'Core tenant and policy configuration' },
       { id: 'audit-logs', label: 'Compliance Logs', icon: FiFileText, category: 'system', description: 'Security and compliance activity trails' },
       { id: 'ui-components', label: 'UI Components', icon: FiGrid, category: 'system', description: 'Browse all dashboard widgets and cards' },
-      { id: 'Resignation', label: 'Resignation', icon: FiLogOut, category: 'work', description: 'Initiate and manage resignation processes' },
+      { id: 'resignation', label: 'Resignation Admin', icon: FiLogOut, category: 'work', description: 'System-wide resignation monitoring and controls' },
     ],
   },
 };
