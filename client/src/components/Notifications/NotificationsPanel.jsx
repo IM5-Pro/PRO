@@ -8,8 +8,8 @@
  * @version 1.0.0
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiX,
   FiTrash2,
@@ -98,10 +98,10 @@ const getNavigationPath = (notification) => {
 /**
  * Individual notification item
  */
-const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose }) => {
+const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose, isNavigatingRef }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [hovering, setHovering] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleMarkAsRead = (e) => {
     e.stopPropagation();
@@ -115,27 +115,50 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose }) => 
     onDelete(notification.id);
   };
 
-  const handleNotificationClick = async () => {
-    // Prevent multiple navigations
-    if (isNavigating) return;
-    setIsNavigating(true);
-
-    // Close the notification panel immediately
-    if (onClose) {
-      onClose();
+  const handleNotificationClick = () => {
+    // Prevent multiple navigations using ref
+    if (isNavigatingRef.current) {
+      console.log('[NotificationItem] Navigation already in progress, ignoring click');
+      return;
     }
+    
+    isNavigatingRef.current = true;
+
+    // Get the target path
+    const targetPath = getNavigationPath(notification);
+    
+    // Get current page from URL
+    const currentPage = searchParams.get('page') || 'dashboard';
+    const targetPage = new URLSearchParams(targetPath.split('?')[1]).get('page') || 'dashboard';
+    
+    console.log('[NotificationItem] Click detected', {
+      type: notification.type,
+      targetPath,
+      currentPage,
+      targetPage,
+    });
 
     // Mark as read if not already
     if (!notification.read) {
       onMarkAsRead(notification.id);
     }
+
+    // Close panel immediately
+    if (onClose) {
+      onClose();
+    }
     
-    // Small delay to ensure panel closes before navigation
-    setTimeout(() => {
-      // Navigate to the appropriate page
-      const path = getNavigationPath(notification);
-      navigate(path);
-    }, 100);
+    // Only navigate if not already on the target page
+    if (currentPage !== targetPage) {
+      setTimeout(() => {
+        console.log('[NotificationItem] Navigating to:', targetPath);
+        navigate(targetPath);
+        isNavigatingRef.current = false;
+      }, 100);
+    } else {
+      console.log('[NotificationItem] Already on target page, skipping navigation');
+      isNavigatingRef.current = false;
+    }
   };
 
   return (
@@ -280,6 +303,9 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
 
   const [filterType, setFilterType] = useState(null);
   const [sortBy, setSortBy] = useState('latest');
+  
+  // Use ref to track navigation state across re-renders
+  const isNavigatingRef = useRef(false);
 
   // ============================================================================
   // FILTER & SORT
@@ -457,6 +483,7 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
                   onMarkAsRead={markAsRead}
                   onDelete={removeNotification}
                   onClose={onClose}
+                  isNavigatingRef={isNavigatingRef}
                 />
               ))}
             </div>
