@@ -225,10 +225,10 @@ const ROLE_PAGE_SOURCES = {
     team: [{ key: 'team-members', label: 'Team Members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(25) }],
     employees: [{ key: 'team-members', label: 'Team Members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(25) }],
     leaves: [{ key: 'leave-requests', label: 'Team Leave Requests', endpoint: LEAVE_ENDPOINTS.team }],
-    payroll: [{ key: 'session-activity', label: 'Session Activity', endpoint: AUTH_ENDPOINTS.sessions, arrayKey: 'sessions' }],
+    payroll: [{ key: 'payroll', label: 'Payroll Details', endpoint: PAYROLL_ENDPOINTS.own, filterRows: filterPayrollDetailsForCurrentMonth }],
     performance: [{ key: 'attendance-summary', label: 'Performance Trend Inputs', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, arrayKey: 'dailyBreakdown' }],
     reports: [{ key: 'attendance-summary', label: 'Attendance Reports', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, arrayKey: 'dailyBreakdown' }],
-    settings: [{ key: 'session-activity', label: 'Session Activity', endpoint: AUTH_ENDPOINTS.sessions, arrayKey: 'sessions' }],
+    settings: [{ key: 'profile', label: 'My Profile', endpoint: EMPLOYEE_ENDPOINTS.myProfile }],
     'team-collaboration': [{ key: 'team-members', label: 'Team Collaboration Members', endpoint: EMPLOYEE_ENDPOINTS.myTeam(25) }],
   },
   [ROLES.HR_ADMIN]: {
@@ -237,6 +237,7 @@ const ROLE_PAGE_SOURCES = {
     leaves: [{ key: 'leaves', label: 'Leave Requests', endpoint: LEAVE_ENDPOINTS.all }],
     payroll: [{ key: 'payroll-runs', label: 'Payroll Runs', endpoint: PAYROLL_ENDPOINTS.all, arrayKey: 'runs' }],
     reports: [{ key: 'monthly-summary', label: 'Monthly Summary', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary, arrayKey: 'dailyBreakdown' }],
+    settings: [{ key: 'profile', label: 'My Profile', endpoint: EMPLOYEE_ENDPOINTS.myProfile }],
   },
   [ROLES.SUPER_ADMIN]: {
     employees: [{ key: 'employees', label: 'Employees', endpoint: EMPLOYEE_ENDPOINTS.list(25) }],
@@ -435,12 +436,14 @@ export const processPayrollRun = async (runId) => {
 
 export const createEmployeeRecord = async ({
   firstName,
+  middleName,
   lastName,
   email,
   department,
   designation,
   salary,
   joinDate,
+  dateOfBirth,
   phoneNumber,
   managerName,
   managerEmail,
@@ -464,8 +467,8 @@ export const createEmployeeRecord = async ({
 
   const normalizedAccountRole = String(accountRole || 'EMPLOYEE').trim().toUpperCase();
 
-  if (!['EMPLOYEE', 'MANAGER', 'HR_ADMIN'].includes(normalizedAccountRole)) {
-    throw new Error('Account role must be EMPLOYEE, MANAGER, or HR_ADMIN');
+  if (!['EMPLOYEE', 'MANAGER', 'HR_ADMIN', 'DEPT_ADMIN'].includes(normalizedAccountRole)) {
+    throw new Error('Account role must be EMPLOYEE, MANAGER, HR_ADMIN, or DEPT_ADMIN');
   }
 
   const payload = {
@@ -474,6 +477,11 @@ export const createEmployeeRecord = async ({
     email: normalizedEmail,
     accountRole: normalizedAccountRole,
   };
+
+  const normalizedMiddleName = String(middleName || '').trim();
+  if (normalizedMiddleName) {
+    payload.middleName = normalizedMiddleName;
+  }
 
   const normalizedDepartment = String(department || '').trim();
   if (normalizedDepartment) {
@@ -508,6 +516,16 @@ export const createEmployeeRecord = async ({
     }
 
     payload.joinDate = normalizedJoinDate;
+  }
+
+  const normalizedDateOfBirth = String(dateOfBirth || '').trim();
+  if (normalizedDateOfBirth) {
+    const parsedDate = new Date(normalizedDateOfBirth);
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new Error('Date of birth must be a valid date (YYYY-MM-DD)');
+    }
+
+    payload.dateOfBirth = normalizedDateOfBirth;
   }
 
   const normalizedPhoneNumber = String(phoneNumber || '').trim();

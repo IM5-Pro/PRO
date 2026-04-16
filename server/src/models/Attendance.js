@@ -49,6 +49,32 @@ const attendanceBreakSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const punchRecordSchema = new mongoose.Schema(
+  {
+    checkInTime: {
+      type: Date,
+      required: true,
+    },
+    checkInLocation: {
+      type: attendanceLocationSchema,
+      default: () => ({ label: "Office" }),
+    },
+    checkOutTime: {
+      type: Date,
+      default: null,
+    },
+    checkOutLocation: {
+      type: attendanceLocationSchema,
+      default: () => ({ label: "Office" }),
+    },
+    durationMinutes: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false, timestamps: false },
+);
+
 const attendanceSchema = new mongoose.Schema(
   {
     // Employee reference
@@ -76,6 +102,12 @@ const attendanceSchema = new mongoose.Schema(
     checkOutLocation: {
       type: attendanceLocationSchema,
       default: () => ({ label: "Office" }),
+    },
+
+    // Multiple punch records for the day (for tracking multiple check-ins/outs)
+    punches: {
+      type: [punchRecordSchema],
+      default: [],
     },
 
     // Attendance date

@@ -33,6 +33,7 @@ const employeeSchema = new mongoose.Schema(
       default: () => `EMP${Date.now()}`,
     },
     firstName: { type: String, required: true, trim: true },
+    middleName: { type: String, trim: true, default: '' },
     lastName: { type: String, required: true, trim: true },
     email: {
       type: String,

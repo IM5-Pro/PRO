@@ -8,8 +8,8 @@
  * @version 1.0.0
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiX,
   FiTrash2,
@@ -42,65 +42,65 @@ const NotificationBadge = ({ count, highlight = false }) => {
 const getNavigationPath = (notification) => {
   const { type } = notification;
   
-  // Leave-related notifications
-  if (type.includes('leave')) {
+  // Exact type matches (more precise than includes)
+  const LEAVE_TYPES = ['leave_request', 'leave_approval', 'leave_rejection', 'leave_cancelled'];
+  const ATTENDANCE_TYPES = ['attendance_alert', 'attendance_late_arrival', 'attendance_absent', 'attendance_correction', 'attendance_overtime', 'attendance_shift_change'];
+  const PAYROLL_TYPES = ['payroll_ready', 'payroll_processed', 'salary_slip_generated', 'reimbursement_request', 'reimbursement_approval', 'reimbursement_rejection', 'bonus_notification', 'incentive_notification'];
+  const PERFORMANCE_TYPES = ['performance_review_request', 'performance_feedback_request', 'performance_review_complete', 'performance_rating', 'goal_setting', 'okr_update'];
+  
+  // Check exact type matches first (highest priority)
+  if (LEAVE_TYPES.includes(type)) {
     return `/?page=leaves`;
   }
   
-  // Attendance-related notifications
-  if (type.includes('attendance')) {
+  if (ATTENDANCE_TYPES.includes(type)) {
     return `/?page=attendance`;
   }
   
-  // Payroll-related notifications
-  if (type.includes('payroll') || type.includes('salary') || type.includes('reimbursement')) {
+  if (PAYROLL_TYPES.includes(type)) {
     return `/?page=payroll`;
   }
   
-  // Performance-related notifications
-  if (type.includes('performance') || type.includes('review') || type.includes('feedback')) {
+  if (PERFORMANCE_TYPES.includes(type)) {
     return `/?page=performance`;
   }
   
-  // Meeting-related notifications
+  // Fall back to includes for other types
   if (type.includes('meeting') || type.includes('one_on_one')) {
     return `/?page=team-collaboration`;
   }
   
-  // Asset-related notifications
   if (type.includes('asset') || type.includes('system_access')) {
     return `/?page=team-collaboration`;
   }
   
-  // Document-related notifications
   if (type.includes('document')) {
     return `/?page=team-collaboration`;
   }
   
-  // Training-related notifications
   if (type.includes('training') || type.includes('certification')) {
     return `/?page=team-collaboration`;
   }
   
-  // Announcement notifications
   if (type === 'announcement') {
     return `/?page=announcements`;
   }
   
-  // Role/designation/department change
   if (type.includes('role') || type.includes('designation') || type.includes('department') || type.includes('team_membership')) {
     return `/?page=employee-profile`;
   }
   
   // Default fallback to dashboard
+  console.warn('[getNavigationPath] Unknown notification type, defaulting to dashboard:', type);
   return `/`;
 };
 
 /**
  * Individual notification item
  */
-const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose }) => {
+const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose, isNavigatingRef }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [hovering, setHovering] = useState(false);
 
   const handleMarkAsRead = (e) => {
@@ -116,18 +116,48 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose }) => 
   };
 
   const handleNotificationClick = () => {
+    // Prevent multiple navigations using ref
+    if (isNavigatingRef.current) {
+      console.log('[NotificationItem] Navigation already in progress, ignoring click');
+      return;
+    }
+    
+    isNavigatingRef.current = true;
+
+    // Get the target path
+    const targetPath = getNavigationPath(notification);
+    
+    // Get current page from URL
+    const currentPage = searchParams.get('page') || 'dashboard';
+    const targetPage = new URLSearchParams(targetPath.split('?')[1]).get('page') || 'dashboard';
+    
+    console.log('[NotificationItem] Click detected', {
+      type: notification.type,
+      targetPath,
+      currentPage,
+      targetPage,
+    });
+
     // Mark as read if not already
     if (!notification.read) {
       onMarkAsRead(notification.id);
     }
-    
-    // Navigate to the appropriate page
-    const path = getNavigationPath(notification);
-    navigate(path);
-    
-    // Close the notification panel
+
+    // Close panel immediately
     if (onClose) {
       onClose();
+    }
+    
+    // Only navigate if not already on the target page
+    if (currentPage !== targetPage) {
+      setTimeout(() => {
+        console.log('[NotificationItem] Navigating to:', targetPath);
+        navigate(targetPath);
+        isNavigatingRef.current = false;
+      }, 100);
+    } else {
+      console.log('[NotificationItem] Already on target page, skipping navigation');
+      isNavigatingRef.current = false;
     }
   };
 
@@ -273,6 +303,9 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
 
   const [filterType, setFilterType] = useState(null);
   const [sortBy, setSortBy] = useState('latest');
+  
+  // Use ref to track navigation state across re-renders
+  const isNavigatingRef = useRef(false);
 
   // ============================================================================
   // FILTER & SORT
@@ -450,6 +483,7 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
                   onMarkAsRead={markAsRead}
                   onDelete={removeNotification}
                   onClose={onClose}
+                  isNavigatingRef={isNavigatingRef}
                 />
               ))}
             </div>

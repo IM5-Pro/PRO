@@ -64,6 +64,39 @@ export const fetchAdminEmployees = async (limit = 100) => {
   return extractRows(payload, ['data']);
 };
 
+export const fetchAllAdminEmployees = async (limit = 200) => {
+  const normalizedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 200, 1), 500);
+  let page = 1;
+  let totalPages = 1;
+  const merged = [];
+  const seen = new Set();
+
+  while (page <= totalPages && page <= 50) {
+    const separator = EMPLOYEE_ENDPOINTS.list(normalizedLimit).includes('?') ? '&' : '?';
+    const response = await API.get(`${EMPLOYEE_ENDPOINTS.list(normalizedLimit)}${separator}page=${page}`);
+    const payload = toPayload(response);
+    const rows = extractRows(payload, ['data']);
+    const pagination = payload?.pagination || payload?.data?.pagination || {};
+    const pagesFromPagination = Number.parseInt(pagination?.pages, 10);
+    totalPages = Number.isFinite(pagesFromPagination) && pagesFromPagination > 0
+      ? pagesFromPagination
+      : (rows.length < normalizedLimit ? page : page + 1);
+
+    rows.forEach((row) => {
+      const id = String(row?._id || row?.id || '').trim();
+      if (!id || seen.has(id)) {
+        return;
+      }
+      seen.add(id);
+      merged.push(row);
+    });
+
+    page += 1;
+  }
+
+  return merged;
+};
+
 export const fetchEmployeeProfile = async (employeeId) => {
   const response = await API.get(EMPLOYEE_ENDPOINTS.profile(employeeId));
   const payload = toPayload(response);
@@ -303,6 +336,6 @@ export const disableMfa = async () => {
 };
 
 export const getPayrollDownloadUrl = (detailId) => {
-  const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:7888/api';
+  const baseUrl = process.env.REACT_APP_API_BASE_URL || 'https://zgf2pvkx-7888.inc1.devtunnels.ms/api';
   return `${baseUrl}${PAYROLL_ENDPOINTS.download(detailId)}`;
 };

@@ -137,6 +137,13 @@ const validateCreateUser = (body) => {
     errors.firstName = "FirstName must be a string";
   }
 
+  // Validate middleName (optional but if provided, must be string)
+  if (body.middleName && typeof body.middleName !== "string") {
+    errors.middleName = "MiddleName must be a string";
+  } else if (typeof body.middleName === "string" && body.middleName.trim().length > 0 && body.middleName.trim().length < 2) {
+    errors.middleName = "MiddleName must be at least 2 characters if provided";
+  }
+
   // Validate lastName (optional but if provided, must be string)
   if (body.lastName && typeof body.lastName !== "string") {
     errors.lastName = "LastName must be a string";

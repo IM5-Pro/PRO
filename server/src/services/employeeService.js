@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import AuditLog from "../models/AuditLog.js";
 import SalaryHistory from "../models/SalaryHistory.js";
+import User from "../models/User.js";
 import { assignDesignationToEmployee } from "./designationAssignmentService.js";
 import { createUser } from "./userService.js";
 import {
@@ -118,9 +119,10 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
     const employeePayload = {
       email: normalizedEmail,
       firstName: body.firstName,
+      middleName: body.middleName || '',
       lastName: body.lastName,
       department: body.department || "",
-      designation: "",
+      designation: body.designation || "",
       salary: body.salary || 0,
       managerID: body.managerID || body.managerId || null,
       managerId: body.managerId || body.managerID || null,
@@ -143,6 +145,7 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
           password: temporaryPassword,
           role: body.accountRole || "EMPLOYEE",
           firstName: body.firstName,
+          middleName: body.middleName || "",
           lastName: body.lastName,
           employeeId: employee._id,
           mustChangePassword: true,
@@ -244,10 +247,30 @@ const listEmployeesWithPagination = async ({ role, userId, queryParams, deptAdmi
       limit,
     });
 
-    const lastEmployee = employees[employees.length - 1] || null;
+    // Enrich employees with user role information
+    const employeeIds = employees.map((emp) => emp._id);
+    const usersByEmployeeId = new Map();
+    if (employeeIds.length > 0) {
+      const users = await User.find({ employeeId: { $in: employeeIds } }).select("employeeId role").lean();
+      users.forEach((user) => {
+        if (user.employeeId) {
+          usersByEmployeeId.set(user.employeeId.toString(), user.role);
+        }
+      });
+    }
+
+    const enrichedEmployees = employees.map((emp) => {
+      const empObj = emp.toObject ? emp.toObject() : emp;
+      return {
+        ...empObj,
+        role: usersByEmployeeId.get(emp._id.toString()) || "EMPLOYEE",
+      };
+    });
+
+    const lastEmployee = enrichedEmployees[enrichedEmployees.length - 1] || null;
 
     return {
-      employees,
+      employees: enrichedEmployees,
       pagination: {
         cursor: filters.cursor,
         nextCursor: lastEmployee ? lastEmployee._id.toString() : null,
@@ -268,8 +291,28 @@ const listEmployeesWithPagination = async ({ role, userId, queryParams, deptAdmi
     countByQuery(query),
   ]);
 
+  // Enrich employees with user role information
+  const employeeIds = employees.map((emp) => emp._id);
+  const usersByEmployeeId = new Map();
+  if (employeeIds.length > 0) {
+    const users = await User.find({ employeeId: { $in: employeeIds } }).select("employeeId role").lean();
+    users.forEach((user) => {
+      if (user.employeeId) {
+        usersByEmployeeId.set(user.employeeId.toString(), user.role);
+      }
+    });
+  }
+
+  const enrichedEmployees = employees.map((emp) => {
+    const empObj = emp.toObject ? emp.toObject() : emp;
+    return {
+      ...empObj,
+      role: usersByEmployeeId.get(emp._id.toString()) || "EMPLOYEE",
+    };
+  });
+
   return {
-    employees,
+    employees: enrichedEmployees,
     pagination: {
       page,
       limit,

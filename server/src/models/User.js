@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     },
     password: { type: String, required: true },
     firstName: { type: String, default: "", trim: true },
+    middleName: { type: String, default: "", trim: true },
     lastName: { type: String, default: "", trim: true },
     role: String,
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },

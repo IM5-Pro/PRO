@@ -25,6 +25,7 @@ import {
   fetchDesignations,
   fetchDesignationsByDepartment,
   fetchAdminEmployees,
+  fetchAllAdminEmployees,
   fetchEmployeeProfile,
   resetEmployeePassword,
   toErrorMessage,
@@ -34,6 +35,7 @@ import {
 
 const EMPTY_CREATE_FORM = {
   firstName: '',
+  middleName: '',
   lastName: '',
   email: '',
   department: '',
@@ -49,6 +51,7 @@ const EMPTY_EDIT_FORM = {
   lastName: '',
   email: '',
   phoneNumber: '',
+  managerId: '',
   department: '',
   designation: '',
   salary: '',
@@ -65,6 +68,21 @@ const EMPTY_EDIT_FORM = {
 
 const toOptionId = (value) => String(value || '').trim();
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
+const formatEmployeeEmail = (firstName, lastName) => {
+  const normalize = (value) =>
+    String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/\.{2,}/g, '.')
+      .replace(/^\.|\.$/g, '');
+
+  const first = normalize(firstName);
+  const last = normalize(lastName);
+  if (!first || !last) return '';
+  return `${first}.${last}@ispace.com`;
+};
+
 const formatJoinDate = (value) => {
   if (!value) {
     return 'Join date not available';
@@ -171,6 +189,7 @@ const HRUserManagement = () => {
   const [designationCreateLoading, setDesignationCreateLoading] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
+  const [isCreateEmailEdited, setIsCreateEmailEdited] = useState(false);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
   const [editingEmployeeMeta, setEditingEmployeeMeta] = useState({
     employeeCode: '',
@@ -178,12 +197,18 @@ const HRUserManagement = () => {
     status: '',
   });
   const [lastTempPassword, setLastTempPassword] = useState('');
+  const [createSuccessInfo, setCreateSuccessInfo] = useState(null);
+  const [copiedCreatePassword, setCopiedCreatePassword] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [designations, setDesignations] = useState([]);
+  const [managerOptions, setManagerOptions] = useState([]);
+  const [managerSearchQuery, setManagerSearchQuery] = useState('');
+  const [managerOptionsLoading, setManagerOptionsLoading] = useState(false);
 
   const resetCreateForm = useCallback(() => {
     setCreateForm(EMPTY_CREATE_FORM);
     setCreateDesignationDraft('');
+    setIsCreateEmailEdited(false);
   }, []);
 
   const resetEditForm = useCallback(() => {
@@ -192,6 +217,7 @@ const HRUserManagement = () => {
     setEditOriginalDesignationId('');
     setEditingEmployeeMeta({ employeeCode: '', managerName: '', status: '' });
     setEditDesignationDraft('');
+    setManagerSearchQuery('');
   }, []);
 
   const loadEmployees = useCallback(async () => {
@@ -250,6 +276,52 @@ const HRUserManagement = () => {
   useEffect(() => {
     loadReferenceData();
   }, [loadReferenceData]);
+
+  const loadManagerOptions = useCallback(async () => {
+    setManagerOptionsLoading(true);
+    try {
+      const rows = await fetchAllAdminEmployees(200);
+      const mapped = rows
+        .map((employee, index) => toEmployeeCard(employee, index))
+        .filter((employee) => employee.id && employee.name)
+        .sort((left, right) => left.name.localeCompare(right.name));
+      setManagerOptions(mapped);
+    } catch (error) {
+      setManagerOptions([]);
+      setBanner((previous) => {
+        if (previous.type === 'error' && previous.text) {
+          return previous;
+        }
+        return { type: 'error', text: toErrorMessage(error, 'Failed to load manager options') };
+      });
+    } finally {
+      setManagerOptionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!editOpen) {
+      return;
+    }
+    loadManagerOptions();
+  }, [editOpen, loadManagerOptions]);
+
+  const filteredManagerOptions = useMemo(() => {
+    const normalizedQuery = normalizeText(managerSearchQuery);
+    const excludedEmployeeId = toOptionId(editingEmployeeId);
+    const rows = managerOptions.filter((employee) => toOptionId(employee.id) !== excludedEmployeeId);
+    if (!normalizedQuery) {
+      return rows;
+    }
+    return rows.filter((employee) => {
+      return [
+        employee.name,
+        employee.email,
+        employee.department,
+        employee.designation,
+      ].some((value) => normalizeText(value).includes(normalizedQuery));
+    });
+  }, [editingEmployeeId, managerOptions, managerSearchQuery]);
 
   const mergeDesignationRows = useCallback((rows) => {
     setDesignations((previous) => {
@@ -535,35 +607,53 @@ const HRUserManagement = () => {
   const setCreateValue = (field) => (event) => {
     const nextValue = event.target.value;
 
-    setCreateForm((previous) => ({
-      ...previous,
-      ...(field === 'designation'
-        ? {
-            designation: nextValue,
-            department: (() => {
-              const selectedDesignation = designations.find((designation) => designation.id === nextValue);
-              if (!selectedDesignation) {
-                return previous.department;
-              }
+    if (field === 'email') {
+      setIsCreateEmailEdited(true);
+    }
 
-              return selectedDesignation.departmentName
-                || departmentOptions.find((department) => department.id === selectedDesignation.departmentId)?.name
-                || previous.department;
-            })(),
-          }
-        : field === 'department'
+    setCreateForm((previous) => {
+      const nextForm = {
+        ...previous,
+        ...(field === 'designation'
           ? {
-              department: nextValue,
-              designation:
-                previous.designation
-                && !isDesignationInDepartment(previous.designation, nextValue, selectedCreateDepartmentRecord?.id)
-                  ? ''
-                  : previous.designation,
+              designation: nextValue,
+              department: (() => {
+                const selectedDesignation = designations.find((designation) => designation.id === nextValue);
+                if (!selectedDesignation) {
+                  return previous.department;
+                }
+
+                return selectedDesignation.departmentName
+                  || departmentOptions.find((department) => department.id === selectedDesignation.departmentId)?.name
+                  || previous.department;
+              })(),
             }
-          : {
-              [field]: nextValue,
-            }),
-    }));
+          : field === 'department'
+            ? {
+                department: nextValue,
+                designation:
+                  previous.designation
+                  && !isDesignationInDepartment(previous.designation, nextValue, selectedCreateDepartmentRecord?.id)
+                    ? ''
+                    : previous.designation,
+              }
+            : {
+                [field]: nextValue,
+              }),
+      };
+
+      if ((field === 'firstName' || field === 'lastName') && !isCreateEmailEdited) {
+        const generatedEmail = formatEmployeeEmail(
+          field === 'firstName' ? nextValue : previous.firstName,
+          field === 'lastName' ? nextValue : previous.lastName,
+        );
+        if (generatedEmail) {
+          nextForm.email = generatedEmail;
+        }
+      }
+
+      return nextForm;
+    });
   };
 
   const setEditValue = (field) => (event) => {
@@ -687,6 +777,7 @@ const HRUserManagement = () => {
         lastName: profile?.lastName || employee.lastName || '',
         email: profile?.email || employee.email || '',
         phoneNumber: profile?.phoneNumber || profile?.phone || employee.phone || '',
+        managerId: toOptionId(manager?._id || manager?.id || profile?.managerId || profile?.managerID || ''),
         department: profile?.department || employee.department || '',
         designation: resolvedDesignationId,
         salary: profile?.salary === undefined || profile?.salary === null ? '' : String(profile.salary),
@@ -730,6 +821,10 @@ const HRUserManagement = () => {
         zipCode: String(editForm.zipCode || '').trim(),
         addressLine: String(editForm.addressLine || '').trim(),
       };
+
+      const normalizedManagerId = String(editForm.managerId || '').trim();
+      payload.managerId = normalizedManagerId || null;
+      payload.managerID = normalizedManagerId || null;
 
       const normalizedSalary = String(editForm.salary || '').trim();
       if (normalizedSalary) {
@@ -785,11 +880,33 @@ const HRUserManagement = () => {
     setBanner({ type: '', text: '' });
 
     try {
-      await createAdminEmployee(createForm);
-      setBanner({ type: 'success', text: 'Employee account created successfully.' });
+      const result = await createAdminEmployee(createForm);
+      const temporaryPassword = String(
+        result?.temporaryPassword
+        ?? result?.data?.temporaryPassword
+        ?? '',
+      ).trim();
+      const loginAccountCreated = result?.loginAccountCreated ?? result?.data?.loginAccountCreated;
+
       resetCreateForm();
-      setCreateOpen(false);
       await loadEmployees();
+
+      setCreateSuccessInfo({
+        temporaryPassword,
+        loginAccountCreated: loginAccountCreated !== false,
+      });
+      if (temporaryPassword) {
+        setLastTempPassword(temporaryPassword);
+      } else {
+        setLastTempPassword('');
+      }
+
+      setBanner({
+        type: 'success',
+        text: temporaryPassword
+          ? 'Employee account created. Copy the temporary password below before you close the dialog.'
+          : 'Employee account created successfully.',
+      });
     } catch (error) {
       setBanner({ type: 'error', text: toErrorMessage(error, 'Failed to create employee') });
     } finally {
@@ -874,6 +991,7 @@ const HRUserManagement = () => {
             <button
               onClick={() => {
                 resetCreateForm();
+                setCreateSuccessInfo(null);
                 setCreateOpen(true);
               }}
               className="h-9 rounded-lg bg-blue-700 px-3 text-xs font-semibold text-white transition-colors hover:bg-blue-800"
@@ -1071,6 +1189,8 @@ const HRUserManagement = () => {
                   onClick={() => {
                     setCreateOpen(false);
                     resetCreateForm();
+                    setCreateSuccessInfo(null);
+                    setCopiedCreatePassword(false);
                   }}
                   className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                 >
@@ -1078,6 +1198,60 @@ const HRUserManagement = () => {
                 </button>
               </div>
 
+              {createSuccessInfo ? (
+                <div className="px-5 py-6">
+                  <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-900">
+                    <p className="font-semibold text-green-950">Account created</p>
+                    {createSuccessInfo.temporaryPassword ? (
+                      <>
+                        <p className="mt-2 text-xs text-green-800">
+                          Share this temporary password with the employee. They must change it on first login.
+                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-green-200 bg-white px-3 py-2.5">
+                          <code className="min-w-0 flex-1 break-all font-mono text-sm text-slate-900">
+                            {createSuccessInfo.temporaryPassword}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(createSuccessInfo.temporaryPassword);
+                                setCopiedCreatePassword(true);
+                                setTimeout(() => setCopiedCreatePassword(false), 1500);
+                              } catch {
+                                setCopiedCreatePassword(false);
+                              }
+                            }}
+                            className={`shrink-0 text-xs font-semibold ${copiedCreatePassword ? 'text-green-700' : 'text-blue-700 hover:text-blue-900'}`}
+                          >
+                            {copiedCreatePassword ? 'Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-xs text-green-800">
+                        {createSuccessInfo.loginAccountCreated === false
+                          ? 'Employee record was created. No login account was generated, so no temporary password applies.'
+                          : 'Employee account was saved. Temporary password was not returned by the server; use Reset Password if needed.'}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-5 flex justify-end border-t border-slate-200 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateOpen(false);
+                        resetCreateForm();
+                        setCreateSuccessInfo(null);
+                        setCopiedCreatePassword(false);
+                      }}
+                      className="h-9 rounded-lg bg-blue-700 px-4 text-xs font-semibold text-white hover:bg-blue-800"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
               <form onSubmit={submitCreateEmployee}>
                 <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
                   <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-xs text-blue-700">
@@ -1088,6 +1262,10 @@ const HRUserManagement = () => {
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">First Name*</label>
                       <input required value={createForm.firstName} onChange={setCreateValue('firstName')} placeholder="First name" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Middle Name</label>
+                      <input value={createForm.middleName} onChange={setCreateValue('middleName')} placeholder="Middle name (optional)" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Last Name*</label>
@@ -1182,6 +1360,8 @@ const HRUserManagement = () => {
                     onClick={() => {
                       setCreateOpen(false);
                       resetCreateForm();
+                      setCreateSuccessInfo(null);
+                      setCopiedCreatePassword(false);
                     }}
                     className="h-9 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                   >
@@ -1196,6 +1376,7 @@ const HRUserManagement = () => {
                   </button>
                 </div>
               </form>
+              )}
             </div>
           </div>
         </div>
@@ -1263,6 +1444,30 @@ const HRUserManagement = () => {
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1">Phone Number</label>
                           <input value={editForm.phoneNumber} onChange={setEditValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div className="md:col-span-2 lg:col-span-3">
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Reporting Manager</label>
+                          <input
+                            value={managerSearchQuery}
+                            onChange={(event) => setManagerSearchQuery(event.target.value)}
+                            placeholder="Search by manager name, email, department, or designation"
+                            className="mb-2 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                          <select
+                            value={editForm.managerId}
+                            onChange={setEditValue('managerId')}
+                            disabled={managerOptionsLoading}
+                            className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
+                          >
+                            <option value="">
+                              {managerOptionsLoading ? 'Loading employees...' : 'No manager assigned'}
+                            </option>
+                            {filteredManagerOptions.map((managerOption) => (
+                              <option key={managerOption.id} value={managerOption.id}>
+                                {managerOption.name} - {managerOption.designation} ({managerOption.department})
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1">Join Date</label>
@@ -1383,8 +1588,25 @@ const HRUserManagement = () => {
       )}
 
       {lastTempPassword && (
-        <div className="mt-4 text-xs text-slate-500">
-          Keep temporary passwords secure and ask users to change passwords on first login.
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <p className="font-medium text-slate-800">Latest temporary password (copy and share securely)</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <code className="min-w-0 flex-1 break-all font-mono text-sm text-slate-900">{lastTempPassword}</code>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(lastTempPassword);
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className="shrink-0 text-xs font-semibold text-blue-700 hover:text-blue-900"
+            >
+              Copy
+            </button>
+          </div>
+          <p className="mt-2 text-slate-500">Ask the user to change this password on first login.</p>
         </div>
       )}
     </div>

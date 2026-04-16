@@ -23,6 +23,7 @@ export const createUser = async ({ creatorRole, creatorId, payload, session = nu
     password,
     role,
     firstName,
+    middleName,
     lastName,
     employeeId,
     mustChangePassword = false,
@@ -61,7 +62,7 @@ export const createUser = async ({ creatorRole, creatorId, payload, session = nu
   let linkedEmployee = null;
   if (employeeId) {
     const linkedEmployeeQuery = Employee.findById(employeeId)
-      .select("_id email firstName lastName")
+      .select("_id email firstName middleName lastName")
       .lean();
 
     if (session) {
@@ -84,6 +85,7 @@ export const createUser = async ({ creatorRole, creatorId, payload, session = nu
     password: hash,
     role: normalizedRole,
     firstName: typeof firstName === "string" && firstName.trim() ? firstName.trim() : linkedEmployee?.firstName || "",
+    middleName: typeof middleName === "string" && middleName.trim() ? middleName.trim() : linkedEmployee?.middleName || "",
     lastName: typeof lastName === "string" && lastName.trim() ? lastName.trim() : linkedEmployee?.lastName || "",
     employeeId: linkedEmployee?._id || null,
     createdBy: creatorId,

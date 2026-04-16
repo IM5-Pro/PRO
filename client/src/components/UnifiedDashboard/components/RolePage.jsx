@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import API from '../../../api/client';
+import { EMPLOYEE_ENDPOINTS } from '../../../api/endpoints';
 import { ROLES } from '../../../utils/roles';
+import { fetchDepartments, fetchDesignations } from '../../../services/adminOperationsApi';
 import {
   approveLeaveRequest,
   assignPermissionToRole,
@@ -9,6 +12,18 @@ import {
   processPayrollRun,
   rejectLeaveRequest,
 } from '../../../services/unifiedDashboardApi';
+
+const apiPayload = (response) => response?.data || {};
+
+const extractListRows = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  return [];
+};
 
 const formatValue = (value) => {
   if (value === null || value === undefined) {
@@ -98,6 +113,24 @@ const extractPermissionId = (row) => {
   return extractIdFromRow(row, ['permissionId', '_id', 'id', 'permission._id', 'permission.id']);
 };
 
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
+const formatWorkEmail = (firstName, lastName) => {
+  const normalizeNamePart = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^\.|\.$/g, '');
+
+  const first = normalizeNamePart(firstName);
+  const last = normalizeNamePart(lastName);
+  if (!first || !last) {
+    return '';
+  }
+  return `${first}.${last}@ispace.com`;
+};
+
 const buildRoleActions = (role, pageId) => {
   const actions = [];
 
@@ -145,26 +178,35 @@ const buildRoleActions = (role, pageId) => {
       buttonLabel: 'Create Employee',
       fields: [
         { key: 'firstName', label: 'First Name', placeholder: 'Enter first name', required: true },
+        { key: 'middleName', label: 'Middle Name', placeholder: 'Enter middle name (optional)', required: false },
         { key: 'lastName', label: 'Last Name', placeholder: 'Enter last name', required: true },
-        { key: 'email', label: 'Work Email', placeholder: 'Enter work email', required: true },
-        { key: 'department', label: 'Department (optional)', placeholder: 'Enter department', required: false },
-        { key: 'designation', label: 'Designation (optional)', placeholder: 'Enter designation', required: false },
-        { key: 'salary', label: 'Salary (optional)', placeholder: 'Enter salary amount', required: false },
-        { key: 'joinDate', label: 'Join Date (optional)', placeholder: 'YYYY-MM-DD', required: false },
+        { key: 'email', label: 'Work Email', placeholder: 'Enter work email', inputType: 'email', required: true },
+        { key: 'department', label: 'Department (optional)', placeholder: 'Select department', inputType: 'select', required: false },
+        { key: 'designation', label: 'Designation (optional)', placeholder: 'Select designation', inputType: 'select', required: false },
+        { key: 'salary', label: 'Salary (optional)', placeholder: 'Enter salary amount', inputType: 'number', required: false },
+        { key: 'joinDate', label: 'Join Date (optional)', placeholder: 'YYYY-MM-DD', inputType: 'date', required: false },
         { key: 'phoneNumber', label: 'Phone Number (optional)', placeholder: '10-digit phone number', required: false },
-        { key: 'managerId', label: 'Manager ID (optional)', placeholder: 'Enter manager employee ID', required: false },
+        { key: 'managerId', label: 'Reporting Manager (optional)', placeholder: 'Select manager', inputType: 'select', required: false },
         {
           key: 'accountRole',
           label: 'Account Role (optional)',
-          placeholder: 'EMPLOYEE (default), MANAGER, or HR_ADMIN',
+          placeholder: 'Select account role',
+          inputType: 'select',
+          options: [
+            { value: 'EMPLOYEE', label: 'EMPLOYEE' },
+            { value: 'MANAGER', label: 'MANAGER' },
+            { value: 'HR_ADMIN', label: 'HR_ADMIN' },
+            { value: 'DEPT_ADMIN', label: 'DEPT_ADMIN' },
+          ],
           required: false,
         },
       ],
       run: async (values) => {
         return createEmployeeRecord({
           firstName: values.firstName,
+          middleName: values.middleName,
           lastName: values.lastName,
-          email: values.email,
+          email: String(values.email || '').trim().toLowerCase(),
           department: values.department,
           designation: values.designation,
           salary: values.salary,
@@ -305,6 +347,16 @@ const RolePage = ({ title, description, role, pageId }) => {
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [selectedPermissionId, setSelectedPermissionId] = useState('');
   const [openActionId, setOpenActionId] = useState(null);
+  const [createEmployeeEmailEdited, setCreateEmployeeEmailEdited] = useState(false);
+  const [createEmployeeMasters, setCreateEmployeeMasters] = useState({
+    departments: [],
+    designations: [],
+    loading: false,
+  });
+  const [createEmployeeManagers, setCreateEmployeeManagers] = useState({
+    rows: [],
+    loading: false,
+  });
 
   const actions = useMemo(() => buildRoleActions(role, pageId), [role, pageId]);
   const actionsById = useMemo(() => {
@@ -325,15 +377,78 @@ const RolePage = ({ title, description, role, pageId }) => {
     loadPageData();
   }, [loadPageData]);
 
-  const onFieldChange = useCallback((actionId, key, value) => {
-    setFormValues((prev) => ({
-      ...prev,
-      [actionId]: {
-        ...(prev[actionId] || {}),
-        [key]: value,
-      },
-    }));
-  }, []);
+  const selectedCreateEmployeeDepartment = formValues['create-employee']?.department;
+
+  useEffect(() => {
+    if (openActionId !== 'create-employee') {
+      setCreateEmployeeEmailEdited(false);
+      return;
+    }
+
+    let active = true;
+    setCreateEmployeeMasters((previous) => ({ ...previous, loading: true }));
+
+    Promise.all([fetchDepartments(), fetchDesignations()])
+      .then(([departmentRows, designationRows]) => {
+        if (!active) {
+          return;
+        }
+        setCreateEmployeeMasters({
+          departments: Array.isArray(departmentRows) ? departmentRows : [],
+          designations: Array.isArray(designationRows) ? designationRows : [],
+          loading: false,
+        });
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+        setCreateEmployeeMasters({
+          departments: [],
+          designations: [],
+          loading: false,
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [openActionId]);
+
+  useEffect(() => {
+    if (openActionId !== 'create-employee') {
+      return;
+    }
+
+    let active = true;
+    setCreateEmployeeManagers((previous) => ({ ...previous, loading: true }));
+
+    const department = String(selectedCreateEmployeeDepartment || '').trim();
+
+    API.get(
+      EMPLOYEE_ENDPOINTS.managers({
+        limit: 200,
+        department: department || undefined,
+      }),
+    )
+      .then((response) => {
+        if (!active) {
+          return;
+        }
+        const rows = extractListRows(apiPayload(response));
+        setCreateEmployeeManagers({ rows, loading: false });
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+        setCreateEmployeeManagers({ rows: [], loading: false });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [openActionId, selectedCreateEmployeeDepartment]);
 
   const runAction = useCallback(
     async (action, overrides = {}) => {
@@ -367,6 +482,18 @@ const RolePage = ({ title, description, role, pageId }) => {
           isError: true,
         });
         return;
+      }
+
+      if (action.id === 'create-employee') {
+        const normalizedEmail = String(values.email || '').trim().toLowerCase();
+        if (!/^[A-Za-z0-9._%+-]+@ispace\.com$/i.test(normalizedEmail)) {
+          setActionState({
+            loadingId: '',
+            message: 'Email must be a valid @ispace.com address',
+            isError: true,
+          });
+          return;
+        }
       }
 
       setActionState({ loadingId: action.id, message: '', isError: false });
@@ -536,6 +663,117 @@ const RolePage = ({ title, description, role, pageId }) => {
     [actionsById, pageId, selectedPermissionId, selectedRoleId]
   );
 
+  const createEmployeeDepartmentOptions = useMemo(() => {
+    return (createEmployeeMasters.departments || [])
+      .filter((department) => department?.isActive !== false)
+      .map((department) => {
+        const name = String(department?.name || department?.departmentName || '').trim();
+        if (!name) {
+          return null;
+        }
+        return { value: name, label: name };
+      })
+      .filter(Boolean)
+      .sort((left, right) => left.label.localeCompare(right.label));
+  }, [createEmployeeMasters.departments]);
+
+  const getFilteredDesignationsForCreate = useCallback((departmentName) => {
+    const rows = (createEmployeeMasters.designations || []).filter((designation) => designation?.isActive !== false);
+    const selectedDepartment = normalizeText(departmentName);
+
+    const resolveDesignationDepartmentLabel = (designation) => {
+      const dep = designation?.department;
+      if (dep && typeof dep === 'object' && dep.name) {
+        return String(dep.name).trim();
+      }
+      return String(
+        designation?.departmentName
+          || (typeof dep === 'string' ? dep : '')
+          || designation?.departmentCode
+          || '',
+      ).trim();
+    };
+
+    const filtered = selectedDepartment
+      ? rows.filter((designation) => {
+          const departmentValue = normalizeText(resolveDesignationDepartmentLabel(designation));
+          return departmentValue === selectedDepartment;
+        })
+      : rows;
+
+    return filtered
+      .map((designation) => {
+        const name = String(designation?.name || '').trim();
+        return name ? { value: name, label: name } : null;
+      })
+      .filter(Boolean)
+      .sort((left, right) => left.label.localeCompare(right.label));
+  }, [createEmployeeMasters.designations]);
+
+  const managerSelectOptions = useMemo(() => {
+    return (createEmployeeManagers.rows || [])
+      .map((manager) => {
+        const id = normalizeId(manager?._id || manager?.id);
+        if (!id) {
+          return null;
+        }
+        const name = [manager?.firstName, manager?.lastName].filter(Boolean).join(' ').trim()
+          || String(manager?.email || id).trim();
+        const label = `${name}${manager?.designation ? ` — ${manager.designation}` : ''}`;
+        return { value: id, label };
+      })
+      .filter(Boolean)
+      .sort((left, right) => left.label.localeCompare(right.label));
+  }, [createEmployeeManagers.rows]);
+
+  const getCreateEmployeeFieldOptions = useCallback((field, actionValues = {}) => {
+    if (field.key === 'department') {
+      return createEmployeeDepartmentOptions;
+    }
+    if (field.key === 'designation') {
+      return getFilteredDesignationsForCreate(actionValues.department);
+    }
+    if (field.key === 'managerId') {
+      return managerSelectOptions;
+    }
+    return field.options || [];
+  }, [createEmployeeDepartmentOptions, getFilteredDesignationsForCreate, managerSelectOptions]);
+
+  const onFieldChange = useCallback((actionId, key, value) => {
+    setFormValues((prev) => {
+      const nextActionValues = {
+        ...(prev[actionId] || {}),
+        [key]: value,
+      };
+
+      if (actionId === 'create-employee') {
+        if (key === 'email') {
+          setCreateEmployeeEmailEdited(true);
+        }
+
+        if ((key === 'firstName' || key === 'lastName') && !createEmployeeEmailEdited) {
+          const generatedEmail = formatWorkEmail(
+            key === 'firstName' ? value : nextActionValues.firstName,
+            key === 'lastName' ? value : nextActionValues.lastName,
+          );
+          if (generatedEmail) {
+            nextActionValues.email = generatedEmail;
+          }
+        }
+      }
+
+      if (actionId === 'create-employee' && key === 'department') {
+        nextActionValues.designation = '';
+        nextActionValues.managerId = '';
+      }
+
+      return {
+        ...prev,
+        [actionId]: nextActionValues,
+      };
+    });
+  }, [createEmployeeEmailEdited]);
+
   const getRowActionClassName = useCallback((tone) => {
     if (tone === 'danger') {
       return 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 disabled:bg-red-100/60 disabled:text-red-400 disabled:border-red-100';
@@ -608,13 +846,50 @@ const RolePage = ({ title, description, role, pageId }) => {
                   {action.fields.map((field) => (
                     <div key={field.key}>
                       <label className="block text-xs text-slate-500 mb-1">{field.label}</label>
-                      <input
-                        type={field.inputType || 'text'}
-                        value={values[field.key] || ''}
-                        onChange={(event) => onFieldChange(action.id, field.key, event.target.value)}
-                        placeholder={field.placeholder}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white"
-                      />
+                      {field.inputType === 'select' ? (
+                        <select
+                          value={values[field.key] || ''}
+                          onChange={(event) => onFieldChange(action.id, field.key, event.target.value)}
+                          disabled={
+                            action.id === 'create-employee'
+                            && (
+                              (field.key === 'department' && createEmployeeMasters.loading)
+                              || (field.key === 'designation' && createEmployeeMasters.loading)
+                              || (field.key === 'managerId' && createEmployeeManagers.loading)
+                            )
+                          }
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white disabled:opacity-60"
+                        >
+                          <option value="">
+                            {action.id === 'create-employee' && field.key === 'department' && createEmployeeMasters.loading
+                              ? 'Loading departments...'
+                              : action.id === 'create-employee' && field.key === 'designation' && createEmployeeMasters.loading
+                                ? 'Loading designations...'
+                                : action.id === 'create-employee' && field.key === 'managerId' && createEmployeeManagers.loading
+                                  ? 'Loading managers...'
+                                  : field.placeholder || `Select ${field.label}`}
+                          </option>
+                          {(action.id === 'create-employee' ? getCreateEmployeeFieldOptions(field, values) : (field.options || []))
+                            .map((option) => {
+                              const normalizedOption = typeof option === 'string'
+                                ? { value: option, label: option }
+                                : option;
+                              return (
+                                <option key={`${field.key}-${normalizedOption.value}`} value={normalizedOption.value}>
+                                  {normalizedOption.label}
+                                </option>
+                              );
+                            })}
+                        </select>
+                      ) : (
+                        <input
+                          type={field.inputType || 'text'}
+                          value={values[field.key] || ''}
+                          onChange={(event) => onFieldChange(action.id, field.key, event.target.value)}
+                          placeholder={field.placeholder}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

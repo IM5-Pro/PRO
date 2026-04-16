@@ -27,6 +27,7 @@ export const ATTENDANCE_ENDPOINTS = {
   monthlySummary: '/attendance/monthly-summary',
   checkIn: '/attendance/check-in',
   checkOut: '/attendance/check-out',
+  manual: '/attendance/manual',
 };
 
 export const LEAVE_ENDPOINTS = {

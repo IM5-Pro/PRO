@@ -521,14 +521,6 @@ const generateSlips = async (req, res) => {
 
 const viewOwn = async (req, res) => {
   try {
-    // Check permission for MANAGER role using permissions.js
-    if (req.user?.role === ROLE.MANAGER) {
-      const permissions = req.user?.permissions || {};
-      if (!permissions?.payroll?.view_own) {
-        return sendError(res, 403, "Unauthorized");
-      }
-    }
-
     const employeeId = await resolveEmployeeIdFromAuth(req);
     if (!employeeId) {
       return sendError(res, 403, "Employee mapping missing for authenticated user");

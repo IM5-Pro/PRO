@@ -45,13 +45,33 @@ connectDB().then(() => {
   })();
 });
 // Middleware
-app.use(
+/* app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    origin: process.env.CLIENT_ORIGIN || "https://zgf2pvkx-3000.inc1.devtunnels.ms/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
+); */
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman / curl
+
+      const allowedOrigins = [
+        "https://zgf2pvkx-3000.inc1.devtunnels.ms",
+        "http://localhost:3000",
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

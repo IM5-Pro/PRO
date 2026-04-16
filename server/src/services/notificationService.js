@@ -25,6 +25,7 @@ export const notifyLeaveRequest = async (data) => {
     startDate,
     endDate,
     reason,
+    employeeName,
   } = data;
 
   // Notify manager about pending leave request
@@ -41,9 +42,26 @@ export const notifyLeaveRequest = async (data) => {
       actionUrl: `/manager/approvals/leave/${leaveId}`,
       metadata: { leaveType, startDate, endDate, reason },
     });
+  } else if (hrAdminIds && hrAdminIds.length > 0) {
+    // If employee has no manager, notify HR admins with HIGH priority for direct handling
+    for (const hrAdminId of hrAdminIds) {
+      await createNotification({
+        userId: hrAdminId,
+        type: "leave_request",
+        title: "Urgent: Leave Request from Employee Without Manager",
+        message: `${employeeName || "Employee"} (ID: ${employeeId}) requested ${leaveType} leave from ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}. This employee has no assigned manager. Please review and approve/reject directly.`,
+        priority: "high",
+        category: "approval",
+        referenceType: "leave",
+        referenceId: leaveId,
+        actionUrl: `/hr/leave-requests/${leaveId}`,
+        metadata: { leaveType, startDate, endDate, noManager: true },
+      });
+    }
+    return; // Exit here since HR already notified as primary handler
   }
 
-  // Notify HR admins
+  // Notify HR admins as secondary reviewers
   if (hrAdminIds && hrAdminIds.length > 0) {
     for (const hrAdminId of hrAdminIds) {
       await createNotification({

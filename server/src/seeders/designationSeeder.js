@@ -2,6 +2,20 @@ import Department from "../models/Department.js";
 import Designation from "../models/Designation.js";
 
 const DESIGNATION_CATALOG = [
+  // 0) Company & Executive Leadership
+  { name: "Company Representative", code: "COMPREP", level: 6, department: "Company", reportingTo: null },
+  { name: "Business Analyst", code: "BA", level: 4, department: "Company", reportingTo: "Company Representative" },
+  { name: "Project Coordinator", code: "PCORD", level: 3, department: "Company", reportingTo: "Company Representative" },
+  { name: "Executive Assistant", code: "EXASST", level: 3, department: "Executive Leadership", reportingTo: null },
+  { name: "Executive Advisor", code: "EXADV", level: 5, department: "Executive Leadership", reportingTo: "Executive Assistant" },
+
+  // 0A) Administration
+  { name: "Administration Manager", code: "ADMM", level: 6, department: "Administration", reportingTo: null },
+  { name: "Senior Administrator", code: "SADM", level: 4, department: "Administration", reportingTo: "Administration Manager" },
+  { name: "Administrator", code: "ADM", level: 3, department: "Administration", reportingTo: "Senior Administrator" },
+  { name: "Office Executive", code: "OFFEX", level: 3, department: "Administration", reportingTo: "Administrator" },
+  { name: "Administrative Intern", code: "ADMIT", level: 1, department: "Administration", reportingTo: "Office Executive" },
+
   // 1) Executive / Leadership
   { name: "Chief Executive Officer (CEO)", code: "CEO", level: 8, department: null, reportingTo: null },
   { name: "Chief Technology Officer (CTO)", code: "CTO", level: 8, department: null, reportingTo: "Chief Executive Officer (CEO)" },

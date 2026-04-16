@@ -1,232 +1,170 @@
-# HRMS — Project & Feature Documentation
+# iSpace HRMS — Project Documentation
 
-This document describes the **iSpace HRMS** (Human Resource Management System) codebase: purpose, architecture, tools, features that are **implemented and usable**, and **planned / backlog** items inferred from the repository (not a contractual sprint commitment—adjust dates and scope with your product owner).
-
----
-
-## 1. Project overview
-
-| Item | Description |
-|------|-------------|
-| **Name** | HRMS — Human Resource Management System |
-| **Purpose** | Cloud-oriented HR operations: employees, attendance, leave, payroll, performance, recruitment, documents, governance (roles/permissions), and related workflows. |
-| **Target compliance theme** | Indian statutory concepts (e.g. EPF, ESI, TDS, Form 16) are referenced in project documentation; **legal/final compliance must be validated** with finance/legal for production payroll. |
-| **Clients** | React SPA (`client/`) |
-| **API** | Node.js + Express (`server/`) |
-| **Data** | **MongoDB** via Mongoose (`server/src/config/db.js`). *Note: root README also mentions PostgreSQL for deployment—align database choice with your actual environment.* |
-| **Auth** | JWT with **role-based access control (RBAC)** and fine-grained **permissions** (`permissionGuard`, seeded roles). |
+**Product:** Human Resource Management System (HRMS)  
+**Audience:** Business stakeholders, product owners, HR operations, IT, and implementation partners  
+**Purpose:** Describe *what* the system delivers for the organization, *who* it serves, and *how* work flows through it—without requiring a technical background to understand the business value.
 
 ---
 
-## 2. Repository layout (high level)
+## How to use this document
 
-| Path | Role |
-|------|------|
-| `client/` | React 19 UI (Create React App), Tailwind, React Router, Axios API client |
-| `server/` | Express API, Mongoose models, controllers, middleware (auth, permissions, rate limit on login) |
-| `README.md` | High-level modules, security claims, deployment notes, how to run permission tests |
-
----
-
-## 3. Technology stack
-
-### 3.1 Frontend (`client/package.json`)
-
-| Category | Technology |
+| You are… | Start here |
 |----------|------------|
-| UI | React 19, React DOM |
-| Routing | `react-router-dom` v6 |
-| HTTP | `axios` |
-| Charts | `recharts` |
-| Icons | `react-icons` |
-| Styling | Tailwind CSS 3, PostCSS, Autoprefixer |
-| Tooling | `react-scripts` 5 (CRA), Testing Library |
+| **Leadership / sponsor** | [Executive summary](#executive-summary), [Business outcomes](#business-outcomes), [Compliance note](#compliance-and-payroll-disclaimer) |
+| **HR / operations** | [Who uses the system](#who-uses-the-system), [Business capabilities](#business-capabilities-by-area), [Roadmap signals](#planned-and-follow-up-work) |
+| **IT / engineering** | [Technical overview](#technical-overview-for-it), [Configuration summary](#configuration-summary), [Testing and deployment](#testing-and-deployment) |
 
-### 3.2 Backend (`server/package.json`)
-
-| Category | Technology |
-|----------|------------|
-| Runtime | Node.js (ES modules: `"type": "module"`) |
-| Framework | Express 5 |
-| Database | Mongoose 9 (MongoDB) |
-| Auth / security | `jsonwebtoken`, `bcrypt`, `express-rate-limit` (login limiter) |
-| PDF | `pdfkit` |
-| Dev / test | Jest, Supertest, Babel, `cross-env`, Nodemon |
-
-### 3.3 Configuration & integration (from code/docs)
-
-| Concern | Detail |
-|---------|--------|
-| API base URL (client) | `REACT_APP_API_BASE_URL`; default in `client/src/api/client.js` is `http://localhost:7888/api` |
-| Server port | `PORT` env or **5000** in `server/index.js` — **ensure client base URL matches** your running API port |
-| DB | `MONGODB_URI` required for `server/src/config/db.js` |
-| CORS | `CLIENT_ORIGIN` or default `http://localhost:3000` |
-| JWT | `JWT_SECRET` (required for tokens; tests may use `test-secret`) |
+This file is plain Markdown: you can open it in any editor, publish it on a wiki, or **export to PDF** (for example from VS Code, GitHub, or your documentation tool) for formal sharing.
 
 ---
 
-## 4. Development & quality tools
+## Executive summary
 
-| Tool | Use |
-|------|-----|
-| **Git** | Version control |
-| **npm** | Package management (client and server) |
-| **ESLint** (CRA) | Client lint via `react-app` config |
-| **Jest + Supertest** | Server integration tests for **permission middleware** (`server/tests/permission.test.js`) |
-| **React Testing Library** | Client unit/component tests (CRA default) |
+**iSpace HRMS** is a web-based platform that supports day-to-day people operations: maintaining employee records, tracking attendance, managing leave, running payroll-related processes, supporting performance and recruitment workflows, storing documents, and controlling *who can do what* through roles and permissions.
+
+The product is built as a **single web application** for employees and people managers, with **different menus and actions depending on role** (for example employee vs manager vs HR vs administrator). The backend exposes a structured **API** so the same business rules can power the user interface consistently.
+
+**Important:** Features described here reflect **what is implemented in the product codebase**. Go-live decisions should still include **user acceptance testing (UAT)**, security review, and validation of payroll and statutory rules with **Finance and Legal** before large-scale rollout.
 
 ---
 
-## 5. AI tools & assisted development
+## Business outcomes
 
-**The repository does not record which AI coding assistants were used** (no committed Cursor rules, Copilot config, or similar in this tree).
-
-Teams commonly use tools such as **Cursor**, **GitHub Copilot**, or other IDE-integrated assistants during development; those choices are **not versioned here**. If you need an audit trail for compliance, maintain a short **engineering handbook** or **ADRs** outside the repo, or document tooling in your internal wiki.
-
----
-
-## 6. API surface (backend routes)
-
-All routes are mounted under `/api` in `server/index.js`:
-
-| Prefix | Area |
-|--------|------|
-| `/api/auth` | Login, registration flows, sessions, MFA endpoints (see `AuthRouter`) |
-| `/api/users` | User administration |
-| `/api/departments` | Departments |
-| `/api/leaves` | Leave requests, policies, balances, approvals |
-| `/api/payroll` | Payroll runs, processing, slips, lock/unlock |
-| `/api/attendance` | Own/team/all attendance, check-in/out, monthly summary |
-| `/api/recruitment` | Recruitment (jobs, candidates, interviews—see models/routes) |
-| `/api/performance` | Performance reviews / goals |
-| `/api/documents` | Employee documents |
-| `/api/roles`, `/api/permissions` | RBAC management |
-| `/api/admin` | Admin operations |
-| `/api/employees` | Employee CRUD, profile, team, activation |
-| `/api/designations` | Designations |
-| `/api/announcements` | Announcements CRUD / dismiss |
-| `/api/manpower-planning` | Manpower planning APIs |
-| `/api/education`, `/api/experience` | Profile education & experience |
-| `/api/assets` | Assets |
-| `/api/system-access` | System access records |
-
-Client-side route constants live in `client/src/api/endpoints.js` and should stay aligned with the server.
+| Outcome | What the system helps with |
+|--------|----------------------------|
+| **Single employee record** | One place for profile, org structure (department, designation), and related HR data instead of scattered spreadsheets. |
+| **Controlled access** | People see and change only what their job requires—reducing error and protecting sensitive data. |
+| **Time and attendance visibility** | Check-in/out, views for self, team, or wider groups depending on role; supports monthly summaries for oversight. |
+| **Leave discipline** | Requests, balances, approvals—so requests are traceable and aligned with policy. |
+| **Payroll support** | Workflows for runs, slips, and lock/unlock—**statutory calculations and filings must be confirmed** with finance for your jurisdiction (see [Compliance note](#compliance-and-payroll-disclaimer)). |
+| **Communication** | Announcements can be published and tracked (including dismissals where supported). |
+| **Governance** | Roles and permissions can be administered for the platform; session visibility supports audit-style needs. |
 
 ---
 
-## 7. Features — ready to use (production readiness note)
+## Compliance and payroll disclaimer
 
-**“Ready to use”** here means: **implemented in this repo** with API routes and/or wired dashboard data—not a formal warranty. Always run **UAT**, **security review**, and **load testing** before large rollouts (e.g. 2,000 employees).
-
-### 7.1 Core platform
-
-| Feature | Notes |
-|---------|--------|
-| **Authentication & sessions** | JWT auth; session listing / termination endpoints in client API map |
-| **RBAC & permissions** | Roles seeded; `permissionGuard` tested via Jest (see README test instructions) |
-| **Role-based UI** | Single `UnifiedDashboard` with per-role menus (`UnifiedDashboardConfig.js`) |
-| **Daily punch flow** | Cookie + `/punch` route for employee/manager/HR before home (`App.js`) |
-
-### 7.2 Employee & org structure
-
-| Feature | Notes |
-|---------|--------|
-| **Employees** | List, create, update, profile, managers search, my-team, activate/deactivate |
-| **Departments** | Department APIs + Super Admin UI |
-| **Designations** | Designation APIs + HR Masters UI patterns |
-
-### 7.3 Attendance
-
-| Feature | Notes |
-|---------|--------|
-| **Own / team / all attendance** | Endpoints in `ATTENDANCE_ENDPOINTS` |
-| **Check-in / check-out** | Wired in client endpoints |
-| **Monthly summary** | Used for manager analytics/reports widgets |
-
-### 7.4 Leave
-
-| Feature | Notes |
-|---------|--------|
-| **Leave requests** | Create, update, own, team, all |
-| **Approve / reject** | Integrated in `RolePage` actions for managers/HR |
-| **Policies & balance** | Policy and balance endpoints |
-
-### 7.5 Payroll
-
-| Feature | Notes |
-|---------|--------|
-| **Own payroll / all runs** | HR and employee views |
-| **Process / generate slips / lock** | Endpoints exposed; validate with finance for statutory rules |
-
-### 7.6 Communications & content
-
-| Feature | Notes |
-|---------|--------|
-| **Announcements** | List/create/update/delete/dismiss (`ANNOUNCEMENT_ENDPOINTS`) |
-
-### 7.7 Governance (Super Admin)
-
-| Feature | Notes |
-|---------|--------|
-| **Roles & permissions** | CRUD and assign flows; dashboard datasets from `ROLE_ENDPOINTS` / `PERMISSION_ENDPOINTS` |
-| **Audit / session visibility** | Session activity used in audit-oriented pages (data source: `AUTH_ENDPOINTS.sessions`) |
-
-### 7.8 Dashboard data wiring
-
-`client/src/services/unifiedDashboardApi.js` binds **widgets** and **role page datasets** to real endpoints for employees, managers, HR admins, and super admins (attendance, leaves, payroll, employees, departments, roles, sessions, etc.). Pages that reuse this pipeline are **more consistently “data-backed”** than ad-hoc mocks.
+The solution **references Indian statutory concepts** (such as EPF, ESI, TDS, Form 16) in line with common HR payroll language in India. **Final compliance, tax treatment, and reporting obligations are business and legal decisions.** Production payroll should be **signed off** by Finance and, where needed, Legal—not inferred from software documentation alone.
 
 ---
 
-## 8. Features — backlog / next sprint candidates
+## Who uses the system
 
-These items are **candidates** derived from **code comments and messaging**, not a fixed roadmap. Rename or reschedule with your team.
+Understanding *roles* in business terms (actual titles may vary in your organization):
 
-| Item | Source / signal |
-|------|------------------|
-| **Manpower planning — create workforce plan API** | `TODO` in `client/src/components/Pages/HR/ManpowerPlanning.jsx` (backend route exists; UI completion pending) |
-| **HR header global search** | `TODO` in `client/src/components/HRHeader/HRHeader.jsx` |
-| **Quarterly appraisal cycle** | UI copy: “coming soon” in `client/src/hooks/useHRDashboard.js` |
-| **Broader E2E & load testing** | Only **permission middleware** has automated integration tests documented; expand Jest/API/UI tests per module |
-| **Database documentation consistency** | README mentions MongoDB and PostgreSQL in different sections—resolve for ops |
+| Role (conceptual) | Typical needs addressed |
+|-------------------|-------------------------|
+| **Employee** | Own profile, attendance (e.g. punch / check-in-out), leave requests, pay-related views, announcements. |
+| **Manager** | Team visibility (attendance, leave approvals, team views), often within the same unified experience with extra actions. |
+| **HR / People ops** | Employee lifecycle, departments, designations, broader leave and attendance views, payroll operations, recruitment and performance areas as implemented. |
+| **Super Admin / Platform admin** | User administration, roles and fine-grained permissions, system-wide settings and audit-oriented session views. |
 
-### 8.1 HR portal pages (may mix “full API” vs “UX shell”)
-
-Some HR menu items (e.g. exit clearance, meeting room, workflows, letter templates) have dedicated React pages. **Treat each as ready only after** you verify live API usage and acceptance criteria—do not assume parity with core attendance/leave/payroll without review.
+The interface uses a **unified dashboard** with **role-based menus** so each group sees a relevant subset of capabilities.
 
 ---
 
-## 9. Testing (how to run)
+## Business capabilities by area
 
-### Server — permission tests
+Below, capabilities are described in **process language** (what the business can do), not in code structure.
 
-From repository root `README.md`:
+### Platform and access
 
-1. `cd server`
-2. `npm install` (including devDependencies for Jest)
-3. Set `JWT_SECRET` (tests default to `test-secret` if unset)
-4. `npm test`
+- **Sign-in and sessions:** Users authenticate securely; sessions can be listed or ended where the product supports it—useful for security hygiene.
+- **Roles and permissions:** Access is not “one size fits all”; it is driven by **roles** and **permissions** so duties are separated appropriately.
+- **Daily attendance entry:** A dedicated punch flow may be required before accessing the main home experience for certain roles—aligns with “clock in before work” policies.
 
-### Client
+### Organization and employee data
 
-- `cd client && npm test` — CRA test runner (interactive by default)
+- **Employees:** Create and maintain records, profiles, manager relationships, activation/deactivation, and team views.
+- **Departments and designations:** Support organizational hierarchy and job titles for reporting and workflows.
+
+### Time and attendance
+
+- **Attendance:** Self-service and, where permitted, team or wider views; check-in and check-out; **monthly summaries** for management reporting.
+
+### Leave
+
+- **Leave lifecycle:** Submit and manage requests; **approve or reject** as a manager or HR depending on rules; **policies and balances** are supported at the API/product level—**always confirm** they match your company policy in UAT.
+
+### Payroll
+
+- **Payroll operations:** Views and processes for payroll runs, slip generation, and lock/unlock style controls—intended to support controlled payroll cycles. **Business rules and legal accuracy** must be validated with Finance.
+
+### Communications
+
+- **Announcements:** Create, update, remove, and dismiss announcements so workforce messaging is centralized.
+
+### Other HR domains (as implemented)
+
+Depending on configuration and completion, the product may include areas such as **recruitment**, **performance management**, **documents**, **manpower planning**, **assets**, and **system access** records. Treat each area as **in scope for your rollout only after** you confirm live workflows and acceptance criteria with your HR and IT teams.
 
 ---
 
-## 10. Deployment (from project README)
+## Data and integration (business view)
 
-Documented targets include **Vercel** (frontend), **AWS EC2 / Railway** (backend), **AWS RDS** (note conflict with MongoDB in code—**clarify actual DB**), **CloudWatch** monitoring. **Validate** each integration in your tenant.
+- The system is designed around a **central database** for HR transactions (implementation uses **MongoDB** in code; **align** any deployment documentation that mentions other databases with your actual environment to avoid confusion during audits or handover).
+- The **web client** talks to a **backend API** over HTTPS in production; **environment-specific settings** (URLs, secrets) are managed by IT during deployment.
 
 ---
 
-## 11. Document maintenance
+## Planned and follow-up work
+
+The following are **signals from the codebase** (TODOs, placeholders, or partial UI)—**not a fixed commercial roadmap**. Prioritize with your product owner.
+
+| Theme | Business meaning |
+|-------|------------------|
+| **Manpower planning UI** | Backend may exist; end-to-end “create workforce plan” experience may need completion. |
+| **Global search (HR header)** | Faster lookup across HR data may be pending. |
+| **Quarterly appraisal** | Messaging may indicate “coming soon”; confirm before promising dates. |
+| **Quality at scale** | Automated tests today focus notably on **permission behavior**; broader end-to-end and load testing is a sensible investment before large employee counts. |
+| **Documentation alignment** | Resolve any mismatch between README and actual database or hosting choices so operations and compliance reviews stay clear. |
+
+Some HR menu pages (for example exit clearance, meeting rooms, workflows, letter templates) may be **partial or shell experiences** until wired to full APIs—**verify each** before including in a go-live scope.
+
+---
+
+## Technical overview (for IT)
+
+This section stays short so technical staff can onboard without repeating the business sections above.
+
+| Layer | Stack (as in repository) |
+|-------|---------------------------|
+| **Client** | React 19, React Router, Axios, Tailwind CSS, Recharts; Create React App tooling. |
+| **Server** | Node.js, Express, Mongoose (MongoDB), JWT, bcrypt, rate limiting on login, PDF generation where used. |
+| **API base** | Routes are under `/api` (auth, users, employees, departments, leaves, payroll, attendance, recruitment, performance, documents, roles, permissions, admin, announcements, manpower planning, education, experience, assets, system access, designations). |
+
+Client route constants should stay aligned with server routes (e.g. `client/src/api/endpoints.js`). Dashboard widgets are largely driven by `unifiedDashboardApi.js` for consistent data binding across roles.
+
+---
+
+## Configuration summary
+
+| Setting | Role |
+|---------|------|
+| `REACT_APP_API_BASE_URL` | Where the browser calls the API (development often points at a local API URL). |
+| `PORT` | API listen port (must match what the client expects). |
+| `MONGODB_URI` | Database connection. |
+| `CLIENT_ORIGIN` | Allowed web origin for browser calls (CORS). |
+| `JWT_SECRET` | Signing key for tokens—**protect in production**. |
+
+---
+
+## Testing and deployment
+
+- **Server:** Install dependencies, set `JWT_SECRET`, run the test suite (see repository `README.md` for permission-focused tests).
+- **Client:** Standard test runner as provided by the React toolchain.
+- **Deployment:** Project materials may reference hosts such as Vercel (frontend), AWS EC2 / Railway (backend), and monitoring—**validate** each choice against your organization’s security and availability standards.
+
+---
+
+## Document maintenance
 
 | When | Action |
 |------|--------|
-| New API module | Update §6 and `client/src/api/endpoints.js` reference |
-| Feature complete | Move from §8 to §7 with short verification notes |
-| Tooling change | Update §3–§5 |
-| AI governance | If your org mandates AI disclosure, add an internal appendix—this file does not track AI vendors automatically |
+| New product area goes live | Update [Business capabilities](#business-capabilities-by-area) and, if needed, [Technical overview](#technical-overview-for-it). |
+| Scope changes from “planned” to “live” | Move items from [Planned and follow-up work](#planned-and-follow-up-work) into the capabilities section with a short confirmation note. |
+| Environment or stack change | Update [Configuration summary](#configuration-summary) and deployment notes. |
 
 ---
 
-*Last generated from repository structure and source files. Re-run technical review after major merges.*
+*This document describes the product intent and implementation as reflected in the repository. Revalidate after major releases or compliance changes.*

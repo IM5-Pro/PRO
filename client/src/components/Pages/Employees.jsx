@@ -11,6 +11,7 @@ import { EMPLOYEE_ENDPOINTS, USER_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { createEmployeeRecord } from '../../services/unifiedDashboardApi';
+import { fetchDepartments, fetchDesignations } from '../../services/adminOperationsApi';
 import { normalizeRole, ROLES } from '../../utils/roles';
 
 const toPayload = (response) => response?.data || {};
@@ -28,7 +29,9 @@ const extractRows = (payload) => {
 };
 
 const mapEmployee = (employee, index) => {
-  const fullName = [employee?.firstName, employee?.lastName].filter(Boolean).join(' ').trim();
+  const fullName = [employee?.firstName, employee?.middleName, employee?.lastName].filter(Boolean).join(' ').trim();
+  const addr = employee?.address;
+  const locationFromAddress = [addr?.city, addr?.state].filter(Boolean).join(', ').trim();
 
   return {
     id: employee?._id || employee?.id || `employee-${index}`,
@@ -37,7 +40,12 @@ const mapEmployee = (employee, index) => {
     phone: employee?.phoneNumber || employee?.phone || 'N/A',
     position: employee?.designation || employee?.position || 'Unassigned',
     department: employee?.department || 'Unassigned',
-    location: employee?.location || employee?.city || 'N/A',
+    location:
+      employee?.location ||
+      employee?.city ||
+      locationFromAddress ||
+      employee?.addressLine ||
+      'N/A',
     avatar: employee?.avatar || '👤',
     status: employee?.isActive === false ? 'inactive' : 'active',
     joinDate: employee?.joinDate || employee?.joiningDate || employee?.dateOfJoining || employee?.createdAt || null,
@@ -77,8 +85,13 @@ const Employees = () => {
   const [managerOptions, setManagerOptions] = useState([]);
   const [managersLoading, setManagersLoading] = useState(false);
   const [managerSearchTerm, setManagerSearchTerm] = useState('');
+  const [isEmailEdited, setIsEmailEdited] = useState(false);
+  const [departmentsOptions, setDepartmentsOptions] = useState([]);
+  const [designationsOptions, setDesignationsOptions] = useState([]);
+  const [mastersLoading, setMastersLoading] = useState(false);
   const [createForm, setCreateForm] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     email: '',
     phoneNumber: '',
@@ -86,6 +99,7 @@ const Employees = () => {
     designation: '',
     salary: '',
     joinDate: '',
+    dateOfBirth: '',
     managerId: '',
     city: '',
     state: '',
@@ -96,6 +110,7 @@ const Employees = () => {
   const resetCreateForm = () => {
     setCreateForm({
       firstName: '',
+      middleName: '',
       lastName: '',
       email: '',
       phoneNumber: '',
@@ -103,6 +118,7 @@ const Employees = () => {
       designation: '',
       salary: '',
       joinDate: '',
+      dateOfBirth: '',
       managerId: '',
       city: '',
       state: '',
@@ -110,6 +126,7 @@ const Employees = () => {
       accountRole: 'EMPLOYEE',
     });
     setManagerSearchTerm('');
+    setIsEmailEdited(false);
   };
 
   const loadEmployees = useCallback(async () => {
@@ -184,6 +201,94 @@ const Employees = () => {
     return () => clearTimeout(timer);
   }, [canCreateEmployee, createForm.department, loadManagers, managerSearchTerm, showCreateModal]);
 
+  const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
+  const formatEmployeeEmail = (firstName, lastName) => {
+    const normalize = (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '.')
+        .replace(/\.{2,}/g, '.')
+        .replace(/^\.|\.$/g, '');
+
+    const first = normalize(firstName);
+    const last = normalize(lastName);
+    if (!first || !last) return '';
+    return `${first}.${last}@ispace.com`;
+  };
+
+  const updateCreateForm = (field) => (event) => {
+    const value = event.target.value;
+    setCreateForm((previous) => {
+      const nextForm = {
+        ...previous,
+        [field]: value,
+      };
+
+      if ((field === 'firstName' || field === 'lastName') && !isEmailEdited) {
+        const generatedEmail = formatEmployeeEmail(
+          field === 'firstName' ? value : previous.firstName,
+          field === 'lastName' ? value : previous.lastName,
+        );
+
+        if (generatedEmail) {
+          nextForm.email = generatedEmail;
+        }
+      }
+
+      return nextForm;
+    });
+  };
+
+  const handleEmailChange = (event) => {
+    setIsEmailEdited(true);
+    const value = event.target.value;
+    setCreateForm((previous) => ({
+      ...previous,
+      email: value,
+    }));
+  };
+
+  const availableDesignations = useMemo(() => {
+    if (!createForm.department) {
+      return designationsOptions;
+    }
+    const selectedDepartment = normalizeText(createForm.department);
+    return designationsOptions.filter((designation) => {
+      const departmentValue = normalizeText(designation.department || designation.departmentName || designation.departmentCode || designation.departmentId);
+      return departmentValue === selectedDepartment || normalizeText(designation.name).includes(selectedDepartment);
+    });
+  }, [createForm.department, designationsOptions]);
+
+  const loadEmployeeMasterOptions = useCallback(async () => {
+    if (!canCreateEmployee) {
+      return;
+    }
+
+    setMastersLoading(true);
+    setCreateError('');
+    try {
+      const [departmentRows, designationRows] = await Promise.all([fetchDepartments(), fetchDesignations()]);
+      setDepartmentsOptions(departmentRows);
+      setDesignationsOptions(designationRows);
+    } catch (err) {
+      setDepartmentsOptions([]);
+      setDesignationsOptions([]);
+      setCreateError(err?.response?.data?.message || err?.message || 'Failed to load department or designation options');
+    } finally {
+      setMastersLoading(false);
+    }
+  }, [canCreateEmployee]);
+
+  useEffect(() => {
+    if (!showCreateModal || !canCreateEmployee) {
+      return;
+    }
+
+    loadEmployeeMasterOptions();
+  }, [showCreateModal, canCreateEmployee, loadEmployeeMasterOptions]);
+
   useEffect(() => {
     if (!createForm.managerId) {
       return;
@@ -202,13 +307,6 @@ const Employees = () => {
     setCopiedTempPassword(false);
   }, [resetModal.open, resetModal.result]);
 
-  const updateCreateForm = (field) => (event) => {
-    setCreateForm((previous) => ({
-      ...previous,
-      [field]: event.target.value,
-    }));
-  };
-
   const handleCreateEmployee = async (event) => {
     event.preventDefault();
 
@@ -217,23 +315,34 @@ const Employees = () => {
     }
 
     const normalizedFirstName = createForm.firstName.trim();
-    const normalizedLastName = createForm.lastName.trim();
-    const normalizedEmail = createForm.email.trim().toLowerCase();
-    const normalizedPhone = createForm.phoneNumber.trim();
+      const normalizedMiddleName = createForm.middleName.trim();
+      const normalizedLastName = createForm.lastName.trim();
+      const normalizedEmail = createForm.email.trim().toLowerCase();
+      const normalizedPhone = createForm.phoneNumber.trim();
+      const normalizedDateOfBirth = createForm.dateOfBirth.trim();
 
-    if (!normalizedFirstName || normalizedFirstName.length < 2) {
-      setCreateError('First name must be at least 2 characters');
-      return;
-    }
+      if (!normalizedFirstName || normalizedFirstName.length < 2) {
+        setCreateError('First name must be at least 2 characters');
+        return;
+      }
 
-    if (!normalizedLastName || normalizedLastName.length < 2) {
-      setCreateError('Last name must be at least 2 characters');
-      return;
-    }
+      if (normalizedMiddleName && normalizedMiddleName.length < 2) {
+        setCreateError('Middle name must be at least 2 characters or left blank');
+        return;
+      }
 
-    if (!/^[A-Za-z0-9._%+-]+@ispace\.com$/i.test(normalizedEmail)) {
-      setCreateError('Email must be a valid @ispace.com address');
-      return;
+      if (!normalizedLastName || normalizedLastName.length < 2) {
+        setCreateError('Last name must be at least 2 characters');
+        return;
+      }
+
+      if (!/^[A-Za-z0-9._%+-]+@ispace\.com$/i.test(normalizedEmail)) {
+        setCreateError('Email must be a valid @ispace.com address');
+        return;
+      }
+
+      if (normalizedDateOfBirth && isNaN(new Date(normalizedDateOfBirth).getTime())) {
+        setCreateError('Date of birth must be a valid date');
     }
 
     if (normalizedPhone && !/^\d{10}$/.test(normalizedPhone)) {
@@ -248,6 +357,7 @@ const Employees = () => {
 
       const response = await createEmployeeRecord({
         firstName: normalizedFirstName,
+        middleName: normalizedMiddleName,
         lastName: normalizedLastName,
         email: normalizedEmail,
         phoneNumber: normalizedPhone,
@@ -255,6 +365,7 @@ const Employees = () => {
         designation: createForm.designation,
         salary: createForm.salary,
         joinDate: createForm.joinDate,
+        dateOfBirth: normalizedDateOfBirth,
         managerId: createForm.managerId,
         city: createForm.city,
         state: createForm.state,
@@ -376,72 +487,72 @@ const Employees = () => {
       )}
 
       {/* Employees Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
         {filteredEmployees.map((employee) => (
           <div
             key={employee.id}
-            className={`group glass rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1`}
+            className={`group glass rounded-2xl border ${colors.border.primary} p-4 sm:p-6 hover:border-slate-600 transition-all duration-300 hover:shadow-2xl ${colors.shadow} transform hover:-translate-y-1 flex flex-col`}
           >
             {/* Avatar & Name */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-3xl">
+            <div className="flex items-start justify-between mb-4 gap-2 min-w-0">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
                   {employee.avatar}
                 </div>
-                <div>
-                  <h3 className={`${colors.text.primary} font-bold text-lg`}>{employee.name}</h3>
-                  <p className={colors.text.tertiary}>{employee.position}</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className={`${colors.text.primary} font-bold text-base sm:text-lg break-words`}>{employee.name}</h3>
+                  <p className={`${colors.text.tertiary} text-sm break-words`}>{employee.position}</p>
                 </div>
               </div>
               <button
                 onClick={() => navigate('/profile')}
-                className="p-2 hover:bg-slate-700 rounded-lg transition-colors duration-300"
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors duration-300 flex-shrink-0"
               >
-                <FiMoreVertical className="text-slate-400 hover:text-white" size={20} />
+                <FiMoreVertical className="text-slate-400 hover:text-white" size={18} />
               </button>
             </div>
 
             {/* Department Badge */}
             <div className="mb-4">
-              <span className="inline-block px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-xs font-semibold">
+              <span className="inline-block px-2.5 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-xs font-semibold truncate max-w-full">
                 {employee.department}
               </span>
             </div>
 
             {/* Contact Info */}
-            <div className="space-y-3 mb-6">
-              <div className={`flex items-center gap-3 ${colors.text.secondary} text-sm`}>
-                <FiMail className="text-blue-400" size={16} />
-                <span className="truncate">{employee.email}</span>
+            <div className="space-y-2 mb-4 text-sm">
+              <div className={`flex items-start gap-3 ${colors.text.secondary}`}>
+                <FiMail className="text-blue-400 flex-shrink-0 mt-0.5" size={14} />
+                <span className="break-all min-w-0 text-xs sm:text-sm">{employee.email}</span>
               </div>
-              <div className={`flex items-center gap-3 ${colors.text.secondary} text-sm`}>
-                <FiPhone className="text-blue-400" size={16} />
-                <span>{employee.phone}</span>
+              <div className={`flex items-start gap-3 ${colors.text.secondary}`}>
+                <FiPhone className="text-blue-400 flex-shrink-0 mt-0.5" size={14} />
+                <span className="break-all min-w-0 text-xs sm:text-sm">{employee.phone}</span>
               </div>
-              <div className={`flex items-center gap-3 ${colors.text.secondary} text-sm`}>
-                <FiMapPin className="text-blue-400" size={16} />
-                <span>{employee.location}</span>
+              <div className={`flex items-start gap-3 ${colors.text.secondary}`}>
+                <FiMapPin className="text-blue-400 flex-shrink-0 mt-0.5" size={14} />
+                <span className="break-words min-w-0 text-xs sm:text-sm">{employee.location}</span>
               </div>
             </div>
 
             {/* Divider */}
-            <div className={`border-t ${colors.border.primary} my-4`}></div>
+            <div className={`border-t ${colors.border.primary} my-3`}></div>
 
             {/* Join Date & Status */}
-            <div className="flex items-center justify-between mb-4">
-              <p className={`${colors.text.tertiary} text-xs`}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 text-xs">
+              <p className={`${colors.text.tertiary} whitespace-nowrap`}>
                 Joined {employee.joinDate ? new Date(employee.joinDate).toLocaleDateString() : 'N/A'}
               </p>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${employee.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className={`${employee.status === 'active' ? 'text-green-400' : 'text-red-400'} text-xs font-semibold`}>
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${employee.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className={`${employee.status === 'active' ? 'text-green-400' : 'text-red-400'} font-semibold whitespace-nowrap`}>
                   {employee.status === 'active' ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className={`grid gap-3 ${canCreateEmployee ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-2 ${canCreateEmployee ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <button
                 onClick={async () => {
                   setProfileModal({ open: true, loading: true, data: null, error: '' });
@@ -454,16 +565,16 @@ const Employees = () => {
                     setProfileModal({ open: true, loading: false, data: null, error: msg });
                   }
                 }}
-                className="py-2 px-4 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all duration-300 text-sm font-medium"
+                className="py-2 px-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis"
               >
                 View Profile
               </button>
               {canCreateEmployee && (
                 <button
                   onClick={() => setResetModal({ open: true, employeeId: employee.id, employeeName: employee.name, loading: false, result: null, error: '' })}
-                  className="py-2 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg transition-all duration-300 text-sm font-medium flex items-center justify-center gap-1"
+                  className="py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium flex items-center justify-center gap-1 whitespace-nowrap overflow-hidden"
                 >
-                  <FiKey size={14} /> Reset Password
+                  <FiKey size={12} /> <span className="hidden sm:inline">Reset</span><span className="sm:hidden">PWD</span>
                 </button>
               )}
             </div>
@@ -514,7 +625,7 @@ const Employees = () => {
                     HRMS will generate a temporary password automatically. Share it with the employee so they can sign in and create their own password on first login.
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">First Name</label>
                   <input
@@ -524,6 +635,16 @@ const Employees = () => {
                     placeholder="Enter first name"
                     className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Middle Name</label>
+                  <input
+                    type="text"
+                    value={createForm.middleName}
+                    onChange={updateCreateForm('middleName')}
+                    placeholder="Enter middle name"
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -545,7 +666,7 @@ const Employees = () => {
                   <input
                     type="email"
                     value={createForm.email}
-                    onChange={updateCreateForm('email')}
+                    onChange={handleEmailChange}
                     placeholder="name@ispace.com"
                     className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     required
@@ -577,23 +698,41 @@ const Employees = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
-                  <input
-                    type="text"
+                  <select
                     value={createForm.department}
                     onChange={updateCreateForm('department')}
-                    placeholder="e.g. HR"
+                    disabled={mastersLoading}
                     className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  >
+                    <option value="">Select department</option>
+                    {departmentsOptions.map((department) => (
+                      <option key={department._id || department.id || department.name} value={department.name}>
+                        {department.name}
+                      </option>
+                    ))}
+                  </select>
+                  {mastersLoading && <p className="text-xs text-slate-500 mt-1">Loading departments...</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Designation</label>
-                  <input
-                    type="text"
+                  <select
                     value={createForm.designation}
                     onChange={updateCreateForm('designation')}
-                    placeholder="e.g. Analyst"
+                    disabled={mastersLoading || availableDesignations.length === 0}
                     className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  >
+                    <option value="">
+                      {mastersLoading ? 'Loading designations...' : availableDesignations.length === 0 ? 'No designations available' : 'Select designation'}
+                    </option>
+                    {availableDesignations.map((designation) => (
+                      <option key={designation._id || designation.id || designation.name} value={designation.name}>
+                        {designation.name}{designation.department ? ` (${designation.department})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {!mastersLoading && availableDesignations.length === 0 && (
+                    <p className="text-xs text-slate-500 mt-1">Add departments or designations in masters first to see choices.</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Salary</label>
@@ -759,10 +898,10 @@ const Employees = () => {
               {/* Profile Content */}
               {!profileModal.loading && profileModal.data && (() => {
                 const emp = profileModal.data;
-                const fullName = [emp.firstName, emp.lastName].filter(Boolean).join(' ') || 'Unknown';
+                const fullName = [emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(' ') || 'Unknown';
                 const manager = emp.managerID || emp.managerId || emp.manager;
                 const managerName = manager
-                  ? [manager.firstName, manager.lastName].filter(Boolean).join(' ') || manager.email
+                  ? [manager.firstName, manager.middleName, manager.lastName].filter(Boolean).join(' ') || manager.email
                   : null;
                 const location = [emp.city || emp.address?.city, emp.state || emp.address?.state].filter(Boolean).join(', ') || null;
                 const joinDate = emp.joinDate || emp.joiningDate;
@@ -825,7 +964,7 @@ const Employees = () => {
                       {canCreateEmployee && (
                         <button
                           onClick={() => {
-                            const name = [emp.firstName, emp.lastName].filter(Boolean).join(' ');
+                            const name = [emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(' ');
                             setProfileModal({ open: false, loading: false, data: null, error: '' });
                             setResetModal({ open: true, employeeId: emp._id || emp.id, employeeName: name, loading: false, result: null, error: '' });
                           }}

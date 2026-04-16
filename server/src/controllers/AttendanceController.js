@@ -243,20 +243,49 @@ const finalizeAttendanceCheckout = async ({
   description,
 }) => {
   const breakSummary = computeBreakDuration(attendance.breaks || [], checkOutTime);
-  const grossWorkingHours =
-    (checkOutTime - attendance.checkInTime) / (1000 * 60 * 60);
-  const netWorkingHours = Math.max(
-    0,
-    grossWorkingHours - breakSummary.totalMinutes / 60,
-  );
+  
+  // Update the latest punch with checkOutTime
+  if (attendance.punches && attendance.punches.length > 0) {
+    const latestPunch = attendance.punches[attendance.punches.length - 1];
+    latestPunch.checkOutTime = checkOutTime;
+    latestPunch.checkOutLocation = checkOutLocation;
+    
+    // Calculate duration for this punch
+    if (latestPunch.checkInTime) {
+      latestPunch.durationMinutes = Math.round((checkOutTime - latestPunch.checkInTime) / (1000 * 60));
+    }
+  }
+
+  // Calculate total working hours from all punches
+  let totalWorkingMinutes = 0;
+  if (attendance.punches && attendance.punches.length > 0) {
+    attendance.punches.forEach((punch) => {
+      if (punch.checkInTime && punch.checkOutTime) {
+        totalWorkingMinutes += (punch.checkOutTime - punch.checkInTime) / (1000 * 60);
+      }
+    });
+  } else {
+    // Fallback for old single punch records
+    totalWorkingMinutes = (checkOutTime - attendance.checkInTime) / (1000 * 60);
+  }
+
+  const grossWorkingHours = totalWorkingMinutes / 60;
+  const netWorkingHours = Math.max(0, grossWorkingHours - breakSummary.totalMinutes / 60);
   const attendanceDate = attendance.attendanceDate || getDayStart(checkOutTime);
+  
   const shiftConfig = await resolveShiftConfigForAttendance({
     employeeId,
     attendanceDate,
     attendance,
   });
+  
+  // Use first punch-in time for status calculation
+  const firstCheckInTime = attendance.punches && attendance.punches.length > 0
+    ? attendance.punches[0].checkInTime
+    : attendance.checkInTime;
+    
   const derivedStatus = deriveStatus({
-    checkInTime: attendance.checkInTime,
+    checkInTime: firstCheckInTime,
     checkOutTime,
     attendanceDate,
     workingHours: netWorkingHours,
@@ -274,6 +303,7 @@ const finalizeAttendanceCheckout = async ({
     derivedStatus.isEarlyCheckout ? "Early checkout" : "",
     attendance.workingHours < 4 ? "Half-day due to low working hours" : "",
     action === "AUTO_CHECK_OUT" ? `Auto check-out after ${MAX_PUNCH_WINDOW_HOURS} hours limit` : "",
+    attendance.punches && attendance.punches.length > 1 ? `Multiple punch cycles (${attendance.punches.length})` : "",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -376,45 +406,65 @@ export const checkIn = async (req, res) => {
         shiftConfig,
       });
 
-      // Create new attendance record
+      // Create new attendance record with first punch
       attendance = new Attendance({
         employee,
         attendanceDate: today,
         checkInTime,
         checkInLocation: normalizedLocation,
+        punches: [
+          {
+            checkInTime,
+            checkInLocation: normalizedLocation,
+          },
+        ],
         status: derivedStatus.status,
         remarks: derivedStatus.isLate ? "Auto-marked late based on shift policy" : "",
         shift: shiftConfig.shiftId || null,
         createdBy: req.user.id,
       });
     } else {
-      // Update existing record
-      // Allow re-check-in if employee already checked out (e.g., re-entry after lunch)
-      if (attendance.checkInTime && !attendance.checkOutTime) {
-        return sendError(res, 409, "Already checked in today", {
-          checkIn: "You have already checked in today",
-        });
-      }
+      // For existing record, append new punch if already checked out
       const checkInTime = new Date();
       const shiftConfig = await resolveShiftConfigForAttendance({
         employeeId: employee,
         attendanceDate: today,
         attendance,
       });
-      const derivedStatus = deriveStatus({
+
+      // Only allow check-in if previous punch was completed (checked out)
+      const lastPunch = attendance.punches && attendance.punches.length > 0 
+        ? attendance.punches[attendance.punches.length - 1]
+        : null;
+      
+      if (lastPunch && !lastPunch.checkOutTime) {
+        return sendError(res, 409, "Already checked in - please check out first", {
+          checkIn: "You must check out before checking in again",
+        });
+      }
+
+      // Append new punch
+      attendance.punches.push({
         checkInTime,
+        checkInLocation: normalizedLocation,
+      });
+
+      // Update main fields for backward compatibility (use latest punch info)
+      attendance.checkInTime = checkInTime;
+      attendance.checkInLocation = normalizedLocation;
+      attendance.checkOutTime = null;
+      attendance.checkOutLocation = undefined;
+      
+      // Recalculate status based on first check-in of the day
+      const firstCheckInTime = attendance.punches[0].checkInTime;
+      const derivedStatus = deriveStatus({
+        checkInTime: firstCheckInTime,
         checkOutTime: null,
         attendanceDate: today,
         workingHours: null,
         shiftConfig,
       });
-
-      attendance.checkInTime = checkInTime;
-      attendance.checkInLocation = normalizedLocation;
-      // Reset checkout so the new punch cycle works cleanly
-      attendance.checkOutTime = null;
-      attendance.checkOutLocation = undefined;
-      attendance.workingHours = 0;
+      
       attendance.status = derivedStatus.status;
       attendance.remarks = derivedStatus.isLate
         ? "Auto-marked late based on shift policy"
@@ -1760,6 +1810,89 @@ export const deleteShift = async (req, res) => {
   } catch (error) {
     console.error("Delete shift error:", error);
     return sendError(res, 500, "Failed to delete shift", {
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Create Manual Attendance
+ * Allows employees/HR to manually add attendance records for a specific date
+ */
+export const createManualAttendance = async (req, res) => {
+  try {
+    const { attendanceDate, checkInTime, checkOutTime, breakDurationMinutes = 0, remarks = '' } = req.body;
+
+    // Validate required fields
+    if (!attendanceDate || !checkInTime || !checkOutTime) {
+      return sendError(res, 400, "Validation failed", {
+        attendanceDate: !attendanceDate ? "Attendance date is required" : undefined,
+        checkInTime: !checkInTime ? "Check-in time is required" : undefined,
+        checkOutTime: !checkOutTime ? "Check-out time is required" : undefined,
+      });
+    }
+
+    // Get employee ID from auth user
+    const employeeId = await getResolvedEmployeeIdFromAuth(req);
+    if (!employeeId) {
+      return sendError(res, 404, "Employee not found for authenticated user", {});
+    }
+
+    // Check if attendance already exists for this date
+    const existingAttendance = await Attendance.findOne({
+      employee: employeeId,
+      attendanceDate: new Date(attendanceDate),
+    });
+
+    if (existingAttendance) {
+      return sendError(res, 409, "Attendance already exists for this date", {
+        attendanceDate: "An attendance record already exists for this date",
+      });
+    }
+
+    // Create attendance record
+    const attendance = new Attendance({
+      employee: employeeId,
+      attendanceDate: new Date(attendanceDate),
+      punches: [
+        {
+          checkInTime: new Date(checkInTime),
+          checkOutTime: new Date(checkOutTime),
+        },
+      ],
+      breakDurationMinutes,
+      remarks: remarks || 'Manually added attendance',
+      status: 'Present',
+    });
+
+    // Calculate working hours
+    const checkInDate = new Date(checkInTime);
+    const checkOutDate = new Date(checkOutTime);
+    const workingMinutes = (checkOutDate - checkInDate) / (1000 * 60) - breakDurationMinutes;
+    attendance.workingHours = workingMinutes / 60;
+
+    await attendance.save();
+
+    // Log action
+    await AuditLog.create({
+      userId: req.user.id,
+      action: "CREATE_MANUAL_ATTENDANCE",
+      entityType: "Attendance",
+      entityId: attendance._id,
+      description: `Manually added attendance for ${attendanceDate}`,
+      changes: {
+        attendanceDate,
+        checkInTime,
+        checkOutTime,
+        breakDurationMinutes,
+        workingHours: attendance.workingHours,
+      },
+    });
+
+    return sendSuccess(res, 201, "Attendance added successfully", attendance);
+  } catch (error) {
+    console.error("Create manual attendance error:", error);
+    return sendError(res, 500, "Failed to create attendance", {
       error: error.message,
     });
   }

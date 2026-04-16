@@ -17,6 +17,7 @@ import {
   assignShift,
   updateShift,
   deleteShift,
+  createManualAttendance,
 } from "../controllers/AttendanceController.js";
 import { permissionGuard } from "../middleware/permissionGuard.js";
 import authGuard from "../middleware/authGuard.js";
@@ -39,6 +40,11 @@ router.post("/checkout", checkOut);
  */
 router.post("/break/start", startBreak);
 router.post("/break/end", endBreak);
+
+/**
+ * Manual Attendance Creation: Employee can add for themselves
+ */
+router.post("/manual", createManualAttendance);
 
 /**
  * View Own: All roles

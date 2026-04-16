@@ -55,6 +55,11 @@ const resolveCurrentEmployee = async (userId, employeeIdHint = null) => {
 
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const resolveCurrentEmployeeId = async (userId, employeeIdHint = null) => {
+  const currentEmployee = await resolveCurrentEmployee(userId, employeeIdHint);
+  return currentEmployee?._id?.toString() || null;
+};
+
 /**
  * Create new employee (HR_ADMIN, SUPER_ADMIN only)
  */
@@ -205,6 +210,7 @@ const readEmployee = async (req, res) => {
     const { employeeId } = req.params;
     const userRole = req.user.role;
     const userId = req.user.id;
+    const currentEmployeeId = await resolveCurrentEmployeeId(userId, req.user.employeeId);
 
     if (!employeeId) {
       return sendError(res, 400, "Employee ID is required");
@@ -219,12 +225,17 @@ const readEmployee = async (req, res) => {
     }
 
     // Role-based access control
-    if (userRole === "EMPLOYEE" && employee._id.toString() !== userId) {
+    if (userRole === "EMPLOYEE" && employee._id.toString() !== (currentEmployeeId || userId)) {
       return sendError(res, 403, "You can only view your own employee record");
     }
 
     const employeeManagerId = employee.managerId || employee.managerID;
-    if (userRole === "MANAGER" && employeeManagerId?.toString() !== userId) {
+    const managerIdentifiers = new Set([userId]);
+    if (currentEmployeeId) {
+      managerIdentifiers.add(currentEmployeeId);
+    }
+
+    if (userRole === "MANAGER" && !managerIdentifiers.has(employeeManagerId?.toString())) {
       return sendError(res, 403, "You can only view your team members");
     }
 
@@ -292,7 +303,10 @@ const myTeam = async (req, res) => {
 
     const [teamMembers, total] = await Promise.all([
       Employee.find(filter)
-        .select("firstName lastName email designation department status isActive managerID managerId")
+        .select(
+          "firstName middleName lastName email designation department status isActive managerID managerId " +
+            "phoneNumber phone city state zipCode addressLine address joinDate joiningDate createdAt",
+        )
         .sort({ firstName: 1 })
         .skip(skip)
         .limit(Number.parseInt(limit, 10)),
@@ -528,8 +542,10 @@ const viewProfile = async (req, res) => {
     const { employeeId } = req.params;
     const userRole = req.user.role;
     const userId = req.user.id;
+    const currentEmployeeId = await resolveCurrentEmployeeId(userId, req.user.employeeId);
+    const employeeLookupId = employeeId || currentEmployeeId || userId;
 
-    const employee = await Employee.findById(employeeId || userId)
+    const employee = await Employee.findById(employeeLookupId)
       .populate("managerID", "firstName lastName email")
       .select("-documents");
 
@@ -541,7 +557,7 @@ const viewProfile = async (req, res) => {
     }
 
     // Role-based access
-    if (userRole === "EMPLOYEE" && employee._id.toString() !== userId) {
+    if (userRole === "EMPLOYEE" && employee._id.toString() !== (currentEmployeeId || userId)) {
       return res.status(403).json({
         success: false,
         message: "You can only view your own profile",
@@ -549,7 +565,12 @@ const viewProfile = async (req, res) => {
     }
 
     const employeeManagerId = employee.managerId || employee.managerID;
-    if (userRole === "MANAGER" && employeeManagerId?.toString() !== userId) {
+    const managerIdentifiers = new Set([userId]);
+    if (currentEmployeeId) {
+      managerIdentifiers.add(currentEmployeeId);
+    }
+
+    if (userRole === "MANAGER" && !managerIdentifiers.has(employeeManagerId?.toString())) {
       return res.status(403).json({
         success: false,
         message: "You can only view your team members' profiles",
@@ -1023,6 +1044,7 @@ const viewHistory = async (req, res) => {
     const { employeeId } = req.params;
     const userRole = req.user.role;
     const userId = req.user.id;
+    const currentEmployeeId = await resolveCurrentEmployeeId(userId, req.user.employeeId);
 
     const employee = await Employee.findById(employeeId);
     if (!employee) {
@@ -1033,7 +1055,7 @@ const viewHistory = async (req, res) => {
     }
 
     // Access control
-    if (userRole === "EMPLOYEE" && employee._id.toString() !== userId) {
+    if (userRole === "EMPLOYEE" && employee._id.toString() !== (currentEmployeeId || userId)) {
       return res.status(403).json({
         success: false,
         message: "You can only view your own history",
@@ -1041,7 +1063,12 @@ const viewHistory = async (req, res) => {
     }
 
     const employeeManagerId = employee.managerId || employee.managerID;
-    if (userRole === "MANAGER" && employeeManagerId?.toString() !== userId) {
+    const managerIdentifiers = new Set([userId]);
+    if (currentEmployeeId) {
+      managerIdentifiers.add(currentEmployeeId);
+    }
+
+    if (userRole === "MANAGER" && !managerIdentifiers.has(employeeManagerId?.toString())) {
       return res.status(403).json({
         success: false,
         message: "You can only view your team members' history",

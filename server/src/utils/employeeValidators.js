@@ -46,6 +46,14 @@ const validateEmployeeData = (body, isUpdate = false) => {
     errors.designation = "Designation must be a string";
   }
 
+  if (body.middleName && typeof body.middleName !== "string") {
+    errors.middleName = "Middle name must be a string";
+  }
+
+  if (body.middleName && body.middleName.trim().length > 0 && body.middleName.trim().length < 2) {
+    errors.middleName = "Middle name must be at least 2 characters if provided";
+  }
+
   if (body.managerID && typeof body.managerID !== "string") {
     errors.managerID = "Manager ID must be a string";
   }

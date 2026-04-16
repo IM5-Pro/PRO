@@ -306,11 +306,12 @@ const applyLeave = async (req, res) => {
           console.log('  Users with employeeId:', allUsersWithEmployeeId.map(u => ({ id: u._id, employeeId: u.employeeId, email: u.email })));
         }
       } else {
-        console.log('❌ Employee has no managerId set');
+        console.log('⚠️  Employee has no manager assigned - Will notify HR admins directly');
       }
       
       const hrAdminIds = (await User.find({ role: 'HR_ADMIN' })).map(u => u._id);
       const leaveTypeData = await LeaveType.findById(leaveTypeId);
+      const employeeName = employee ? `${employee.firstName} ${employee.lastName}`.trim() : 'Unknown Employee';
       
       console.log('Creating leave notification for manager:', managerUserId, 'and', hrAdminIds.length, 'HR admins');
       
@@ -323,6 +324,7 @@ const applyLeave = async (req, res) => {
         startDate: request.startDate,
         endDate: request.endDate,
         reason: request.reason,
+        employeeName,
       });
       
       console.log('Leave notification created successfully for leave ID:', request._id);
