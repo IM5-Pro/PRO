@@ -8,13 +8,12 @@
  * @version 2.0.0
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { FiPlus, FiEdit2, FiEye, FiTrash2 } from 'react-icons/fi';
 
 const LetterTemplates = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   const { colors } = useTheme();
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   const templates = useMemo(
     () => [

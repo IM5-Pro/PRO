@@ -15,27 +15,20 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   FiAlertCircle,
-  FiBarChart2,
   FiCheck,
   FiChevronDown,
-  FiDownload,
-  FiFilter,
   FiLogOut,
   FiSearch,
   FiTrendingDown,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { useTheme } from '../../../context/ThemeContext';
-import { useAuth } from '../../../context/AuthContext';
 import resignationApi from '../../../services/resignationApi';
 
 const ResignationManagement = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
-  const { colors } = useTheme();
-  const { user: authUser } = useAuth();
 
   const [resignations, setResignations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -58,12 +51,14 @@ const ResignationManagement = ({ user = {}, pageConfig = {}, onUserUpdate = () =
   // Stats state
   const [stats, setStats] = useState(null);
 
-  useEffect(() => {
-    fetchResignations();
-    fetchStats();
-  }, [selectedFilter]);
+  const fetchStats = useCallback(async () => {
+    const result = await resignationApi.getResignationStats();
+    if (result.success) {
+      setStats(result.stats);
+    }
+  }, []);
 
-  const fetchResignations = async () => {
+  const fetchResignations = useCallback(async () => {
     setLoading(true);
     const filterValue = selectedFilter === 'ALL' ? undefined : selectedFilter;
     const result = await resignationApi.getAllResignations({
@@ -74,14 +69,12 @@ const ResignationManagement = ({ user = {}, pageConfig = {}, onUserUpdate = () =
       setResignations(result.data || []);
     }
     setLoading(false);
-  };
+  }, [selectedFilter]);
 
-  const fetchStats = async () => {
-    const result = await resignationApi.getResignationStats();
-    if (result.success) {
-      setStats(result.stats);
-    }
-  };
+  useEffect(() => {
+    fetchResignations();
+    fetchStats();
+  }, [fetchResignations, fetchStats]);
 
   const filteredResignations = useMemo(() => {
     return resignations.filter(r =>

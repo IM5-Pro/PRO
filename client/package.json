@@ -19,7 +19,8 @@
   "devDependencies": {
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.6"
+    "tailwindcss": "^3.3.6",
+    "yaml": "^2.8.3"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -31,6 +32,11 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ]
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!axios/)"
     ]
   },
   "browserslist": {

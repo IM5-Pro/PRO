@@ -12,7 +12,7 @@ const authGuard = (req, res, next) => {
     req.user = { ...decoded, id: decoded.id || decoded.sub };
 
     next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(401).json({ message: "Invalid token" });
   }
 };

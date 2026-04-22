@@ -33,7 +33,6 @@ const PayrollSection = ({ employeeId }) => {
 
   useEffect(() => {
     fetchPayroll();
-    // eslint-disable-next-line
   }, [fetchPayroll]);
 
 

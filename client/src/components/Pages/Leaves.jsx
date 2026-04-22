@@ -10,7 +10,6 @@ import {
   FiCheck,
   FiX,
   FiClock,
-  FiArrowLeft,
   FiMoreVertical,
 } from "react-icons/fi";
 import API from "../../api/client";
@@ -271,7 +270,7 @@ const Leaves = () => {
     } finally {
       setLoading(false);
     }
-  }, [role, user?.employeeId]);
+  }, [role]);
 
   useEffect(() => {
     loadLeaveData();

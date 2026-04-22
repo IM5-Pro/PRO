@@ -20,19 +20,6 @@ import { LEAVE_ENDPOINTS, ATTENDANCE_ENDPOINTS } from '../api/endpoints';
 // CONSTANTS
 // ============================================================================
 
-const API_DEFAULTS = {
-  TIMEOUT: 10000,
-  RETRY_ATTEMPTS: 3,
-  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
-};
-
-const LEAVE_STATUS_MAP = {
-  PENDING: 'pending',
-  APPROVED: 'approved',
-  REJECTED: 'rejected',
-  CANCELLED: 'cancelled',
-};
-
 const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Network error. Please check your connection.',
   SERVER_ERROR: 'Server error. Please try again later.',
@@ -741,7 +728,7 @@ export const fetchLeavesAttendanceDashboardData = async (userRole) => {
   }
 };
 
-export default {
+const leavesAttendanceApi = {
   fetchOwnLeaveRequests,
   fetchTeamLeaveRequests,
   fetchAllLeaveRequests,
@@ -757,3 +744,5 @@ export default {
   fetchMonthlySummary,
   fetchLeavesAttendanceDashboardData,
 };
+
+export default leavesAttendanceApi;

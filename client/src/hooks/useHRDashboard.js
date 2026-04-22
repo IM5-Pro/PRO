@@ -9,7 +9,14 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import * as HRDashboardApi from '../services/hrDashboardApi';
+import {
+  fetchHRDashboardData,
+  fetchTotalEmployees,
+  fetchPendingLeaves,
+  fetchNewJoiners,
+  fetchPayrollCompletion,
+  fetchActivityFeed,
+} from '../services/hrDashboardApi';
 
 // ============================================================================
 // CONSTANTS
@@ -79,7 +86,7 @@ export const useHRDashboard = (options = {}) => {
     setErrors({});
 
     try {
-      const result = await HRDashboardApi.fetchHRDashboardData();
+      const result = await fetchHRDashboardData();
 
       if (result.error && !result.totalEmployees) {
         // Only show error if we have no data at all
@@ -180,7 +187,7 @@ export const useTotalEmployees = (options = {}) => {
     setError(null);
 
     try {
-      const result = await HRDashboardApi.fetchTotalEmployees();
+      const result = await fetchTotalEmployees();
 
       if (result.error) {
         setError(result.error);
@@ -241,7 +248,7 @@ export const usePendingLeaves = (options = {}) => {
     setError(null);
 
     try {
-      const result = await HRDashboardApi.fetchPendingLeaves();
+      const result = await fetchPendingLeaves();
 
       if (result.error) {
         setError(result.error);
@@ -302,7 +309,7 @@ export const useNewJoiners = (options = {}) => {
     setError(null);
 
     try {
-      const result = await HRDashboardApi.fetchNewJoiners();
+      const result = await fetchNewJoiners();
 
       if (result.error) {
         setError(result.error);
@@ -363,7 +370,7 @@ export const usePayrollCompletion = (options = {}) => {
     setError(null);
 
     try {
-      const result = await HRDashboardApi.fetchPayrollCompletion();
+      const result = await fetchPayrollCompletion();
 
       if (result.error) {
         setError(result.error);
@@ -439,7 +446,7 @@ export const useActivityFeed = (options = {}) => {
     setError(null);
 
     try {
-      const result = await HRDashboardApi.fetchActivityFeed();
+      const result = await fetchActivityFeed();
 
       if (result.data && result.data.length > 0) {
         setActivities(result.data);
@@ -529,7 +536,7 @@ export const useActivityFeed = (options = {}) => {
   };
 };
 
-export default {
+const useHRDashboardExports = {
   useHRDashboard,
   useTotalEmployees,
   usePendingLeaves,
@@ -537,3 +544,5 @@ export default {
   usePayrollCompletion,
   useActivityFeed,
 };
+
+export default useHRDashboardExports;

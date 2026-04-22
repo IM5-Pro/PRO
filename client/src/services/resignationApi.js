@@ -411,7 +411,7 @@ export const getResignationReasons = () => RESIGNATION_REASONS;
 export const getStatusLabel = (status) => STATUS_LABELS[status] || status;
 export const getStatusColor = (status) => STATUS_COLORS[status] || 'bg-gray-100';
 
-export default {
+const resignationApi = {
   createResignation,
   getMyResignations,
   getTeamResignations,
@@ -425,3 +425,5 @@ export default {
   getStatusLabel,
   getStatusColor,
 };
+
+export default resignationApi;

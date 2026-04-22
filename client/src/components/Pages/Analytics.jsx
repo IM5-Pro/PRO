@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiAward, FiBarChart2, FiTrendingUp, FiUsers, FiTarget, FiCalendar, FiDownload, FiFilter, FiStar } from 'react-icons/fi';
+import { FiAward, FiBarChart2, FiTrendingUp, FiUsers, FiTarget, FiDownload, FiFilter, FiStar } from 'react-icons/fi';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS, EMPLOYEE_ENDPOINTS, LEAVE_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';

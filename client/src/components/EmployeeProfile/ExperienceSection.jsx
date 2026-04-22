@@ -36,7 +36,6 @@ const ExperienceSection = ({ employeeId }) => {
 
   useEffect(() => {
     fetchExperience();
-    // eslint-disable-next-line
   }, [fetchExperience]);
 
 

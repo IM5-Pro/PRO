@@ -483,6 +483,7 @@ export const checkIn = async (req, res) => {
       entityId: attendance._id,
       description: `Employee checked in at ${attendance.checkInLocation?.label || "Office"}`,
     });
+    console.log(`Employee ${employeeRecord.firstName} ${employeeRecord.lastName} checked in at ${attendance.checkInLocation?.label || "Office"}`);
 
     return sendSuccess(res, 201, "Check-in recorded successfully", attendance);
   } catch (error) {
@@ -1863,6 +1864,9 @@ export const createManualAttendance = async (req, res) => {
       breakDurationMinutes,
       remarks: remarks || 'Manually added attendance',
       status: 'Present',
+      manuallyAddedBy: req.user.id,
+      requiresManagerApproval: true,
+      approvalStatus: 'Pending',
     });
 
     // Calculate working hours
@@ -1874,22 +1878,24 @@ export const createManualAttendance = async (req, res) => {
     await attendance.save();
 
     // Log action
+    const AuditLog = await import("../models/AuditLog.js").then(m => m.default);
     await AuditLog.create({
       userId: req.user.id,
       action: "CREATE_MANUAL_ATTENDANCE",
       entityType: "Attendance",
       entityId: attendance._id,
-      description: `Manually added attendance for ${attendanceDate}`,
+      description: `Manually added attendance for ${attendanceDate} - Pending manager approval`,
       changes: {
         attendanceDate,
         checkInTime,
         checkOutTime,
         breakDurationMinutes,
         workingHours: attendance.workingHours,
+        requiresManagerApproval: true,
       },
     });
 
-    return sendSuccess(res, 201, "Attendance added successfully", attendance);
+    return sendSuccess(res, 201, "Attendance added successfully. Awaiting manager approval.", attendance);
   } catch (error) {
     console.error("Create manual attendance error:", error);
     return sendError(res, 500, "Failed to create attendance", {

@@ -17,7 +17,6 @@
 import express from "express";
 import manpowerPlanningController from "../controllers/ManpowerPlanningController.js";
 import authGuard from "../middleware/authGuard.js";
-import { permissionGuard } from "../middleware/permissionGuard.js";
 
 const router = express.Router();
 

@@ -105,11 +105,4 @@ export const createUser = async ({ creatorRole, creatorId, payload, session = nu
 /**
  * Throws an error with status property so controllers can handle status-specific responses.
  */
-export const createUserOrThrow = async (options) => {
-  try {
-    return await createUser(options);
-  } catch (err) {
-    // Pass through.
-    throw err;
-  }
-};
+export const createUserOrThrow = async (options) => createUser(options);

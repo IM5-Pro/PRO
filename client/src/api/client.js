@@ -33,7 +33,7 @@ const isAuthExemptRequest = (url = '') => {
 };
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:7888/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:7888/api',
 });
 
 API.interceptors.request.use(

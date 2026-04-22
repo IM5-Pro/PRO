@@ -14,24 +14,19 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   FiAlertCircle,
   FiCheck,
   FiChevronDown,
   FiLogOut,
-  FiMessageSquare,
   FiSearch,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
 import resignationApi from '../../services/resignationApi';
 
 const ResignationApprovals = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
-  const { colors } = useTheme();
-  const { user: authUser } = useAuth();
 
   const [resignations, setResignations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,11 +43,7 @@ const ResignationApprovals = ({ user = {}, pageConfig = {}, onUserUpdate = () =>
   const [selectedResignation, setSelectedResignation] = useState(null);
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    fetchResignations();
-  }, [selectedFilter]);
-
-  const fetchResignations = async () => {
+  const fetchResignations = useCallback(async () => {
     setLoading(true);
     const result = await resignationApi.getTeamResignations({
       status: selectedFilter === 'ALL' ? undefined : selectedFilter,
@@ -62,7 +53,11 @@ const ResignationApprovals = ({ user = {}, pageConfig = {}, onUserUpdate = () =>
       setResignations(result.data || []);
     }
     setLoading(false);
-  };
+  }, [selectedFilter]);
+
+  useEffect(() => {
+    fetchResignations();
+  }, [fetchResignations]);
 
   const filteredResignations = useMemo(() => {
     return resignations.filter(r =>

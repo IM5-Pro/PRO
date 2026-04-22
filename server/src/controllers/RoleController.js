@@ -1,6 +1,6 @@
 import Role from "../models/Role.js";
 import Permission from "../models/Permission.js";
-import { validateRole, validatePermissionAssignment, validatePermission } from "../utils/roleValidators.js";
+import { validateRole, validatePermissionAssignment } from "../utils/roleValidators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 
 /**

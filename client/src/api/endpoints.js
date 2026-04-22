@@ -279,6 +279,18 @@ export const RESIGNATION_ENDPOINTS = {
   stats: '/resignations/stats',
 };
 
+export const SHIFT_ENDPOINTS = {
+  list: (limit) => withLimit('/shifts', limit),
+  create: '/shifts',
+  get: (shiftId) => `/shifts/${shiftId}`,
+  update: (shiftId) => `/shifts/${shiftId}`,
+  delete: (shiftId) => `/shifts/${shiftId}`,
+  assign: '/shifts/assign',
+  getEmployeeShift: (employeeId) => `/shifts/employee/${employeeId}`,
+  getEmployeeShiftHistory: (employeeId) => `/shifts/employee/${employeeId}/history`,
+  getShiftEmployees: (shiftId) => `/shifts/${shiftId}/employees`,
+};
+
 export const NOTIFICATION_ENDPOINTS = {
   list: (limit) => withLimit('/notifications', limit),
   all: '/notifications/all',

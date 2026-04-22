@@ -207,55 +207,6 @@ const toLocationVariants = (employee) => {
   return [...new Set(values)];
 };
 
-const buildVisibilityFilter = (context) => {
-  const base = {
-    isActive: true,
-    dismissedBy: { $ne: toObjectId(context.userId) },
-  };
-
-  if (context.role === Roles.SUPER_ADMIN || context.role === Roles.HR_ADMIN) {
-    return base;
-  }
-
-  const visibilityConditions = [{ audienceType: "ALL" }];
-
-  const department = normalizeText(context.employee?.department).toLowerCase();
-  if (department) {
-    visibilityConditions.push({ audienceType: "DEPARTMENT", "audience.department": department });
-  }
-
-  if (context.role) {
-    visibilityConditions.push({ audienceType: "ROLE", "audience.role": context.role });
-  }
-
-  const locationValues = toLocationVariants(context.employee);
-  if (locationValues.length > 0) {
-    visibilityConditions.push({ audienceType: "LOCATION", "audience.location": { $in: locationValues } });
-  }
-
-  const teamManagerIds = [
-    toObjectId(context.employee?.manager),
-    toObjectId(context.employee?.managerId),
-    toObjectId(context.employee?.managerID),
-  ].filter(Boolean);
-
-  if (context.role === Roles.MANAGER && context.employee?._id) {
-    teamManagerIds.push(toObjectId(context.employee._id));
-  }
-
-  if (teamManagerIds.length > 0) {
-    visibilityConditions.push({
-      audienceType: "TEAM",
-      "audience.teamManagerEmployeeId": { $in: teamManagerIds },
-    });
-  }
-
-  return {
-    ...base,
-    $or: visibilityConditions,
-  };
-};
-
 const mapAnnouncement = (announcement, contextRole) => {
   const createdByName =
     [announcement?.createdBy?.firstName, announcement?.createdBy?.lastName]

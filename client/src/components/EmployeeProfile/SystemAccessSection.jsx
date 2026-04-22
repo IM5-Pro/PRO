@@ -33,7 +33,6 @@ const SystemAccessSection = ({ employeeId }) => {
 
   useEffect(() => {
     fetchAccess();
-    // eslint-disable-next-line
   }, [fetchAccess]);
 
 

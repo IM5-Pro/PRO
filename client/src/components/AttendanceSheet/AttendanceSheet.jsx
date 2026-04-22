@@ -4,12 +4,13 @@
  * Features: Monthly calendar view, shift tracking, hours logged, view options
  */
 
-import React, { useState, useEffect } from 'react';
-import { FiChevronLeft, FiChevronRight, FiRefreshCw, FiX, FiClock } from 'react-icons/fi';
+import React, { useState, useEffect, useContext } from 'react';
+import { FiChevronLeft, FiChevronRight, FiRefreshCw, FiX, FiClock, FiEdit } from 'react-icons/fi';
 import API from '../../api/client';
-import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
+import { ATTENDANCE_ENDPOINTS, SHIFT_ENDPOINTS } from '../../api/endpoints';
 import { getMonthDateRangeParams } from '../../utils/monthDateRange';
 import { fetchOwnLeaveRequests } from '../../services/leavesAttendanceApi';
+import { AuthContext } from '../../context/AuthContext';
 
 const HOLIDAYS_DATA = [
   { occasion: "New Year Day", day: "Thursday", date: "01-01-2026", category: "Project Development", department: "Technical", division: "IT" },
@@ -32,16 +33,56 @@ const HOLIDAYS_DATA = [
 ];
 
 const AttendanceSheet = () => {
+  const { user } = useContext(AuthContext);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewType, setViewType] = useState('month'); // month, week, day
   const [attendanceData, setAttendanceData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [employeeShift, setEmployeeShift] = useState(null);
   
   // Modal state for adding attendance
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDateForAdd, setSelectedDateForAdd] = useState(null);
   const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
+
+  // Modal state for editing shifts
+  const [showEditShiftModal, setShowEditShiftModal] = useState(false);
+  const [availableShifts, setAvailableShifts] = useState([]);
+
+  // Check if user has permission to edit shifts
+  const canEditShifts = user?.role && ['SUPER_ADMIN', 'HR_ADMIN'].includes(user.role);
+
+  // Fetch employee's current shift
+  useEffect(() => {
+    const fetchEmployeeShift = async () => {
+      try {
+        if (!user?.employee?._id) return;
+        const response = await API.get(SHIFT_ENDPOINTS.getEmployeeShift(user.employee._id));
+        setEmployeeShift(response.data?.data);
+      } catch (err) {
+        console.error('Error fetching employee shift:', err);
+        // Set default shift if none found
+        setEmployeeShift({ startTime: '09:00', endTime: '17:00', name: 'Day Shift' });
+      }
+    };
+
+    fetchEmployeeShift();
+  }, [user?.employee?._id]);
+
+  // Fetch available shifts for shift selection modal
+  useEffect(() => {
+    const fetchAvailableShifts = async () => {
+      try {
+        if (!showEditShiftModal) return;
+        const response = await API.get(SHIFT_ENDPOINTS.list(100));
+        setAvailableShifts(response.data?.data?.shifts || []);
+      } catch (err) {
+        console.error('Error fetching available shifts:', err);
+      }
+    };
+
+    fetchAvailableShifts();
+  }, [showEditShiftModal]);
 
   // Stats
   // const [stats, setStats] = useState({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
@@ -115,6 +156,12 @@ const AttendanceSheet = () => {
             breakTime: record.breakDurationMinutes ? `${record.breakDurationMinutes} min break` : null,
             offType: record.status === 'Absent' ? 'Absent' : null,
             status: record.status,
+            isLossOfPay: record.isLossOfPay,
+            isAutoMarked: record.isAutoMarked,
+            lopReason: record.lopReason,
+            requiresApproval: record.requiresManagerApproval,
+            approvalStatus: record.approvalStatus,
+            isArchived: record.isArchived,
           };
         });
 
@@ -303,10 +350,10 @@ const AttendanceSheet = () => {
     const data = attendanceData[day] || {};
     const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
     const isWeekend = [0, 6].includes(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay());
-    const defaultShift = 'Day Shift:08:00-20:00';
+    const shiftDisplay = employeeShift ? `${employeeShift.name}:${employeeShift.startTime}-${employeeShift.endTime}` : 'Day Shift:09:00-17:00';
+    
     const leaveRequest = data.leaveRequest;
     const holiday = data.holiday;
-    const hasAttendance = data.status && !leaveRequest && !holiday;
     const hasBothLeaveAndAttendance = leaveRequest && (data.timeEntry || data.offType);
     
     const leaveBadge = leaveRequest
@@ -319,8 +366,6 @@ const AttendanceSheet = () => {
         ? 'bg-purple-600 text-white'
         : 'bg-indigo-600 text-white'
       : '';
-    
-    const shiftDisplay = holiday ? null : (data.shift || (hasAttendance ? defaultShift : null));
     
     // Adjust background when both leave and attendance exist
     const cellBase =
@@ -371,6 +416,17 @@ const AttendanceSheet = () => {
           {data.offType && !leaveRequest && !holiday && (
             <div className="rounded bg-gradient-to-r from-red-500 to-pink-400 px-2 py-1 font-medium text-white shadow-sm">{data.offType}</div>
           )}
+          {data.isLossOfPay && (
+            <div className="rounded bg-gradient-to-r from-orange-600 to-red-600 px-2 py-1 font-medium text-white shadow-sm">💼 LOP: {data.lopReason}</div>
+          )}
+          {data.isAutoMarked && (
+            <div className="rounded bg-gradient-to-r from-amber-500 to-yellow-500 px-2 py-1 text-xs text-white shadow-sm">🤖 Auto-marked</div>
+          )}
+          {data.requiresApproval && (
+            <div className="rounded bg-gradient-to-r from-blue-600 to-cyan-600 px-2 py-1 text-xs font-medium text-white shadow-sm">
+              ⏳ {data.approvalStatus}
+            </div>
+          )}
           {hasBothLeaveAndAttendance && (
             <div className="rounded bg-blue-500 px-2 py-1 text-white shadow-sm text-center font-medium">📌 Both Leave & Attendance</div>
           )}
@@ -408,20 +464,16 @@ const AttendanceSheet = () => {
         </div>
         <h2 className="text-2xl font-bold text-gray-800 tracking-tight drop-shadow-sm">{monthYear}</h2>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewType('month')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all transform hover:scale-105 active:scale-95 ${viewType === 'month' ? 'bg-blue-700 text-white border-2 border-blue-500 shadow-lg shadow-blue-500/30' : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-400 hover:bg-gray-50'}`}
-            >month</button>
-            <button
-              onClick={() => setViewType('week')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all transform hover:scale-105 active:scale-95 ${viewType === 'week' ? 'bg-blue-700 text-white border-2 border-blue-500 shadow-lg shadow-blue-500/30' : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-400 hover:bg-gray-50'}`}
-            >week</button>
-            <button
-              onClick={() => setViewType('day')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all transform hover:scale-105 active:scale-95 ${viewType === 'day' ? 'bg-blue-700 text-white border-2 border-blue-500 shadow-lg shadow-blue-500/30' : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-blue-400 hover:bg-gray-50'}`}
-            >day</button>
-          </div>
+          {canEditShifts && (
+            <button 
+              onClick={() => setShowEditShiftModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-sm font-medium transform hover:scale-105 active:scale-95 shadow-sm flex items-center gap-2"
+              title="Edit employee shift"
+            >
+              <FiEdit size={16} />
+              Edit Shift
+            </button>
+          )}
           <button className="btn-success flex items-center gap-2 animate-scaleUp rounded-xl shadow-sm">
             <FiRefreshCw size={18} className="animate-bounce-soft" />
             Sync Attendance
@@ -432,7 +484,7 @@ const AttendanceSheet = () => {
       {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
       {loading ? (
         <div className="w-full text-center py-12 text-lg text-gray-500 animate-pulse">Loading attendance...</div>
-      ) : viewType === 'month' && (
+      ) : (
         <div className="animate-fadeInUp">
           <div className="grid grid-cols-7 gap-0 mb-0 header-blue overflow-hidden rounded-xl">
             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
@@ -478,6 +530,18 @@ const AttendanceSheet = () => {
           <div className="w-4 h-4 bg-green-600 rounded shadow"></div>
           <span className="text-sm text-gray-600">Holiday</span>
         </div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-gradient-to-r from-orange-600 to-red-600 rounded shadow"></div>
+          <span className="text-sm text-gray-600">Loss of Pay (LOP)</span>
+        </div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded shadow"></div>
+          <span className="text-sm text-gray-600">Auto-marked</span>
+        </div>
+        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
+          <div className="w-4 h-4 bg-gradient-to-r from-blue-600 to-cyan-600 rounded shadow"></div>
+          <span className="text-sm text-gray-600">Pending Approval</span>
+        </div>
       </div>
 
       {/* Add Attendance Modal */}
@@ -487,6 +551,30 @@ const AttendanceSheet = () => {
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddAttendance}
         isSubmitting={isSubmittingAttendance}
+      />
+      
+      {/* Edit Shift Modal */}
+      <ShiftEditModal
+        isOpen={showEditShiftModal}
+        currentShift={employeeShift}
+        availableShifts={availableShifts}
+        onClose={() => setShowEditShiftModal(false)}
+        onSubmit={async (newShiftId) => {
+          try {
+            await API.post(SHIFT_ENDPOINTS.assign, {
+              employeeId: user?.employee?._id,
+              shiftId: newShiftId,
+              effectiveFrom: new Date(),
+            });
+            setShowEditShiftModal(false);
+            // Refresh employee shift
+            const response = await API.get(SHIFT_ENDPOINTS.getEmployeeShift(user.employee._id));
+            setEmployeeShift(response.data?.data);
+          } catch (err) {
+            console.error('Error assigning shift:', err);
+            alert('Failed to assign shift');
+          }
+        }}
       />
     </div>
   );
@@ -642,6 +730,90 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Saving...' : 'Add Attendance'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Shift Edit Modal Component
+const ShiftEditModal = ({ isOpen, currentShift, availableShifts, onClose, onSubmit }) => {
+  const [selectedShiftId, setSelectedShiftId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedShiftId) {
+      alert('Please select a shift');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await onSubmit(selectedShiftId);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-slideUp">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-800">Edit Employee Shift</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <FiX size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {currentShift && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm font-semibold text-blue-900">Current Shift:</p>
+              <p className="text-sm text-blue-800">
+                {currentShift.name}: {currentShift.startTime} - {currentShift.endTime}
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select New Shift
+            </label>
+            <select
+              value={selectedShiftId || ''}
+              onChange={(e) => setSelectedShiftId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Choose a shift --</option>
+              {availableShifts.map((shift) => (
+                <option key={shift._id} value={shift._id}>
+                  {shift.name} ({shift.startTime} - {shift.endTime})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !selectedShiftId}
+              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Assigning...' : 'Assign Shift'}
             </button>
           </div>
         </form>

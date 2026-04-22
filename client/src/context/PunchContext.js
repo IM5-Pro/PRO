@@ -17,6 +17,14 @@ const PUNCH_DAY_COOKIE = 'punchDayKey';
 const DAILY_WORKING_HOURS_COOKIE = 'dailyWorkingHours';
 const PUNCH_COOKIE_MAX_AGE = 24 * 60 * 60;
 
+const toDayKey = (value) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+};
+
+const getCurrentDayKey = () => toDayKey(new Date());
+
 const PunchContext = createContext(null);
 
 export const PunchProvider = ({ children }) => {
@@ -42,14 +50,6 @@ export const PunchProvider = ({ children }) => {
     new Date(dateStr).toLocaleTimeString('en-US', {
       hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
     });
-
-  const toDayKey = (value) => {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return '';
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-  };
-
-  const getCurrentDayKey = () => toDayKey(new Date());
 
   const extractAttendanceList = (response) => {
     const payload = response?.data || {};
@@ -373,7 +373,7 @@ export const PunchProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [buildLocationPayload, locationLabel, syncPunchStorage]);
+  }, [buildLocationPayload, locationLabel, syncPunchStorage, loadTodayStatus]);
 
   return (
     <PunchContext.Provider value={{

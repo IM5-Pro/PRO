@@ -52,7 +52,7 @@ export const loggerMiddleware = (req, res, next) => {
  * Error Logging Middleware - Logs all errors with context
  * Should be placed after all other middlewares
  */
-export const errorLoggerMiddleware = (err, req, res, next) => {
+export const errorLoggerMiddleware = (err, req, res, _next) => {
   const statusCode = err.statusCode || 500;
   const errorMessage = err.message || 'Internal Server Error';
 

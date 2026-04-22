@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import { FiPlus, FiEdit2, FiEye, FiCheckCircle, FiClock } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
 
 const Workflows = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   const { colors } = useTheme();

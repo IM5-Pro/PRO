@@ -54,7 +54,7 @@ const validatePermission = (body) => {
     errors.name = "Permission name is required and must be a string";
   } else if (body.name.trim().length < 3) {
     errors.name = "Permission name must be at least 3 characters";
-  } else if (!/^[a-z_\.]+$/.test(body.name)) {
+  } else if (!/^[a-z_.]+$/.test(body.name)) {
     errors.name =
       "Permission name must contain only lowercase letters, underscores, and dots (e.g., role.create, user.delete)";
   }

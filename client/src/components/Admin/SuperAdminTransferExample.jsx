@@ -8,9 +8,9 @@
 
 import React, { useState } from 'react';
 import { FiShield, FiAlertTriangle } from 'react-icons/fi';
-import SuperAdminRoleTransfer from './components/Admin/SuperAdminRoleTransfer';
-import { useAuth } from './context/AuthContext';
-import superAdminTransferApi from './services/superAdminTransferApi';
+import SuperAdminRoleTransfer from './SuperAdminRoleTransfer';
+import { useAuth } from '../../context/AuthContext';
+import superAdminTransferApi from '../../services/superAdminTransferApi';
 
 /**
  * Example 1: Simple Admin Settings Page

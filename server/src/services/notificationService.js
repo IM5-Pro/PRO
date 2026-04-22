@@ -4,12 +4,7 @@
  * Simplifies notification creation by providing ready-to-use functions
  */
 
-import {
-  createNotification,
-  createBulkNotifications,
-  notifyUsers,
-  createNotificationForRoles,
-} from "../controllers/NotificationController.js";
+import { createNotification } from "../controllers/NotificationController.js";
 
 // ============================================================================
 // LEAVE NOTIFICATIONS
@@ -191,7 +186,6 @@ export const notifyAbsentDay = async (data) => {
 
 export const notifyAttendanceCorrection = async (data) => {
   const {
-    employeeId,
     managerId,
     hrAdminIds,
     attendanceId,
@@ -349,7 +343,6 @@ export const notifySalarySlipGenerated = async (data) => {
 
 export const notifyReimbursementRequest = async (data) => {
   const {
-    employeeId,
     managerId,
     hrAdminIds,
     reimbursementId,
@@ -441,7 +434,7 @@ export const notifyPerformanceReviewRequest = async (data) => {
     referenceType: "performance",
     referenceId: performanceReviewId,
     actionUrl: `/employee/performance-reviews/${performanceReviewId}`,
-    metadata: { reviewPeriod },
+    metadata: { reviewPeriod, reviewerId },
   });
 };
 

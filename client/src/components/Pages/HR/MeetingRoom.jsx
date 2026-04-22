@@ -13,16 +13,6 @@ import { useTheme } from '../../../context/ThemeContext';
 import { FiPlus, FiCalendar, FiMapPin, FiUsers, FiClock } from 'react-icons/fi';
 
 /**
- * Validation constants for meeting room bookings
- */
-const VALIDATION_RULES = {
-  MIN_DURATION: 30,
-  MAX_DURATION: 480,
-  MIN_CAPACITY: 1,
-  MAX_CAPACITY: 100,
-};
-
-/**
  * MeetingRoom Component
  * Full-featured meeting room booking system
  * 
@@ -35,7 +25,7 @@ const VALIDATION_RULES = {
 const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState('2024-03-07');
-  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
 
   // ============================================================================
   // MOCKED DATA
@@ -126,42 +116,6 @@ const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) =>
   );
 
   // ============================================================================
-  // VALIDATION FUNCTIONS
-  // ============================================================================
-
-  /**
-   * Validate booking duration
-   */
-  const validateDuration = (duration) => {
-    if (duration < VALIDATION_RULES.MIN_DURATION || duration > VALIDATION_RULES.MAX_DURATION) {
-      return {
-        isValid: false,
-        error: `Duration must be between ${VALIDATION_RULES.MIN_DURATION} and ${VALIDATION_RULES.MAX_DURATION} minutes`,
-      };
-    }
-    return { isValid: true, error: null };
-  };
-
-  /**
-   * Validate attendee count
-   */
-  const validateAttendeeCount = (count, roomCapacity) => {
-    if (count < VALIDATION_RULES.MIN_CAPACITY) {
-      return {
-        isValid: false,
-        error: 'At least 1 attendee is required',
-      };
-    }
-    if (count > roomCapacity) {
-      return {
-        isValid: false,
-        error: `Attendees cannot exceed room capacity of ${roomCapacity}`,
-      };
-    }
-    return { isValid: true, error: null };
-  };
-
-  // ============================================================================
   // COMPONENT RENDER
   // ============================================================================
 
@@ -201,8 +155,8 @@ const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) =>
           {meetingRooms.map((room) => (
             <div
               key={room.id}
-              className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:border-blue-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer`}
-              onClick={() => setSelectedRoom(room.id)}
+              className={`group bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:border-blue-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer ${selectedRoomId === room.id ? 'ring-2 ring-blue-500/80' : ''}`}
+              onClick={() => setSelectedRoomId(room.id)}
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -301,4 +255,3 @@ const MeetingRoom = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) =>
 };
 
 export default MeetingRoom;
-export { VALIDATION_RULES };

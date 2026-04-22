@@ -36,7 +36,6 @@ const DocumentsSection = ({ employeeId }) => {
 
   useEffect(() => {
     fetchDocuments();
-    // eslint-disable-next-line
   }, [fetchDocuments]);
 
 

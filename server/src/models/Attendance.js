@@ -190,6 +190,43 @@ const attendanceSchema = new mongoose.Schema(
       default: "",
     },
 
+    // Loss of Pay (LOP) status
+    isLossOfPay: {
+      type: Boolean,
+      default: false,
+    },
+    lopReason: {
+      type: String,
+      enum: ["No Leave Balance", "Auto-marked - No Attendance"],
+      default: null,
+    },
+
+    // Auto-marked by system flag
+    isAutoMarked: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Associated leave request (if auto-marked as leave)
+    associatedLeaveRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LeaveRequest",
+      default: null,
+    },
+
+    // Manual entry approval requirement
+    requiresManagerApproval: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Manually added by user
+    manuallyAddedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     // Is archived (soft delete)
     isArchived: {
       type: Boolean,

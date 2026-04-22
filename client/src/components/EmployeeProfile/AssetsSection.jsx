@@ -36,7 +36,6 @@ const AssetsSection = ({ employeeId }) => {
 
   useEffect(() => {
     fetchAssets();
-    // eslint-disable-next-line
   }, [fetchAssets]);
 
 

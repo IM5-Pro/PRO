@@ -37,7 +37,6 @@ const EducationSection = ({ employeeId }) => {
 
   useEffect(() => {
     fetchEducation();
-    // eslint-disable-next-line
   }, [fetchEducation]);
 
 

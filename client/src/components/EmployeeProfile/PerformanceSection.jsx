@@ -33,7 +33,6 @@ const PerformanceSection = ({ employeeId }) => {
 
   useEffect(() => {
     fetchPerformance();
-    // eslint-disable-next-line
   }, [fetchPerformance]);
 
 

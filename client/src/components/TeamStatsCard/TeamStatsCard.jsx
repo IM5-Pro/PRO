@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { FiFilter } from 'react-icons/fi';
 
 /**
@@ -65,30 +65,6 @@ const TeamStatsCard = ({
    */
   const renderCustomLabel = ({ name, value }) => {
     return `${value}%`;
-  };
-
-  /**
-   * Render legend item with status indicator
-   * Shows color-coded legend for better readability
-   * 
-   * @param {Object} props - Legend props
-   * @returns {JSX.Element} Legend item
-   */
-  const renderCustomLegend = (props) => {
-    const { payload } = props;
-    return (
-      <div className="flex flex-wrap gap-3 justify-center">
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-xs text-gray-600">{entry.name}</span>
-          </div>
-        ))}
-      </div>
-    );
   };
 
   return (

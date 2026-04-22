@@ -114,41 +114,6 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {},
   const [activeCardId, setActiveCardId] = useState(null);
 
   // ============================================================================
-  // VALIDATION FUNCTIONS
-  // ============================================================================
-
-  /**
-   * Validate headcount value
-   * @param {number} value - Value to validate
-   * @returns {Object} Validation result
-   */
-  const validateHeadcount = useCallback((value) => {
-    if (value < VALIDATION_RULES.MIN_HEADCOUNT || value > VALIDATION_RULES.MAX_HEADCOUNT) {
-      return {
-        isValid: false,
-        error: `Headcount must be between ${VALIDATION_RULES.MIN_HEADCOUNT} and ${VALIDATION_RULES.MAX_HEADCOUNT}`,
-      };
-    }
-    return { isValid: true, error: null };
-  }, []);
-
-  /**
-   * Validate department
-   * @param {string} dept - Department name
-   * @returns {Object} Validation result
-   */
-  const validateDepartment = useCallback((dept) => {
-    if (!VALIDATION_RULES.VALID_DEPARTMENTS.includes(dept)) {
-      return {
-        isValid: false,
-        error: `Invalid department. Valid options: ${VALIDATION_RULES.VALID_DEPARTMENTS.join(', ')}`,
-      };
-    }
-    return { isValid: true, error: null };
-  }, []);
-
-
-  // ============================================================================
   // API INTEGRATION & DATA FETCHING
   // ============================================================================
 

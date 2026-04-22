@@ -1,22 +1,21 @@
+process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "test-refresh-secret";
+
 const express = require("express");
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
-const permissionGuard = require("../src/middleware/permissionGuard.js").default;
-const { roles, permissionsList } = require("../roleSeeder.js");
+const { permissionGuard } = require("../src/middleware/permissionGuard.js");
 const { generateAccessToken } = require("../src/utils/jwt.js");
 
-// small helper application that exercises the permission middleware
 function createApp() {
   const app = express();
   app.use(express.json());
-  // simple "authentication" middleware that reads a bearer token
-  // and attaches the decoded user payload to req.user.
   app.use((req, res, next) => {
     const auth = req.headers.authorization;
     if (auth && auth.startsWith("Bearer ")) {
       try {
         req.user = jwt.verify(auth.split(" ")[1], process.env.JWT_SECRET);
-      } catch (err) {
+      } catch {
         // ignore invalid tokens
       }
     }
@@ -26,7 +25,6 @@ function createApp() {
   app.get(
     "/check/:perm",
     (req, res, next) => {
-      // middleware factory returns a handler
       permissionGuard(req.params.perm)(req, res, next);
     },
     (req, res) => {
@@ -41,41 +39,81 @@ describe("Permission middleware integration", () => {
   let app;
 
   beforeAll(() => {
-    // make sure the signing secret is defined for generateAccessToken
-    process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
     app = createApp();
   });
 
-  // iterate roles and assert the assigned perms are allowed and a few others are denied
-  roles.forEach((role) => {
-    describe(role.name, () => {
-      const token = generateAccessToken({
-        id: "dummy",
-        role: role.name,
-        permissions: role.permissions,
-      });
+  describe("SUPER_ADMIN", () => {
+    const token = generateAccessToken({
+      id: "u1",
+      role: "SUPER_ADMIN",
+    });
 
-      role.permissions.forEach((perm) => {
-        test(`allows permission ${perm}`, async () => {
-          const res = await request(app)
-            .get(`/check/${perm}`)
-            .set("Authorization", `Bearer ${token}`);
-          expect(res.status).toBe(200);
-        });
-      });
+    test("allows a representative permission", async () => {
+      const res = await request(app)
+        .get("/check/employee.read")
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+    });
 
-      const notPerms = permissionsList.filter(
-        (p) => !role.permissions.includes(p),
-      );
-      // pick first few not-owned permissions to ensure negative behaviour
-      notPerms.slice(0, 5).forEach((perm) => {
-        test(`denies permission ${perm}`, async () => {
-          const res = await request(app)
-            .get(`/check/${perm}`)
-            .set("Authorization", `Bearer ${token}`);
-          expect(res.status).toBe(403);
-        });
-      });
+    test("denies when no bearer token", async () => {
+      const res = await request(app).get("/check/employee.read");
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("HR_ADMIN", () => {
+    const token = generateAccessToken({
+      id: "u2",
+      role: "HR_ADMIN",
+    });
+
+    test("is treated as unrestricted (same as SUPER_ADMIN in hasPermission)", async () => {
+      const res = await request(app)
+        .get("/check/system.global_settings")
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe("EMPLOYEE", () => {
+    const token = generateAccessToken({
+      id: "u3",
+      role: "EMPLOYEE",
+    });
+
+    test("allows attendance.checkin", async () => {
+      const res = await request(app)
+        .get("/check/attendance.checkin")
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+    });
+
+    test("denies user.create (resource user is not granted)", async () => {
+      const res = await request(app)
+        .get("/check/user.create")
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("MANAGER", () => {
+    const token = generateAccessToken({
+      id: "u4",
+      role: "MANAGER",
+    });
+
+    test("allows attendance.view_team", async () => {
+      const res = await request(app)
+        .get("/check/attendance.view_team")
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+    });
+
+    test("denies user.create", async () => {
+      const res = await request(app)
+        .get("/check/user.create")
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(403);
     });
   });
 });

@@ -150,4 +150,96 @@ router.delete(
   deleteShift
 );
 
+/**
+ * Pending Approvals: Manager, HR Admin, Super Admin
+ * GET /api/attendance/pending/approvals
+ */
+router.get(
+  "/pending/approvals",
+  permissionGuard("attendance", "view_team"),
+  async (req, res) => {
+    try {
+      const { getPendingApprovals } = await import("../services/attendanceAutoMarkService.js");
+      const managerId = req.user.id;
+      const pendingRecords = await getPendingApprovals(managerId);
+      res.json({ success: true, data: pendingRecords });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
+
+/**
+ * LOP Status: Employee can view, HR can see all
+ * GET /api/attendance/lop/status
+ */
+router.get(
+  "/lop/status",
+  authGuard,
+  async (req, res) => {
+    try {
+      const Attendance = (await import("../models/Attendance.js")).default;
+      const query = {
+        isLossOfPay: true,
+        isArchived: false,
+      };
+
+      // Non-HR users can only see their own LOP records
+      if (!["SUPER_ADMIN", "HR_ADMIN"].includes(req.user.role)) {
+        const Employee = (await import("../models/Employee.js")).default;
+        const employee = await Employee.findOne({ userId: req.user.id });
+        if (!employee) {
+          return res.status(404).json({ success: false, message: "Employee not found" });
+        }
+        query.employee = employee._id;
+      }
+
+      const { page = 1, limit = 10 } = req.query;
+      const skip = (page - 1) * limit;
+
+      const lopRecords = await Attendance.find(query)
+        .populate("employee", "firstName lastName email")
+        .sort({ attendanceDate: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      const total = await Attendance.countDocuments(query);
+
+      res.json({
+        success: true,
+        data: {
+          lopRecords,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / limit),
+          },
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
+
+/**
+ * Trigger Auto-mark (Manual - for testing/admin)
+ * POST /api/attendance/auto-mark/trigger
+ */
+router.post(
+  "/auto-mark/trigger",
+  authGuard,
+  permissionGuard("attendance", "shift_assign"),
+  async (req, res) => {
+    try {
+      const { triggerAutoMark } = await import("../services/schedulerService.js");
+      const result = await triggerAutoMark();
+      res.json({ success: true, message: result.message });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
+
 export default router;

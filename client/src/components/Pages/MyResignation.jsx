@@ -14,37 +14,28 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FiAlertCircle,
   FiArrowLeft,
-  FiCalendar,
   FiCheck,
   FiChevronDown,
-  FiDownload,
   FiFileText,
   FiLogOut,
-  FiMessageSquare,
   FiX,
   FiXCircle,
   FiRefreshCw,
 } from 'react-icons/fi';
-import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
 import resignationApi from '../../services/resignationApi';
 
 const RESIGNATION_REASONS = resignationApi.getResignationReasons();
 
 const MyResignation = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
-  const { colors } = useTheme();
-  const { user: authUser } = useAuth();
-  
   const [mode, setMode] = useState('list'); // 'list', 'form'
   const [resignations, setResignations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [activeResignation, setActiveResignation] = useState(null);
-  const [selectedResignation, setSelectedResignation] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [editingResignationId, setEditingResignationId] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);

@@ -44,7 +44,7 @@ const Login = ({ onLoginSuccess = null }) => {
   const [forgotUsernameLoading, setForgotUsernameLoading] = useState(false);
   const [forgotUsernameError, setForgotUsernameError] = useState('');
   const [forgotUsernameSuccess, setForgotUsernameSuccess] = useState('');
-  const [forgotUsernameHint, setForgotUsernameHint] = useState('');
+  const [, setForgotUsernameHint] = useState('');
   const [forgotUsernameValue, setForgotUsernameValue] = useState('');
 
   // Forgot password and reset state

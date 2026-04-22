@@ -359,13 +359,6 @@ const getCurrentMonthJoiners = (rows) => {
   }).length;
 };
 
-const getCurrentMonthPayrollRuns = (rows) => {
-  return rows.filter((row) => {
-    const date = parsePayrollRunDate(row);
-    return date && isDateInCurrentMonth(date);
-  }).length;
-};
-
 export const fetchDashboardWidgetValues = async (role) => {
   const sources = DASHBOARD_WIDGET_SOURCES?.[role] || [];
 

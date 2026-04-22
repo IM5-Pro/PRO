@@ -17,7 +17,7 @@ const Attendance = () => {
 
   // Shared punch state from context
   const {
-    punchStatus, punchInTime, punchOutTime, punchInLocation, punchOutLocation,
+    punchInTime, punchOutTime, punchInLocation, punchOutLocation,
     workingHours, attendanceStatus, loading, locationLabel, locationLoading,
     punchIn, punchOut,
   } = usePunch();

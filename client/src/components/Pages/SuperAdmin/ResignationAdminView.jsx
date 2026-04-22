@@ -14,32 +14,23 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   FiAlertCircle,
   FiBarChart2,
   FiBox,
   FiCheck,
-  FiChevronDown,
   FiDownload,
   FiEye,
-  FiFileText,
-  FiFilter,
   FiLogOut,
-  FiSave,
   FiSearch,
   FiTrendingDown,
   FiUsers,
-  FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { useTheme } from '../../../context/ThemeContext';
-import { useAuth } from '../../../context/AuthContext';
 import resignationApi from '../../../services/resignationApi';
 
 const ResignationAdminView = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) => {
-  const { colors } = useTheme();
-  const { user: authUser } = useAuth();
 
   const [resignations, setResignations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,12 +54,14 @@ const ResignationAdminView = ({ user = {}, pageConfig = {}, onUserUpdate = () =>
   const [stats, setStats] = useState(null);
   const [departmentStats, setDepartmentStats] = useState({});
 
-  useEffect(() => {
-    fetchResignations();
-    fetchStats();
-  }, [selectedFilter]);
+  const fetchStats = useCallback(async () => {
+    const result = await resignationApi.getResignationStats();
+    if (result.success) {
+      setStats(result.stats);
+    }
+  }, []);
 
-  const fetchResignations = async () => {
+  const fetchResignations = useCallback(async () => {
     setLoading(true);
     const filterValue = selectedFilter === 'ALL' ? undefined : selectedFilter;
     const result = await resignationApi.getAllResignations({
@@ -91,14 +84,12 @@ const ResignationAdminView = ({ user = {}, pageConfig = {}, onUserUpdate = () =>
       setDepartmentStats(deptStats);
     }
     setLoading(false);
-  };
+  }, [selectedFilter]);
 
-  const fetchStats = async () => {
-    const result = await resignationApi.getResignationStats();
-    if (result.success) {
-      setStats(result.stats);
-    }
-  };
+  useEffect(() => {
+    fetchResignations();
+    fetchStats();
+  }, [fetchResignations, fetchStats]);
 
   const filteredResignations = useMemo(() => {
     return resignations.filter(r =>
@@ -363,12 +354,24 @@ const ResignationAdminView = ({ user = {}, pageConfig = {}, onUserUpdate = () =>
                           {new Date(resignation.requestedLastDayOfWork).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => setExpandedId(expandedId === resignation._id ? null : resignation._id)}
-                            className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                          >
-                            <FiEye className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-center gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedId(expandedId === resignation._id ? null : resignation._id)}
+                              className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                            >
+                              <FiEye className="w-4 h-4" />
+                            </button>
+                            {(resignation.status === 'MANAGER_APPROVED' || resignation.status === 'SUBMITTED') && (
+                              <button
+                                type="button"
+                                onClick={() => handleOverrideApproval(resignation)}
+                                className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200"
+                              >
+                                Override
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

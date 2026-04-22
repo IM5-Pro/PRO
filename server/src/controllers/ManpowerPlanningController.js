@@ -18,7 +18,6 @@
 import Employee from "../models/Employee.js";
 import Job from "../models/Job.js";
 import LeaveRequest from "../models/LeaveRequest.js";
-import Department from "../models/Department.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 
 // ============================================================================
@@ -417,7 +416,7 @@ const getDepartmentsSummary = async (req, res) => {
         $group: {
           _id: "$department",
           strength: { $sum: 1 },
-          totalSalary: { $sum: "$salary" || 0 },
+          totalSalary: { $sum: { $ifNull: ["$salary", 0] } },
         },
       },
       {

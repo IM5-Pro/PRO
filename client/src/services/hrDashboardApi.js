@@ -21,12 +21,6 @@ import { DASHBOARD_ENDPOINTS, EMPLOYEE_ENDPOINTS, LEAVE_ENDPOINTS, PAYROLL_ENDPO
 // CONSTANTS
 // ============================================================================
 
-const API_DEFAULTS = {
-  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
-  RETRY_ATTEMPTS: 3,
-  TIMEOUT: 10000,
-};
-
 const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Network error. Please check your connection.',
   SERVER_ERROR: 'Server error. Please try again later.',
@@ -618,7 +612,9 @@ export const fetchPayrollLockDate = async () => {
 
     const activities = [{
       type: 'payroll',
-      message: 'Payroll lock date is scheduled for Friday',
+      message: lockDate
+        ? `Payroll lock date is scheduled for Friday (last run: ${new Date(lockDate).toLocaleDateString()})`
+        : 'Payroll lock date is scheduled for Friday',
       date: lastFriday,
       day: lastFriday.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
     }];
@@ -676,7 +672,7 @@ export const fetchActivityFeed = async () => {
   }
 };
 
-export default {
+const hrDashboardApi = {
   fetchDashboardMetrics,
   fetchDashboardMetricsComposite,
   fetchHRDashboardData,
@@ -690,3 +686,5 @@ export default {
   fetchPayrollLockDate,
   fetchActivityFeed,
 };
+
+export default hrDashboardApi;

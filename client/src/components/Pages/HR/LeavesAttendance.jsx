@@ -12,7 +12,6 @@
  */
 
 import React, { useMemo, useCallback, useState } from 'react';
-import { useTheme } from '../../../context/ThemeContext';
 import { FiCalendar, FiCheckCircle, FiClock, FiAlertCircle, FiRefreshCw, FiX, FiPlus } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { normalizeRole, ROLES } from '../../../utils/roles';
@@ -21,11 +20,6 @@ import {
   useLeaveActions,
   useCreateLeaveRequest,
 } from '../../../hooks/useLeavesAttendance';
-
-const VALIDATION_RULES = {
-  MIN_LEAVE_DAYS: 0.5,
-  MAX_LEAVE_DAYS: 365,
-};
 
 /**
  * LeavesAttendance Component
@@ -45,7 +39,6 @@ const LeavesAttendance = ({
   onUserUpdate = () => {},
   defaultTab = 'overview',
 }) => {
-  const { colors } = useTheme();
   const { user: contextUser } = useAuth();
   const currentUser = propsUser || contextUser;
   const userRole = normalizeRole(currentUser?.role);

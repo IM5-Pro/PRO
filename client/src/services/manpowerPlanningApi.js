@@ -22,12 +22,6 @@ import { MANPOWER_PLANNING_ENDPOINTS } from '../api/endpoints';
 // CONSTANTS
 // ============================================================================
 
-const API_DEFAULTS = {
-  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
-  RETRY_ATTEMPTS: 3,
-  TIMEOUT: 10000,
-};
-
 const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Network error. Please check your connection and try again.',
   SERVER_ERROR: 'Failed to fetch workforce data. Please try again later.',
@@ -316,7 +310,7 @@ const getDashboardData = async () => {
 // EXPORT API SERVICE
 // ============================================================================
 
-export default {
+const manpowerPlanningApi = {
   getMetrics,
   getOpenPositions,
   getPendingApprovals,
@@ -324,3 +318,5 @@ export default {
   getTrends,
   getDashboardData,
 };
+
+export default manpowerPlanningApi;

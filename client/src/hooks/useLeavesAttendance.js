@@ -9,7 +9,22 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import * as LeavesAttendanceApi from '../services/leavesAttendanceApi';
+import {
+  fetchOwnLeaveRequests,
+  fetchTeamLeaveRequests,
+  fetchAllLeaveRequests,
+  fetchLeaveBalance,
+  fetchLeavePolicies,
+  fetchOwnAttendance,
+  fetchTeamAttendance,
+  fetchAllAttendance,
+  fetchMonthlySummary,
+  createLeaveRequest,
+  approveLeaveRequest,
+  rejectLeaveRequest,
+  cancelLeaveRequest,
+  fetchLeavesAttendanceDashboardData,
+} from '../services/leavesAttendanceApi';
 
 // ============================================================================
 // CONSTANTS
@@ -55,11 +70,11 @@ export const useLeaveRequests = (type = 'own', options = {}) => {
     try {
       let result;
       if (type === 'all') {
-        result = await LeavesAttendanceApi.fetchAllLeaveRequests();
+        result = await fetchAllLeaveRequests();
       } else if (type === 'team') {
-        result = await LeavesAttendanceApi.fetchTeamLeaveRequests();
+        result = await fetchTeamLeaveRequests();
       } else {
-        result = await LeavesAttendanceApi.fetchOwnLeaveRequests();
+        result = await fetchOwnLeaveRequests();
       }
 
       if (result.error) {
@@ -131,7 +146,7 @@ export const useLeaveBalance = (options = {}) => {
     setError(null);
 
     try {
-      const result = await LeavesAttendanceApi.fetchLeaveBalance();
+      const result = await fetchLeaveBalance();
 
       if (result.error) {
         setError(result.error);
@@ -189,7 +204,7 @@ export const useLeavePolicies = (options = {}) => {
     setError(null);
 
     try {
-      const result = await LeavesAttendanceApi.fetchLeavePolicies();
+      const result = await fetchLeavePolicies();
 
       if (result.error) {
         setError(result.error);
@@ -250,11 +265,11 @@ export const useAttendance = (type = 'own', options = {}) => {
     try {
       let result;
       if (type === 'all') {
-        result = await LeavesAttendanceApi.fetchAllAttendance();
+        result = await fetchAllAttendance();
       } else if (type === 'team') {
-        result = await LeavesAttendanceApi.fetchTeamAttendance();
+        result = await fetchTeamAttendance();
       } else {
-        result = await LeavesAttendanceApi.fetchOwnAttendance();
+        result = await fetchOwnAttendance();
       }
 
       if (result.error) {
@@ -323,7 +338,7 @@ export const useMonthlySummary = (options = {}) => {
     setError(null);
 
     try {
-      const result = await LeavesAttendanceApi.fetchMonthlySummary();
+      const result = await fetchMonthlySummary();
 
       if (result.error) {
         setError(result.error);
@@ -366,7 +381,7 @@ export const useCreateLeaveRequest = () => {
     setError(null);
     setSuccess(false);
 
-    const result = await LeavesAttendanceApi.createLeaveRequest(leaveData);
+    const result = await createLeaveRequest(leaveData);
 
     if (result.error) {
       setError(result.error);
@@ -407,7 +422,7 @@ export const useLeaveActions = () => {
     setLoading(true);
     setError(null);
 
-    const result = await LeavesAttendanceApi.approveLeaveRequest(requestId);
+    const result = await approveLeaveRequest(requestId);
 
     if (result.error) {
       setError(result.error);
@@ -421,7 +436,7 @@ export const useLeaveActions = () => {
     setLoading(true);
     setError(null);
 
-    const result = await LeavesAttendanceApi.rejectLeaveRequest(requestId);
+    const result = await rejectLeaveRequest(requestId);
 
     if (result.error) {
       setError(result.error);
@@ -435,7 +450,7 @@ export const useLeaveActions = () => {
     setLoading(true);
     setError(null);
 
-    const result = await LeavesAttendanceApi.cancelLeaveRequest(requestId);
+    const result = await cancelLeaveRequest(requestId);
 
     if (result.error) {
       setError(result.error);
@@ -489,7 +504,7 @@ export const useLeavesAttendanceDashboard = (userRole, options = {}) => {
     setErrors({});
 
     try {
-      const result = await LeavesAttendanceApi.fetchLeavesAttendanceDashboardData(userRole);
+      const result = await fetchLeavesAttendanceDashboardData(userRole);
 
       setState({
         leaveRequests: result.leaveRequests || [],
@@ -523,7 +538,7 @@ export const useLeavesAttendanceDashboard = (userRole, options = {}) => {
   };
 };
 
-export default {
+const useLeavesAttendanceExports = {
   useLeaveRequests,
   useLeaveBalance,
   useLeavePolicies,
@@ -533,3 +548,5 @@ export default {
   useLeaveActions,
   useLeavesAttendanceDashboard,
 };
+
+export default useLeavesAttendanceExports;

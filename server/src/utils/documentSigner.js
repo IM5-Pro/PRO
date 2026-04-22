@@ -21,7 +21,7 @@ const generateSignedDocumentUrl = (fileUrl, expirySeconds = DEFAULT_EXPIRY_SECON
 
     const delimiter = fileUrl.includes("?") ? "&" : "?";
     return `${fileUrl}${delimiter}exp=${expiresAt}&sig=${signature}`;
-  } catch (error) {
+  } catch (_error) {
     return fileUrl;
   }
 };

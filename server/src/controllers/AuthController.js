@@ -14,7 +14,6 @@ import {
   isValidPassword,
   validateRegisterSuperAdmin,
   validateLogin,
-  validateCreateUser,
 } from "../utils/validators.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 import { createUserOrThrow } from "../services/userService.js";
@@ -261,7 +260,7 @@ const refreshToken = async (req, res) => {
     let payload;
     try {
       payload = verifyRefreshToken(providedRefreshToken);
-    } catch (verifyError) {
+    } catch (_verifyError) {
       return sendError(res, 401, "Invalid refresh token");
     }
 
