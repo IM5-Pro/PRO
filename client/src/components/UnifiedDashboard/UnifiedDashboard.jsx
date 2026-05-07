@@ -291,6 +291,10 @@ const UnifiedDashboard = () => {
         return <LeavesPage />;
       }
 
+      if (currentPage === 'payroll') {
+        return <PayrollPage />;
+      }
+
       const ManagerPage = MANAGER_PAGE_COMPONENTS[currentPage];
       if (ManagerPage) {
         return <ManagerPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;

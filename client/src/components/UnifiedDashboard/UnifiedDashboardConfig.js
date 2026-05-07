@@ -85,7 +85,7 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
   },
   [ROLES.MANAGER]: {
-    portalLabel: 'Manager Control Center',
+    portalLabel: 'Team Operations Dashboard',
     heading: 'Team Operations Dashboard',
     subtitle: 'Monitor team performance, approve requests, and remove blockers.',
     widgets: [

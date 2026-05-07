@@ -240,6 +240,7 @@ export const PunchProvider = ({ children }) => {
           setPunchStatus('out');
           syncPunchStorage('out', true, todayRecord.checkInTime || null);
         } else if (todayRecord.checkInTime) {
+          setWorkingHours(todayRecord.workingHours);
           setPunchStatus('in');
           syncPunchStorage('in', true, todayRecord.checkInTime);
         } else {

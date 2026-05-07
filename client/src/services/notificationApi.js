@@ -288,18 +288,10 @@ const getTimeAgo = (date) => {
  */
 export const fetchNotifications = async (limit = 10, skip = 0) => {
   try {
-    console.log('[notificationApi] Fetching notifications with limit:', limit, 'skip:', skip);
     const response = await API.get(NOTIFICATION_ENDPOINTS.list(limit), {
       params: { skip },
     });
     const data = toPayload(response);
-    
-    console.log('[notificationApi] API Response:', {
-      total: data?.total,
-      unread: data?.unread,
-      notificationCount: data?.notifications?.length,
-      notifications: data?.notifications,
-    });
     
     return {
       notifications: (data?.notifications || []).map(formatNotification),
@@ -318,10 +310,8 @@ export const fetchNotifications = async (limit = 10, skip = 0) => {
  */
 export const fetchUnreadCount = async () => {
   try {
-    console.log('[notificationApi] Fetching unread count...');
     const response = await API.get(NOTIFICATION_ENDPOINTS.unread);
     const count = toPayload(response)?.unreadCount || 0;
-    console.log('[notificationApi] Unread count result:', count);
     return count;
   } catch (error) {
     console.error('Error fetching unread count:', error);
@@ -352,6 +342,31 @@ export const fetchNotificationSummary = async () => {
     return { total: 0, unread: 0 };
   }
 };
+
+const isLeaveNotification = (notification) =>
+  notification.type === NOTIFICATION_TYPES.LEAVE_REQUEST ||
+  notification.type === NOTIFICATION_TYPES.LEAVE_APPROVAL ||
+  notification.type === NOTIFICATION_TYPES.LEAVE_REJECTION ||
+  notification.type === 'leave_request';
+
+const isAttendanceNotification = (notification) =>
+  typeof notification.type === 'string' && notification.type.includes('attendance');
+
+const isPayrollNotification = (notification) =>
+  typeof notification.type === 'string' && notification.type.includes('payroll');
+
+const isAnnouncementNotification = (notification) =>
+  notification.type === NOTIFICATION_TYPES.ANNOUNCEMENT;
+
+const isSystemNotification = (notification) =>
+  typeof notification.type === 'string' &&
+  (notification.type.includes('system') || notification.type.includes('alert'));
+
+const buildNotificationSummary = (notifications, byType = {}) => ({
+  total: notifications.length,
+  unread: notifications.filter((notification) => !notification.read).length,
+  byType,
+});
 
 /**
  * Get pending leave and manager approvals
@@ -388,17 +403,12 @@ export const fetchPendingApprovals = async () => {
  */
 export const fetchLeavePendingNotifications = async () => {
   try {
-    console.log('[notificationApi] Fetching leave pending notifications...');
     const response = await API.get(NOTIFICATION_ENDPOINTS.list());
     const data = toPayload(response);
-    
-    console.log('[notificationApi] Leave API Response - Total notifications:', data?.notifications?.length);
     
     const leaves = (data?.notifications || []).filter(
       n => n.type === NOTIFICATION_TYPES.LEAVE_REQUEST || n.type === 'leave_request'
     );
-    
-    console.log('[notificationApi] Filtered leave notifications:', leaves.length, 'Notifications:', leaves.map(l => ({ id: l._id, type: l.type, read: l.read })));
     
     return leaves.map((leave) => formatNotification(leave));
   } catch (error) {
@@ -539,15 +549,14 @@ export const fetchNotificationsByRole = async (userRole = 'employee') => {
  */
 export const fetchEmployeeNotifications = async () => {
   try {
-    const [leavePending, attendance, payroll, announcements] = await Promise.all([
-      fetchLeavePendingNotifications().catch(() => []),
-      fetchAttendanceNotifications().catch(() => []),
-      fetchPayrollNotifications().catch(() => []),
-      fetchAnnouncementNotifications().catch(() => []),
-    ]);
+    const { notifications } = await fetchNotifications(50);
+    const leaves = notifications.filter(isLeaveNotification);
+    const attendance = notifications.filter(isAttendanceNotification);
+    const payroll = notifications.filter(isPayrollNotification);
+    const announcements = notifications.filter(isAnnouncementNotification);
 
     const allNotifications = [
-      ...leavePending,
+      ...leaves,
       ...attendance,
       ...payroll,
       ...announcements,
@@ -555,16 +564,12 @@ export const fetchEmployeeNotifications = async () => {
 
     return {
       notifications: allNotifications,
-      summary: {
-        total: allNotifications.length,
-        unread: allNotifications.filter((n) => !n.read).length,
-        byType: {
-          leaves: leavePending.length,
-          attendance: attendance.length,
-          payroll: payroll.length,
-          announcements: announcements.length,
-        },
-      },
+      summary: buildNotificationSummary(allNotifications, {
+        leaves: leaves.length,
+        attendance: attendance.length,
+        payroll: payroll.length,
+        announcements: announcements.length,
+      }),
     };
   } catch (error) {
     console.error('Error fetching employee notifications:', error);
@@ -579,18 +584,12 @@ export const fetchEmployeeNotifications = async () => {
  */
 export const fetchManagerNotifications = async () => {
   try {
-    console.log('[notificationApi] Fetching Manager notifications...');
-    const [approvals, leavePending, announcements] = await Promise.all([
+    const [approvals, notificationData] = await Promise.all([
       fetchPendingApprovals().catch(() => []),
-      fetchLeavePendingNotifications().catch(() => []),
-      fetchAnnouncementNotifications().catch(() => []),
+      fetchNotifications(50).catch(() => ({ notifications: [] })),
     ]);
-
-    console.log('[notificationApi] Manager notification sources:', {
-      approvalsCount: approvals.length,
-      leavePendingCount: leavePending.length,
-      announcementsCount: announcements.length,
-    });
+    const leavePending = notificationData.notifications.filter(isLeaveNotification);
+    const announcements = notificationData.notifications.filter(isAnnouncementNotification);
 
     const allNotifications = [
       ...approvals,
@@ -598,19 +597,13 @@ export const fetchManagerNotifications = async () => {
       ...announcements,
     ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-    console.log('[notificationApi] Total manager notifications:', allNotifications.length);
-
     return {
       notifications: allNotifications,
-      summary: {
-        total: allNotifications.length,
-        unread: allNotifications.filter((n) => !n.read).length,
-        byType: {
-          approvals: approvals.length,
-          leaves: leavePending.length,
-          announcements: announcements.length,
-        },
-      },
+      summary: buildNotificationSummary(allNotifications, {
+        approvals: approvals.length,
+        leaves: leavePending.length,
+        announcements: announcements.length,
+      }),
     };
   } catch (error) {
     console.error('Error fetching manager notifications:', error);
@@ -625,13 +618,14 @@ export const fetchManagerNotifications = async () => {
  */
 export const fetchHRNotifications = async () => {
   try {
-    const [approvals, attendance, payroll, systemAlerts, announcements] = await Promise.all([
+    const [approvals, notificationData] = await Promise.all([
       fetchPendingApprovals().catch(() => []),
-      fetchAttendanceNotifications().catch(() => []),
-      fetchPayrollNotifications().catch(() => []),
-      fetchSystemAlerts().catch(() => []),
-      fetchAnnouncementNotifications().catch(() => []),
+      fetchNotifications(50).catch(() => ({ notifications: [] })),
     ]);
+    const attendance = notificationData.notifications.filter(isAttendanceNotification);
+    const payroll = notificationData.notifications.filter(isPayrollNotification);
+    const systemAlerts = notificationData.notifications.filter(isSystemNotification);
+    const announcements = notificationData.notifications.filter(isAnnouncementNotification);
 
     const allNotifications = [
       ...approvals,
@@ -643,17 +637,13 @@ export const fetchHRNotifications = async () => {
 
     return {
       notifications: allNotifications,
-      summary: {
-        total: allNotifications.length,
-        unread: allNotifications.filter((n) => !n.read).length,
-        byType: {
-          approvals: approvals.length,
-          attendance: attendance.length,
-          payroll: payroll.length,
-          system: systemAlerts.length,
-          announcements: announcements.length,
-        },
-      },
+      summary: buildNotificationSummary(allNotifications, {
+        approvals: approvals.length,
+        attendance: attendance.length,
+        payroll: payroll.length,
+        system: systemAlerts.length,
+        announcements: announcements.length,
+      }),
     };
   } catch (error) {
     console.error('Error fetching HR notifications:', error);
@@ -668,23 +658,16 @@ export const fetchHRNotifications = async () => {
  */
 export const fetchComprehensiveNotifications = async () => {
   try {
-    const [
-      approvals,
-      leavePending,
-      attendance,
-      payroll,
-      announcements,
-      systemAlerts,
-      summary,
-    ] = await Promise.all([
+    const [approvals, notificationData, summary] = await Promise.all([
       fetchPendingApprovals().catch(() => []),
-      fetchLeavePendingNotifications().catch(() => []),
-      fetchAttendanceNotifications().catch(() => []),
-      fetchPayrollNotifications().catch(() => []),
-      fetchAnnouncementNotifications().catch(() => []),
-      fetchSystemAlerts().catch(() => []),
+      fetchNotifications(50).catch(() => ({ notifications: [] })),
       fetchNotificationSummary().catch(() => ({})),
     ]);
+    const leavePending = notificationData.notifications.filter(isLeaveNotification);
+    const attendance = notificationData.notifications.filter(isAttendanceNotification);
+    const payroll = notificationData.notifications.filter(isPayrollNotification);
+    const announcements = notificationData.notifications.filter(isAnnouncementNotification);
+    const systemAlerts = notificationData.notifications.filter(isSystemNotification);
 
     // Combine and sort all notifications by timestamp (newest first)
     const allNotifications = [
@@ -699,16 +682,14 @@ export const fetchComprehensiveNotifications = async () => {
     return {
       notifications: allNotifications,
       summary: {
-        total: allNotifications.length,
-        unread: allNotifications.filter((n) => !n.read).length,
-        byType: {
+        ...buildNotificationSummary(allNotifications, {
           approvals: approvals.length,
           leaves: leavePending.length,
           attendance: attendance.length,
           payroll: payroll.length,
           announcements: announcements.length,
           system: systemAlerts.length,
-        },
+        }),
         ...summary,
       },
     };

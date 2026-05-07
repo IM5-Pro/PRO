@@ -110,8 +110,19 @@ const formatResignationForDisplay = (resignation) => {
     // Add convenience flags
     isApproved: resignation.status === 'HR_APPROVED',
     isPending: ['DRAFT', 'SUBMITTED', 'MANAGER_APPROVED'].includes(resignation.status),
-    isRejected: resignation.status.includes('REJECTED'),
+    isRejected: String(resignation.status || '').includes('REJECTED'),
   };
+};
+
+const extractResignationArray = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.resignations)) return payload.resignations;
+
+  return Object.keys(payload || {})
+    .filter((key) => /^\d+$/.test(key))
+    .sort((left, right) => Number(left) - Number(right))
+    .map((key) => payload[key]);
 };
 
 // ============================================================================
@@ -156,11 +167,7 @@ export const getMyResignations = async () => {
     const response = await API.get(RESIGNATION_ENDPOINTS.myResignation);
     const payload = toPayload(response);
 
-    const resignations = Array.isArray(payload) 
-      ? payload 
-      : (payload.data || []);
-
-    console.log('Fetched resignations:', resignations);
+    const resignations = extractResignationArray(payload);
 
     return {
       success: true,

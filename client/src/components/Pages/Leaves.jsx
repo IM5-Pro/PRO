@@ -104,6 +104,18 @@ const Leaves = () => {
     reason: "",
   });
 
+  // Ensure all leave types are available (API + fallback)
+  const allLeaveTypes = useMemo(() => {
+    if (leaveTypes.length > 0) {
+      return leaveTypes;
+    }
+    // Fallback to LEAVE_TYPES_DATA if API doesn't return types
+    return LEAVE_TYPES_DATA.map(type => ({
+      id: type.id,
+      name: type.type,
+    }));
+  }, [leaveTypes]);
+
   const loadLeaveData = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -411,14 +423,14 @@ const Leaves = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 p-4 md:p-6 lg:p-8 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div>
           <h1
-            className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}
+            className={`text-3xl md:text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}
           >
-            <FiCalendar className="w-10 h-10" /> Leaves
+            <FiCalendar className="w-8 w-8 md:w-10 md:h-10" /> Leaves
           </h1>
           <p className={colors.text.tertiary}>
             Manage your leave requests and balance
@@ -429,48 +441,48 @@ const Leaves = () => {
             setError("");
             setShowRequestPage(true);
           }}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
+          className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center md:justify-start gap-2"
         >
           <FiPlus size={20} /> Request Leave
         </button>
       </div>
 
       {error && (
-        <div className="glass rounded-2xl p-4 mb-6 border border-red-500/30 bg-red-500/10 text-red-300">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 text-red-700 text-sm font-medium shadow-sm">
           {error}
         </div>
       )}
 
       {/* Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-slate-200">
-          <nav className="-mb-px flex space-x-8">
+      <div className="mb-6 flex-shrink-0">
+        <div className="border-b border-slate-200 bg-white rounded-t-2xl px-4 md:px-6">
+          <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto">
             <button
               onClick={() => setActiveTab('leave-management')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all ${
                 activeTab === 'leave-management'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               Leave Management
             </button>
             <button
               onClick={() => setActiveTab('list-holidays')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all ${
                 activeTab === 'list-holidays'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               List Holidays
             </button>
             <button
               onClick={() => setActiveTab('leave-types')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all ${
                 activeTab === 'leave-types'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               Leave Types
@@ -480,10 +492,11 @@ const Leaves = () => {
       </div>
 
       {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto">
       {activeTab === 'leave-management' && (
         <>
           {/* Leave Balance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
             {leaveBalance.map((leave, idx) => {
               const percentage =
                 leave.total > 0 ? (leave.used / leave.total) * 100 : 0;
@@ -529,10 +542,10 @@ const Leaves = () => {
 
           {/* Leave Requests */}
           <div
-            className="bg-white rounded-2xl border border-slate-200 p-6 transition-all duration-300"
+            className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 transition-all duration-300"
             style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
           >
-            <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>
+            <h2 className={`text-xl md:text-2xl font-bold ${colors.text.primary} mb-4 md:mb-6`}>
               Leave Requests
             </h2>
 
@@ -544,7 +557,7 @@ const Leaves = () => {
               <p className={colors.text.tertiary}>No leave requests found.</p>
             )}
 
-<div className="space-y-4">
+<div className="space-y-3 md:space-y-4">
   {leaveRequests.map((request) => (
     <div
       key={request.id}
@@ -707,33 +720,33 @@ const Leaves = () => {
       )}
 
       {activeTab === 'list-holidays' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 md:p-8">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Holidays</h2>
-            <p className="text-sm text-slate-500">From: 01-01-2026 To: 31-12-2026</p>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-2">Holidays</h2>
+            <p className="text-xs md:text-sm text-slate-500">From: 01-01-2026 To: 31-12-2026</p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-4 md:mx-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Occasion</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Day</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Department Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Department</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Division</th>
+                  <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Occasion</th>
+                  <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Day</th>
+                  <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Date</th>
+                  <th className="hidden md:table-cell px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Dept Category</th>
+                  <th className="hidden lg:table-cell px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Department</th>
+                  <th className="hidden lg:table-cell px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Division</th>
                 </tr>
               </thead>
               <tbody>
                 {HOLIDAYS_DATA.map((holiday, idx) => (
                   <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-slate-900 font-medium">{holiday.occasion}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{holiday.day}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{holiday.date}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{holiday.category}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{holiday.department}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{holiday.division}</td>
+                    <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-slate-900 font-medium">{holiday.occasion}</td>
+                    <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600">{holiday.day}</td>
+                    <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600">{holiday.date}</td>
+                    <td className="hidden md:table-cell px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600">{holiday.category}</td>
+                    <td className="hidden lg:table-cell px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600">{holiday.department}</td>
+                    <td className="hidden lg:table-cell px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600">{holiday.division}</td>
                   </tr>
                 ))}
               </tbody>
@@ -743,37 +756,37 @@ const Leaves = () => {
       )}
 
       {activeTab === 'leave-types' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 mb-8" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-8 mb-8" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Leave Types</h2>
-            <p className="text-sm text-slate-500">All available leave types and their policies</p>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-2">Leave Types</h2>
+            <p className="text-xs md:text-sm text-slate-500">All available leave types and their policies</p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-4 md:mx-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">#</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Leave Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Short Code</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Total Leaves</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Paid Leave</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Description</th>
+                  <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">#</th>
+                  <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Leave Type</th>
+                  <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Code</th>
+                  <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Days</th>
+                  <th className="hidden md:table-cell px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Paid</th>
+                  <th className="hidden lg:table-cell px-3 md:px-4 py-3 text-left text-xs font-semibold text-slate-700">Description</th>
                 </tr>
               </thead>
               <tbody>
                 {LEAVE_TYPES_DATA.map((leaveType) => (
                   <tr key={leaveType.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-slate-600 font-medium">{leaveType.id}</td>
-                    <td className="px-4 py-3 text-sm text-slate-900 font-medium">{leaveType.type}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{leaveType.code}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 font-semibold">{leaveType.totalLeaves}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${leaveType.paidLeave === 'Yes' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
+                    <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600 font-medium">{leaveType.id}</td>
+                    <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-slate-900 font-medium">{leaveType.type}</td>
+                    <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600">{leaveType.code}</td>
+                    <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600 font-semibold">{leaveType.totalLeaves}</td>
+                    <td className="hidden md:table-cell px-3 md:px-4 py-3 text-xs md:text-sm">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${leaveType.paidLeave === 'Yes' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
                         {leaveType.paidLeave}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-xs">{leaveType.description}</td>
+                    <td className="hidden lg:table-cell px-3 md:px-4 py-3 text-xs md:text-sm text-slate-600 max-w-xs">{leaveType.description}</td>
                   </tr>
                 ))}
               </tbody>
@@ -781,11 +794,12 @@ const Leaves = () => {
           </div>
         </div>
       )}
+      </div>
 
       {/* Leave Request Form Modal */}
       {showRequestPage && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-auto"
           onClick={() => {
             setShowRequestPage(false);
             setEditingRequestId(null);
@@ -798,7 +812,7 @@ const Leaves = () => {
           }}
         >
           <div
-            className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-2xl my-auto shadow-2xl border border-blue-100"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -816,31 +830,31 @@ const Leaves = () => {
                     reason: "",
                   });
                 }}
-                className="text-slate-500 hover:text-slate-700 text-2xl"
+                className="text-slate-400 hover:text-slate-600 text-3xl leading-none transition-colors"
               >
                 ×
               </button>
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4 text-red-600 text-sm">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-5 text-red-700 text-sm font-medium">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleLeaveRequestSubmit} className="space-y-5">
+            <form onSubmit={handleLeaveRequestSubmit} className="space-y-4">
               {/* Leave Type */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Leave Type *
+                  Leave Type <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formValues.leaveTypeId}
                   onChange={handleFormChange("leaveTypeId")}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-900 text-sm transition-all"
                 >
                   <option value="">Select leave type</option>
-                  {leaveTypes.map((type) => (
+                  {allLeaveTypes.map((type) => (
                     <option key={type.id} value={type.id}>
                       {type.name}
                     </option>
@@ -848,30 +862,33 @@ const Leaves = () => {
                 </select>
               </div>
 
-              {/* Start Date */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Start Date *
-                </label>
-                <input
-                  type="date"
-                  value={formValues.startDate}
-                  onChange={handleFormChange("startDate")}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              {/* Date Fields Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Start Date */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Start Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formValues.startDate}
+                    onChange={handleFormChange("startDate")}
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 text-sm transition-all"
+                  />
+                </div>
 
-              {/* End Date */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  End Date *
-                </label>
-                <input
-                  type="date"
-                  value={formValues.endDate}
-                  onChange={handleFormChange("endDate")}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                {/* End Date */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    End Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formValues.endDate}
+                    onChange={handleFormChange("endDate")}
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 text-sm transition-all"
+                  />
+                </div>
               </div>
 
               {/* Reason */}
@@ -883,8 +900,8 @@ const Leaves = () => {
                   value={formValues.reason}
                   onChange={handleFormChange("reason")}
                   placeholder="Enter reason for leave..."
-                  rows="4"
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  rows="3"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 text-sm resize-none transition-all"
                 />
               </div>
 
@@ -902,14 +919,14 @@ const Leaves = () => {
                       reason: "",
                     });
                   }}
-                  className="flex-1 py-3 px-4 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-2.5 px-4 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   {submitting ? "Submitting..." : editingRequestId ? "Update Request" : "Submit Request"}
                 </button>

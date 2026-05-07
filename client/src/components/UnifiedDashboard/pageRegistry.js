@@ -59,6 +59,9 @@ export const MANAGER_PAGE_COMPONENTS = {
   attendance: AttendancePage,
   announcements: AnnouncementsPage,
   analytics: AnalyticsPage,
+  payroll: PayrollPage,
+  performance: PerformancePage,
+  settings: SettingsPortalPage,
   'team-collaboration': TeamCollaborationPage,
   'resignation': ResignationApprovalsPage,
 };

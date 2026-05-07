@@ -69,6 +69,7 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
   // Refs for polling and timer management
   const pollIntervalRef = useRef(null);
   const isMountedRef = useRef(true);
+  const isFetchingRef = useRef(false);
 
   // ============================================================================
   // FETCH NOTIFICATIONS
@@ -86,6 +87,7 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
    */
   const fetchNotificationsData = useCallback(async (silent = false) => {
     if (!isMountedRef.current) return;
+    if (isFetchingRef.current) return;
 
     if (!silent) {
       setLoading(true);
@@ -93,6 +95,7 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
     }
 
     try {
+      isFetchingRef.current = true;
       // Use fetchNotificationsByRole to get role-specific notifications
       const data = await fetchNotificationsByRole(currentUserRole);
       
@@ -112,6 +115,7 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
         console.error('Notification fetch error:', err);
       }
     } finally {
+      isFetchingRef.current = false;
       if (isMountedRef.current && !silent) {
         setLoading(false);
       }
@@ -308,10 +312,10 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
       // Initial fetch only if authenticated
       fetchNotificationsData();
 
-      // Set up polling - check for updates every 30 seconds
+      // Set up lightweight polling for unread-count updates.
       pollIntervalRef.current = setInterval(() => {
         fetchUnreadCountData();
-      }, 30000);
+      }, 60000);
     } else {
       // User not authenticated, clear notifications
       setNotifications([]);
@@ -346,34 +350,8 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
   useEffect(() => {
     if (userRole && userRole !== currentUserRole) {
       setCurrentUserRole(userRole);
-      // Fetch new notifications with updated role
-      fetchNotificationsData();
     }
-  }, [userRole, currentUserRole, fetchNotificationsData]);
-
-  /**
-   * Monitor auth token changes (login/logout)
-   * Refetch notifications immediately when user logs in
-   */
-  useEffect(() => {
-    const checkAuthToken = () => {
-      const token = getCookie('authToken');
-      
-      if (token && unreadCount === 0 && notifications.length === 0) {
-        // User just logged in and we have no notifications yet - fetch immediately
-        console.log('[NotificationContext] Auth token detected, fetching notifications...');
-        fetchNotificationsData();
-      }
-    };
-
-    // Check immediately
-    checkAuthToken();
-
-    // Also check periodically in case token changes
-    const interval = setInterval(checkAuthToken, 5000); // Check every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [fetchNotificationsData, unreadCount, notifications.length]);
+  }, [userRole, currentUserRole]);
 
   // ============================================================================
   // CONTEXT VALUE

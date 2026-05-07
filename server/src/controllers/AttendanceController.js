@@ -233,6 +233,131 @@ const findLatestOpenAttendance = async (employeeId) => {
   }).sort({ checkInTime: -1, attendanceDate: -1 });
 };
 
+const normalizePunchesForCalculation = (attendance) => {
+  if (attendance.punches && attendance.punches.length > 0) {
+    return attendance.punches;
+  }
+
+  if (!attendance.checkInTime) {
+    return [];
+  }
+
+  return [
+    {
+      checkInTime: attendance.checkInTime,
+      checkInLocation: attendance.checkInLocation,
+      checkOutTime: attendance.checkOutTime,
+      checkOutLocation: attendance.checkOutLocation,
+      durationMinutes: 0,
+    },
+  ];
+};
+
+const calculatePunchSummary = (attendance, referenceTime = new Date(), includeOpenPunch = true) => {
+  const punches = normalizePunchesForCalculation(attendance);
+  let totalWorkingMinutes = 0;
+  let firstPunch = null;
+  let lastCompletedPunch = null;
+  let hasOpenPunch = false;
+
+  punches.forEach((punch) => {
+    const checkInTime = punch?.checkInTime ? new Date(punch.checkInTime) : null;
+    if (!checkInTime || Number.isNaN(checkInTime.getTime())) {
+      return;
+    }
+
+    if (!firstPunch || checkInTime < new Date(firstPunch.checkInTime)) {
+      firstPunch = punch;
+    }
+
+    const checkOutTime = punch?.checkOutTime ? new Date(punch.checkOutTime) : null;
+    if (checkOutTime && !Number.isNaN(checkOutTime.getTime())) {
+      const durationMinutes = Math.max(0, Math.round((checkOutTime - checkInTime) / (1000 * 60)));
+      punch.durationMinutes = durationMinutes;
+      totalWorkingMinutes += durationMinutes;
+
+      if (!lastCompletedPunch || checkOutTime > new Date(lastCompletedPunch.checkOutTime)) {
+        lastCompletedPunch = punch;
+      }
+
+      return;
+    }
+
+    hasOpenPunch = true;
+    if (includeOpenPunch) {
+      const durationMinutes = Math.max(0, Math.round((referenceTime - checkInTime) / (1000 * 60)));
+      punch.durationMinutes = durationMinutes;
+      totalWorkingMinutes += durationMinutes;
+    }
+  });
+
+  return {
+    firstPunch,
+    lastCompletedPunch,
+    hasOpenPunch,
+    totalWorkingMinutes,
+  };
+};
+
+const syncAttendanceTotalsFromPunches = async ({
+  attendance,
+  employeeId,
+  actorId = null,
+  referenceTime = new Date(),
+}) => {
+  const punchSummary = calculatePunchSummary(attendance, referenceTime, true);
+  if (!punchSummary.firstPunch) {
+    return attendance;
+  }
+
+  const breakSummary = computeBreakDuration(attendance.breaks || [], referenceTime);
+  const grossWorkingHours = punchSummary.totalWorkingMinutes / 60;
+  const netWorkingHours = Math.max(0, grossWorkingHours - breakSummary.totalMinutes / 60);
+  const attendanceDate = attendance.attendanceDate || getDayStart(referenceTime);
+  const firstCheckInTime = new Date(punchSummary.firstPunch.checkInTime);
+  const lastCheckOutTime = punchSummary.lastCompletedPunch?.checkOutTime
+    ? new Date(punchSummary.lastCompletedPunch.checkOutTime)
+    : null;
+
+  const shiftConfig = await resolveShiftConfigForAttendance({
+    employeeId,
+    attendanceDate,
+    attendance,
+  });
+
+  const derivedStatus = deriveStatus({
+    checkInTime: firstCheckInTime,
+    checkOutTime: punchSummary.hasOpenPunch ? null : lastCheckOutTime,
+    attendanceDate,
+    workingHours: punchSummary.hasOpenPunch ? null : netWorkingHours,
+    shiftConfig,
+  });
+
+  attendance.checkInTime = firstCheckInTime;
+  attendance.checkInLocation = punchSummary.firstPunch.checkInLocation || attendance.checkInLocation;
+  attendance.checkOutTime = punchSummary.hasOpenPunch ? null : lastCheckOutTime;
+  attendance.checkOutLocation = punchSummary.hasOpenPunch
+    ? undefined
+    : punchSummary.lastCompletedPunch?.checkOutLocation || attendance.checkOutLocation;
+  attendance.breaks = breakSummary.normalizedBreaks;
+  attendance.breakDurationMinutes = breakSummary.totalMinutes;
+  attendance.workingHours = Math.round(netWorkingHours * 100) / 100;
+  attendance.status = derivedStatus.status;
+  attendance.remarks = [
+    derivedStatus.isLate ? "Late check-in" : "",
+    derivedStatus.isEarlyCheckout ? "Early checkout" : "",
+    !punchSummary.hasOpenPunch && attendance.workingHours < 4 ? "Half-day due to low working hours" : "",
+    attendance.punches && attendance.punches.length > 1 ? `Multiple punch cycles (${attendance.punches.length})` : "",
+    punchSummary.hasOpenPunch ? "Attendance synced while punch is active" : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  attendance.updatedBy = actorId;
+
+  await attendance.save();
+  return attendance;
+};
+
 const finalizeAttendanceCheckout = async ({
   attendance,
   employeeId,
@@ -257,17 +382,8 @@ const finalizeAttendanceCheckout = async ({
   }
 
   // Calculate total working hours from all punches
-  let totalWorkingMinutes = 0;
-  if (attendance.punches && attendance.punches.length > 0) {
-    attendance.punches.forEach((punch) => {
-      if (punch.checkInTime && punch.checkOutTime) {
-        totalWorkingMinutes += (punch.checkOutTime - punch.checkInTime) / (1000 * 60);
-      }
-    });
-  } else {
-    // Fallback for old single punch records
-    totalWorkingMinutes = (checkOutTime - attendance.checkInTime) / (1000 * 60);
-  }
+  const punchSummary = calculatePunchSummary(attendance, checkOutTime, false);
+  const totalWorkingMinutes = punchSummary.totalWorkingMinutes;
 
   const grossWorkingHours = totalWorkingMinutes / 60;
   const netWorkingHours = Math.max(0, grossWorkingHours - breakSummary.totalMinutes / 60);
@@ -280,9 +396,7 @@ const finalizeAttendanceCheckout = async ({
   });
   
   // Use first punch-in time for status calculation
-  const firstCheckInTime = attendance.punches && attendance.punches.length > 0
-    ? attendance.punches[0].checkInTime
-    : attendance.checkInTime;
+  const firstCheckInTime = punchSummary.firstPunch?.checkInTime || attendance.checkInTime;
     
   const derivedStatus = deriveStatus({
     checkInTime: firstCheckInTime,
@@ -292,6 +406,8 @@ const finalizeAttendanceCheckout = async ({
     shiftConfig,
   });
 
+  attendance.checkInTime = firstCheckInTime;
+  attendance.checkInLocation = punchSummary.firstPunch?.checkInLocation || attendance.checkInLocation;
   attendance.checkOutTime = checkOutTime;
   attendance.checkOutLocation = checkOutLocation;
   attendance.breaks = breakSummary.normalizedBreaks;
@@ -449,9 +565,10 @@ export const checkIn = async (req, res) => {
         checkInLocation: normalizedLocation,
       });
 
-      // Update main fields for backward compatibility (use latest punch info)
-      attendance.checkInTime = checkInTime;
-      attendance.checkInLocation = normalizedLocation;
+      // Keep the day boundary fields as first punch-in and final punch-out.
+      const firstPunch = attendance.punches[0];
+      attendance.checkInTime = firstPunch.checkInTime;
+      attendance.checkInLocation = firstPunch.checkInLocation || attendance.checkInLocation;
       attendance.checkOutTime = null;
       attendance.checkOutLocation = undefined;
       
@@ -471,6 +588,12 @@ export const checkIn = async (req, res) => {
         : attendance.remarks;
       attendance.shift = shiftConfig.shiftId || attendance.shift || null;
       attendance.updatedBy = req.user.id;
+      await syncAttendanceTotalsFromPunches({
+        attendance,
+        employeeId: employee,
+        actorId: req.user.id,
+        referenceTime: checkInTime,
+      });
     }
 
     await attendance.save();
@@ -582,6 +705,62 @@ export const checkOut = async (req, res) => {
   } catch (error) {
     console.error("Check-out error:", error);
     return sendError(res, 500, "Failed to record check-out", {
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Sync Attendance: refreshes today's punch totals without requiring checkout.
+ */
+export const syncAttendance = async (req, res) => {
+  try {
+    const employeeId = await getResolvedEmployeeIdFromAuth(req);
+    if (!employeeId) {
+      return sendError(res, 403, "Employee mapping missing for authenticated user", {
+        employee: "No employee record is linked to this account",
+      });
+    }
+
+    const autoClosedAttendance = await syncOpenAttendanceWindow({ req, employeeId });
+    if (autoClosedAttendance) {
+      return sendSuccess(res, 200, "Attendance synced successfully", autoClosedAttendance);
+    }
+
+    const today = getDayStart(new Date());
+    let attendance = await findLatestOpenAttendance(employeeId);
+
+    if (!attendance) {
+      attendance = await Attendance.findOne({
+        employee: employeeId,
+        attendanceDate: today,
+        isArchived: false,
+      });
+    }
+
+    if (!attendance) {
+      return sendSuccess(res, 200, "No attendance record found to sync", null);
+    }
+
+    const syncedAttendance = await syncAttendanceTotalsFromPunches({
+      attendance,
+      employeeId,
+      actorId: req.user.id,
+      referenceTime: new Date(),
+    });
+
+    await AuditLog.create({
+      userId: req.user.id,
+      action: "SYNC_ATTENDANCE",
+      entityType: "Attendance",
+      entityId: syncedAttendance._id,
+      description: `Attendance synced from punch records. Working hours: ${syncedAttendance.workingHours}`,
+    });
+
+    return sendSuccess(res, 200, "Attendance synced successfully", syncedAttendance);
+  } catch (error) {
+    console.error("Sync attendance error:", error);
+    return sendError(res, 500, "Failed to sync attendance", {
       error: error.message,
     });
   }
@@ -708,6 +887,15 @@ export const viewOwn = async (req, res) => {
     }
 
     await syncOpenAttendanceWindow({ req, employeeId });
+    const openAttendance = await findLatestOpenAttendance(employeeId);
+    if (openAttendance) {
+      await syncAttendanceTotalsFromPunches({
+        attendance: openAttendance,
+        employeeId,
+        actorId: req.user.id,
+        referenceTime: new Date(),
+      });
+    }
 
     // Build query
     let query = { employee: employeeId, isArchived: false };

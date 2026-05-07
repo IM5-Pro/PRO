@@ -132,7 +132,7 @@ export const createResignation = async (req, res) => {
     // Check for active resignation
     const activeResignation = await Resignation.findOne({
       employeeId: user.employeeId,
-      status: { $nin: ["CANCELLED", "REJECTED"] },
+      status: { $nin: ["CANCELLED", "MANAGER_REJECTED", "HR_REJECTED", "COMPLETED"] },
     })
       .populate("manager", "firstName lastName employeeCode")
       .populate("submittedBy", "firstName lastName email");
@@ -271,7 +271,10 @@ export const getMyResignation = async (req, res) => {
       };
     });
 
-    return sendSuccess(res, 200, "Resignations retrieved", serializedResignations);
+    return sendSuccess(res, 200, "Resignations retrieved", {
+      data: serializedResignations,
+      count: serializedResignations.length,
+    });
   } catch (error) {
     console.error("Error fetching resignations:", error);
     return sendError(res, 500, "Failed to fetch resignations", error.message);
@@ -554,12 +557,14 @@ export const approveResignation = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { resignationId } = req.params;
+    const resignationId = req.params.resignationId || req.params.id;
     const { approvalNotes, approvedLastDayOfWork } = req.body;
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
     if (!userId) {
+      await session.abortTransaction();
+      session.endSession();
       return sendError(res, 401, "User not authenticated");
     }
 
@@ -567,21 +572,29 @@ export const approveResignation = async (req, res) => {
       session
     );
     if (!resignation) {
+      await session.abortTransaction();
+      session.endSession();
       return sendError(res, 404, "Resignation not found");
     }
 
-    // Check authorization
-    if (!resignation.canApprove(userRole, userId)) {
+    const user = await User.findById(userId).select("employeeId role").session(session);
+    const approverEmployeeId = user?.employeeId || userId;
+    const approverRole = userRole || user?.role;
+
+    // Check authorization. Manager ownership is stored as an Employee id.
+    if (!resignation.canApprove(approverRole, approverEmployeeId)) {
+      await session.abortTransaction();
+      session.endSession();
       return sendError(res, 403, "Not authorized to approve this resignation");
     }
 
     // Update resignation
-    if (userRole === "MANAGER") {
+    if (approverRole === "MANAGER") {
       resignation.status = "MANAGER_APPROVED";
       resignation.managerApprovalAt = new Date();
       resignation.managerApprovedBy = userId;
       resignation.managerApprovalNotes = approvalNotes || "";
-    } else if (userRole === "HR_ADMIN") {
+    } else if (approverRole === "HR_ADMIN" || approverRole === "SUPER_ADMIN") {
       resignation.status = "HR_APPROVED";
       resignation.hrApprovalAt = new Date();
       resignation.hrApprovedBy = userId;
@@ -652,12 +665,14 @@ export const rejectResignation = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { resignationId } = req.params;
+    const resignationId = req.params.resignationId || req.params.id;
     const { rejectionReason } = req.body;
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
     if (!userId) {
+      await session.abortTransaction();
+      session.endSession();
       return sendError(res, 401, "User not authenticated");
     }
 
@@ -665,21 +680,29 @@ export const rejectResignation = async (req, res) => {
       session
     );
     if (!resignation) {
+      await session.abortTransaction();
+      session.endSession();
       return sendError(res, 404, "Resignation not found");
     }
 
-    // Check authorization
-    if (!resignation.canReject(userRole, userId)) {
+    const user = await User.findById(userId).select("employeeId role").session(session);
+    const rejectorEmployeeId = user?.employeeId || userId;
+    const rejectorRole = userRole || user?.role;
+
+    // Check authorization. Manager ownership is stored as an Employee id.
+    if (!resignation.canReject(rejectorRole, rejectorEmployeeId)) {
+      await session.abortTransaction();
+      session.endSession();
       return sendError(res, 403, "Not authorized to reject this resignation");
     }
 
     // Update resignation
-    if (userRole === "MANAGER") {
+    if (rejectorRole === "MANAGER") {
       resignation.status = "MANAGER_REJECTED";
       resignation.managerApprovalNotes = rejectionReason || "";
       resignation.managerApprovedBy = userId;
       resignation.managerApprovalAt = new Date();
-    } else if (userRole === "HR_ADMIN") {
+    } else if (rejectorRole === "HR_ADMIN" || rejectorRole === "SUPER_ADMIN") {
       resignation.status = "HR_REJECTED";
       resignation.hrApprovalNotes = rejectionReason || "";
       resignation.hrApprovedBy = userId;

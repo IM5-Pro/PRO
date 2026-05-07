@@ -166,6 +166,9 @@ const Attendance = () => {
               {punchInLocation && (
                 <p className={`text-xs flex items-center gap-1 mb-3 ${colors.text.tertiary}`}><FiMapPin size={10} />{punchInLocation}</p>
               )}
+              {workingHours != null && (
+                <p className="text-xs font-medium text-blue-600 mb-3">Synced: {workingHours}h worked so far</p>
+              )}
               <button
                 onClick={handlePunchOut}
                 disabled={loading}

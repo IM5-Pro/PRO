@@ -121,21 +121,19 @@ const Login = ({ onLoginSuccess = null }) => {
   };
 
   /**
-   * Handle email change with validation
+   * Handle email change - validation only on submit
    */
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setEmail(value);
-    setEmailError(validateEmail(value));
   };
 
   /**
-   * Handle password change with validation
+   * Handle password change - validation only on submit
    */
   const handlePasswordChange = (e) => {
     const value = e.target.value;
     setPassword(value);
-    setPasswordError(validatePassword(value));
   };
 
   const validateNewAccountPassword = (passwordValue) => {
@@ -420,7 +418,7 @@ const Login = ({ onLoginSuccess = null }) => {
             isLoading={isLoading}
             loadingLabel="Signing in..."
             onClick={handleSubmit}
-            disabled={isLoading || !!emailError || !!passwordError}
+            disabled={isLoading}
             size="lg"
           />
 

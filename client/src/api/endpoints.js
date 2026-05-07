@@ -28,6 +28,7 @@ export const ATTENDANCE_ENDPOINTS = {
   checkIn: '/attendance/check-in',
   checkOut: '/attendance/check-out',
   manual: '/attendance/manual',
+  sync: '/attendance/sync',
 };
 
 export const LEAVE_ENDPOINTS = {

@@ -2,6 +2,7 @@ import express from "express";
 import {
   checkIn,
   checkOut,
+  syncAttendance,
   startBreak,
   endBreak,
   viewOwn,
@@ -34,6 +35,7 @@ router.post("/check-in", checkIn);
 router.post("/check-out", checkOut);
 router.post("/checkin", checkIn);
 router.post("/checkout", checkOut);
+router.post("/sync", syncAttendance);
 
 /**
  * Break tracking: Employee only

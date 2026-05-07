@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { FiChevronLeft, FiChevronRight, FiRefreshCw, FiX, FiClock, FiEdit } from 'react-icons/fi';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS, SHIFT_ENDPOINTS } from '../../api/endpoints';
@@ -48,6 +49,10 @@ const AttendanceSheet = () => {
   // Modal state for editing shifts
   const [showEditShiftModal, setShowEditShiftModal] = useState(false);
   const [availableShifts, setAvailableShifts] = useState([]);
+
+  // Sync and success state
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   // Check if user has permission to edit shifts
   const canEditShifts = user?.role && ['SUPER_ADMIN', 'HR_ADMIN'].includes(user.role);
@@ -200,11 +205,131 @@ const AttendanceSheet = () => {
     fetchAttendance();
   }, [currentDate]);
 
+  // Handle sync attendance - fetches latest punch data and updates calendar
+  const handleSyncAttendance = async () => {
+    setIsSyncing(true);
+    setError(null);
+    try {
+      // Call API to sync attendance from punch records
+      await API.post(ATTENDANCE_ENDPOINTS.sync);
+
+      // Refresh the attendance data to show updated hours
+      const y = currentDate.getFullYear();
+      const m = currentDate.getMonth();
+      const { startDate, endDate } = getMonthDateRangeParams(y, m);
+
+      const [attendanceRes, leaveRes] = await Promise.all([
+        API.get(ATTENDANCE_ENDPOINTS.own(), {
+          params: {
+            startDate,
+            endDate,
+            limit: 62,
+            page: 1,
+          },
+        }),
+        fetchOwnLeaveRequests(),
+      ]);
+
+      const attendanceArr = attendanceRes.data?.attendance || [];
+      const leaveArr = Array.isArray(leaveRes?.data) ? leaveRes.data : [];
+      const holidayArr = HOLIDAYS_DATA;
+
+      const leaveMap = {};
+      leaveArr.forEach((request) => {
+        if (!request?.startDate || !request?.endDate) return;
+        const normalizedStatus = String(request.status || '').toLowerCase();
+        if (!['approved', 'pending'].includes(normalizedStatus)) return;
+
+        const start = new Date(request.startDate);
+        const end = new Date(request.endDate);
+        for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+          if (date.getFullYear() !== y || date.getMonth() !== m) continue;
+          const day = date.getDate();
+          const existing = leaveMap[day];
+          if (!existing || (existing.status === 'pending' && normalizedStatus === 'approved')) {
+            leaveMap[day] = request;
+          }
+        }
+      });
+
+      const holidayMap = {};
+      holidayArr.forEach((holiday) => {
+        if (!holiday?.date) return;
+        const dateStr = holiday.date;
+        const [dayStr, monthStr, yearStr] = dateStr.split('-');
+        const holidayDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
+        if (holidayDate.getFullYear() === y && holidayDate.getMonth() === m) {
+          const day = holidayDate.getDate();
+          holidayMap[day] = holiday;
+        }
+      });
+
+      const calendarObj = {};
+      attendanceArr.forEach((record) => {
+        const d = new Date(record.attendanceDate);
+        if (d.getFullYear() !== y || d.getMonth() !== m) return;
+        const day = d.getDate();
+        calendarObj[day] = {
+          shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
+          timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
+          breakTime: record.breakDurationMinutes ? `${record.breakDurationMinutes} min break` : null,
+          offType: record.status === 'Absent' ? 'Absent' : null,
+          status: record.status,
+          isLossOfPay: record.isLossOfPay,
+          isAutoMarked: record.isAutoMarked,
+          lopReason: record.lopReason,
+          requiresApproval: record.requiresManagerApproval,
+          approvalStatus: record.approvalStatus,
+          isArchived: record.isArchived,
+        };
+      });
+
+      Object.entries(leaveMap).forEach(([dayKey, leaveRequest]) => {
+        const day = Number(dayKey);
+        const existing = calendarObj[day] || {};
+        calendarObj[day] = {
+          ...existing,
+          leaveRequest,
+          status: 'Leave',
+          offType: leaveRequest.status === 'approved' ? 'Leave - Approved' : 'Leave - Applied',
+          leaveType: leaveRequest.type,
+        };
+      });
+
+      Object.entries(holidayMap).forEach(([dayKey, holiday]) => {
+        const day = Number(dayKey);
+        const existing = calendarObj[day] || {};
+        calendarObj[day] = {
+          ...existing,
+          holiday,
+          status: 'Holiday',
+          offType: 'Holiday',
+          holidayName: holiday.occasion,
+        };
+      });
+
+      setAttendanceData(calendarObj);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to sync attendance');
+      console.error('Error syncing attendance:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Handle date click to open add attendance modal
   const handleDateClick = (day) => {
     const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     setSelectedDateForAdd(selectedDate);
     setShowAddModal(true);
+  };
+
+  const closeAddAttendanceModal = () => {
+    if (isSubmittingAttendance) return;
+    setShowAddModal(false);
+    setSelectedDateForAdd(null);
   };
 
   // Get calendar days
@@ -346,7 +471,7 @@ const AttendanceSheet = () => {
 
   // Day cell rendering
   const DayCell = ({ day, onDateClick }) => {
-    if (!day) return <div className="bg-gray-50 p-2 min-h-[8.5rem] rounded-xl border border-transparent" />;
+    if (!day) return <div className="aspect-square min-w-0 rounded-xl border border-transparent bg-gray-50 p-1 sm:p-2" />;
     const data = attendanceData[day] || {};
     const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
     const isWeekend = [0, 6].includes(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay());
@@ -384,51 +509,51 @@ const AttendanceSheet = () => {
     return (
       <div
         onClick={() => onDateClick?.(day)}
-        className={`flex min-h-[8.5rem] flex-col overflow-hidden rounded-xl p-2 shadow-sm transition-all duration-300 ${cellBase} hover:shadow-lg hover:bg-opacity-80 cursor-pointer active:scale-95`}
+        className={`flex aspect-square min-w-0 flex-col overflow-hidden rounded-xl p-1 shadow-sm transition-all duration-300 sm:p-2 ${cellBase} hover:shadow-lg hover:bg-opacity-80 cursor-pointer active:scale-95`}
       >
         <div
-          className={`mb-1 shrink-0 text-lg font-semibold leading-none ${holiday ? 'text-green-800' : hasBothLeaveAndAttendance ? 'text-violet-700' : leaveRequest ? 'text-violet-800' : isToday ? 'text-blue-700' : isWeekend ? 'text-red-800' : 'text-gray-700'}`}
+          className={`mb-1 shrink-0 text-sm font-semibold leading-none sm:text-lg ${holiday ? 'text-green-800' : hasBothLeaveAndAttendance ? 'text-violet-700' : leaveRequest ? 'text-violet-800' : isToday ? 'text-blue-700' : isWeekend ? 'text-red-800' : 'text-gray-700'}`}
         >
           {day}
         </div>
-        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto text-xs [overflow-wrap:anywhere]">
+        <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden text-[9px] sm:space-y-1 sm:text-xs">
+          {shiftDisplay && (
+            <div className="truncate rounded bg-gradient-to-r from-red-700 to-yellow-700 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">{shiftDisplay}</div>
+          )}
           {holiday && (
-            <div className="rounded bg-green-600 px-2 py-1 font-medium text-white shadow-sm">Holiday</div>
+            <div className="truncate rounded bg-green-600 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">Holiday</div>
           )}
           {holiday && holiday.occasion && (
-            <div className="rounded bg-green-100 px-2 py-1 text-green-800 shadow-sm">{holiday.occasion}</div>
+            <div className="truncate rounded bg-green-100 px-1 py-0.5 text-green-800 shadow-sm sm:px-2 sm:py-1">{holiday.occasion}</div>
           )}
           {leaveRequest && (
-            <div className={`rounded px-2 py-1 font-medium shadow-sm ${badgeClass}`}>{leaveBadge}</div>
+            <div className={`truncate rounded px-1 py-0.5 font-medium shadow-sm sm:px-2 sm:py-1 ${badgeClass}`}>{leaveBadge}</div>
           )}
           {leaveRequest && leaveRequest.type && (
-            <div className="rounded bg-violet-100 px-2 py-1 text-violet-800 shadow-sm">{leaveRequest.type}</div>
-          )}
-          {shiftDisplay && (
-            <div className="rounded bg-gradient-to-r from-red-700 to-yellow-700 px-2 py-1 font-medium text-white shadow-sm">{shiftDisplay}</div>
+            <div className="truncate rounded bg-violet-100 px-1 py-0.5 text-violet-800 shadow-sm sm:px-2 sm:py-1">{leaveRequest.type}</div>
           )}
           {data.timeEntry && (
-            <div className="rounded bg-gradient-to-r from-blue-500 to-blue-300 px-2 py-1 text-white shadow-sm font-semibold">{data.timeEntry}</div>
+            <div className="truncate rounded bg-gradient-to-r from-blue-500 to-blue-300 px-1 py-0.5 font-semibold text-white shadow-sm sm:px-2 sm:py-1">{data.timeEntry}</div>
           )}
           {data.breakTime && (
-            <div className="rounded bg-gradient-to-r from-lime-400 to-green-200 px-2 py-1 text-gray-700 shadow-sm">{data.breakTime}</div>
+            <div className="truncate rounded bg-gradient-to-r from-lime-400 to-green-200 px-1 py-0.5 text-gray-700 shadow-sm sm:px-2 sm:py-1">{data.breakTime}</div>
           )}
           {data.offType && !leaveRequest && !holiday && (
-            <div className="rounded bg-gradient-to-r from-red-500 to-pink-400 px-2 py-1 font-medium text-white shadow-sm">{data.offType}</div>
+            <div className="truncate rounded bg-gradient-to-r from-red-500 to-pink-400 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">{data.offType}</div>
           )}
           {data.isLossOfPay && (
-            <div className="rounded bg-gradient-to-r from-orange-600 to-red-600 px-2 py-1 font-medium text-white shadow-sm">💼 LOP: {data.lopReason}</div>
+            <div className="truncate rounded bg-gradient-to-r from-orange-600 to-red-600 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">💼 LOP: {data.lopReason}</div>
           )}
           {data.isAutoMarked && (
-            <div className="rounded bg-gradient-to-r from-amber-500 to-yellow-500 px-2 py-1 text-xs text-white shadow-sm">🤖 Auto-marked</div>
+            <div className="truncate rounded bg-gradient-to-r from-amber-500 to-yellow-500 px-1 py-0.5 text-white shadow-sm sm:px-2 sm:py-1">🤖 Auto</div>
           )}
           {data.requiresApproval && (
-            <div className="rounded bg-gradient-to-r from-blue-600 to-cyan-600 px-2 py-1 text-xs font-medium text-white shadow-sm">
+            <div className="truncate rounded bg-gradient-to-r from-blue-600 to-cyan-600 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">
               ⏳ {data.approvalStatus}
             </div>
           )}
           {hasBothLeaveAndAttendance && (
-            <div className="rounded bg-blue-500 px-2 py-1 text-white shadow-sm text-center font-medium">📌 Both Leave & Attendance</div>
+            <div className="truncate rounded bg-blue-500 px-1 py-0.5 text-center font-medium text-white shadow-sm sm:px-2 sm:py-1">📌 L&A</div>
           )}
         </div>
       </div>
@@ -474,26 +599,32 @@ const AttendanceSheet = () => {
               Edit Shift
             </button>
           )}
-          <button className="btn-success flex items-center gap-2 animate-scaleUp rounded-xl shadow-sm">
-            <FiRefreshCw size={18} className="animate-bounce-soft" />
-            Sync Attendance
+          <button 
+            onClick={handleSyncAttendance}
+            disabled={isSyncing}
+            className="btn-success flex items-center gap-2 animate-scaleUp rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Sync attendance from punch records"
+          >
+            <FiRefreshCw size={18} className={isSyncing ? 'animate-spin' : 'animate-bounce-soft'} />
+            {isSyncing ? 'Syncing...' : 'Sync Attendance'}
           </button>
         </div>
       </div>
       {/* Calendar */}
       {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
+      {success && <div className="text-green-600 text-sm mb-4 font-medium">✓ Attendance synced successfully!</div>}
       {loading ? (
         <div className="w-full text-center py-12 text-lg text-gray-500 animate-pulse">Loading attendance...</div>
       ) : (
         <div className="animate-fadeInUp">
-          <div className="grid grid-cols-7 gap-0 mb-0 header-blue overflow-hidden rounded-xl">
+          <div className="grid min-w-0 grid-cols-7 gap-0 mb-0 header-blue overflow-hidden rounded-xl">
             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-              <div key={day} className="bg-gradient-to-b from-blue-700 to-blue-500 text-white p-4 text-center text-sm font-semibold tracking-wide shadow-sm">{day}</div>
+              <div key={day} className="truncate bg-gradient-to-b from-blue-700 to-blue-500 p-2 text-center text-[10px] font-semibold tracking-wide text-white shadow-sm sm:p-3 sm:text-sm">{day}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-0 border border-gray-200 rounded-xl overflow-hidden">
+          <div className="grid min-w-0 grid-cols-7 gap-0 overflow-hidden rounded-xl border border-gray-200">
             {days.map((day, idx) => (
-              <div key={idx} className="border-r border-b border-gray-200 last:border-r-0 transition-all duration-300">
+              <div key={idx} className="min-w-0 border-r border-b border-gray-200 last:border-r-0 transition-all duration-300">
                 <DayCell day={day} onDateClick={handleDateClick} />
               </div>
             ))}
@@ -548,7 +679,7 @@ const AttendanceSheet = () => {
       <AddAttendanceModal 
         isOpen={showAddModal}
         selectedDate={selectedDateForAdd}
-        onClose={() => setShowAddModal(false)}
+        onClose={closeAddAttendanceModal}
         onSubmit={handleAddAttendance}
         isSubmitting={isSubmittingAttendance}
       />
@@ -600,6 +731,19 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !isSubmitting) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isSubmitting, onClose]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -610,7 +754,7 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (selectedDate) {
+    if (selectedDate && !isSubmitting) {
       onSubmit(selectedDate, formData);
     }
   };
@@ -624,9 +768,23 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
     day: 'numeric' 
   }) : '';
 
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-slideUp">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fadeIn"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isSubmitting) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl animate-slideUp"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-attendance-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -634,20 +792,23 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
               <FiClock className="text-blue-600" size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Add Attendance</h2>
+              <h2 id="add-attendance-title" className="text-lg font-bold text-gray-800">Add Attendance</h2>
               <p className="text-sm text-gray-500">{dateStr}</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            disabled={isSubmitting}
             className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close add attendance"
           >
             <FiX size={24} className="text-gray-500" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="max-h-[calc(90vh-5rem)] overflow-y-auto p-6 space-y-4">
           {/* Check-in Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -720,6 +881,7 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
             <button
               type="button"
               onClick={onClose}
+              disabled={isSubmitting}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               Cancel
@@ -734,7 +896,8 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
