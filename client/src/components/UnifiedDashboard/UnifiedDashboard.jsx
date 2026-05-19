@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiGrid } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
@@ -12,16 +12,27 @@ import PayrollPage from '../Pages/Payroll';
 import HRHeader from '../HRHeader/HRHeader';
 import HRSidebar from '../HRSidebar/HRSidebar';
 import { ROLES } from '../../utils/roles';
+import { applyOrgScopedDashboard, formatWorkContextLine } from '../../utils/dashboardVisibility';
+import { sortPagesForSidebar } from '../../utils/sidebarNav';
+import { filterShippedPages } from '../../config/portalNavManifest';
+import {
+  resolvePortalPageComponent,
+  isOperationsPage,
+  isStandaloneStandardPage,
+} from '../../config/portalRoutes';
 import { fetchDashboardWidgetValues } from '../../services/unifiedDashboardApi';
 import {
   attachMonoIconsToPages,
   ROLE_DASHBOARD_CONFIG,
   SINGLE_DASHBOARD_ROLES,
 } from './UnifiedDashboardConfig';
-import { HR_PAGE_COMPONENTS, STANDARD_PAGE_COMPONENTS, MANAGER_PAGE_COMPONENTS, SUPER_ADMIN_PAGE_COMPONENTS } from './pageRegistry';
 import DashboardHome from './components/DashboardHome';
 import RolePage from './components/RolePage';
 import UnifiedComponentsGallery from './components/UnifiedComponentsGallery';
+import LoadingSpinner from '../Auth/LoadingSpinner';
+
+/** Available from header for every role; may be omitted from role sidebar lists. */
+const GLOBAL_PORTAL_PAGE_IDS = ['settings', 'employee-profile'];
 
 const UnifiedDashboard = () => {
   const navigate = useNavigate();
@@ -35,13 +46,24 @@ const UnifiedDashboard = () => {
   const userRole = user?.role || ROLES.EMPLOYEE;
   const isSingleDashboardLayout = SINGLE_DASHBOARD_ROLES.includes(userRole);
 
+  const workContextLine = useMemo(
+    () => formatWorkContextLine(user?.designation, user?.department),
+    [user?.designation, user?.department],
+  );
+
   const roleConfig = useMemo(() => {
     const baseConfig = ROLE_DASHBOARD_CONFIG[userRole] || ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE];
-    return {
+    const withIcons = {
       ...baseConfig,
-      pages: attachMonoIconsToPages(baseConfig.pages),
+      pages: attachMonoIconsToPages(sortPagesForSidebar(filterShippedPages(baseConfig.pages))),
+      widgets: baseConfig.widgets,
     };
-  }, [userRole]);
+    return applyOrgScopedDashboard(withIcons, {
+      designation: user?.designation,
+      department: user?.department,
+      role: userRole,
+    });
+  }, [userRole, user?.designation, user?.department]);
 
   const [currentPage, setCurrentPage] = useState(() => searchParams.get('page') || 'dashboard');
 
@@ -57,7 +79,9 @@ const UnifiedDashboard = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    const hasPage = roleConfig.pages.some((page) => page.id === currentPage);
+    const hasPage =
+      roleConfig.pages.some((page) => page.id === currentPage) ||
+      GLOBAL_PORTAL_PAGE_IDS.includes(currentPage);
     if (!hasPage && currentPage !== 'dashboard') {
       setCurrentPage('dashboard');
     }
@@ -165,6 +189,7 @@ const UnifiedDashboard = () => {
       role: userRole,
       avatar: user?.avatar || '👨‍💼',
       department: user?.department || 'People Operations',
+      designation: user?.designation || '',
     };
   }, [user, userRole]);
 
@@ -188,7 +213,10 @@ const UnifiedDashboard = () => {
 
   const handleNavigate = useCallback(
     (pageId) => {
-      if (roleConfig.pages.some((page) => page.id === pageId)) {
+      if (
+        roleConfig.pages.some((page) => page.id === pageId) ||
+        GLOBAL_PORTAL_PAGE_IDS.includes(pageId)
+      ) {
         setCurrentPage(pageId);
       }
     },
@@ -204,7 +232,13 @@ const UnifiedDashboard = () => {
       }
 
       if (action === 'settings') {
-        handleNavigate('dashboard');
+        handleNavigate('settings');
+        return;
+      }
+
+      if (action === 'profile') {
+        handleNavigate('employee-profile');
+        return;
       }
     },
     [logout, navigate, handleNavigate]
@@ -214,6 +248,36 @@ const UnifiedDashboard = () => {
     setNotificationCount(0);
   }, []);
 
+  const renderPortalPage = useCallback(
+    (PageComponent) => {
+      if (!PageComponent) {
+        return null;
+      }
+
+      if (currentPage === 'ui-components') {
+        return <PageComponent user={currentUser} />;
+      }
+
+      if (
+        isOperationsPage(currentPage) ||
+        isStandaloneStandardPage(currentPage) ||
+        currentPage === 'announcements'
+      ) {
+        return <PageComponent />;
+      }
+
+      return (
+        <PageComponent
+          user={currentUser}
+          pageConfig={{}}
+          onUserUpdate={() => {}}
+          onNavigate={handleNavigate}
+        />
+      );
+    },
+    [currentPage, currentUser, handleNavigate],
+  );
+
   const renderPageContent = () => {
     if (userRole === ROLES.SUPER_ADMIN) {
       if (currentPage === 'dashboard') {
@@ -221,6 +285,7 @@ const UnifiedDashboard = () => {
           <DashboardHome
             heading={roleConfig.heading}
             subtitle={roleConfig.subtitle}
+            workContextLine={workContextLine}
             widgets={dashboardWidgets}
             pages={roleConfig.pages}
             onNavigate={handleNavigate}
@@ -229,27 +294,16 @@ const UnifiedDashboard = () => {
         );
       }
 
-      const SuperAdminPage = SUPER_ADMIN_PAGE_COMPONENTS[currentPage];
-      if (SuperAdminPage) {
-        return <SuperAdminPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
-      }
-
-      const superAdminPage = roleConfig.pages.find((item) => item.id === currentPage);
-      if (superAdminPage) {
-        return (
-          <RolePage
-            title={superAdminPage.label}
-            description={superAdminPage.description}
-            role={userRole}
-            pageId={currentPage}
-          />
-        );
+      const SuperAdminPage = resolvePortalPageComponent(userRole, currentPage);
+      const superAdminView = renderPortalPage(SuperAdminPage);
+      if (superAdminView) {
+        return superAdminView;
       }
 
       return (
         <RolePage
-          title="Admin Module"
-          description="Live module data is unavailable for the selected page."
+          title="Page Not Found"
+          description="This module is not registered for Super Admin. Check pageRegistry.js."
           role={userRole}
           pageId={currentPage}
         />
@@ -261,12 +315,55 @@ const UnifiedDashboard = () => {
         return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
       }
 
-      const HrPage = HR_PAGE_COMPONENTS[currentPage];
-      if (HrPage) {
-        return <HrPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
+      const HrPage = resolvePortalPageComponent(ROLES.HR_ADMIN, currentPage);
+      const hrView = renderPortalPage(HrPage);
+      if (hrView) {
+        return hrView;
       }
 
-      return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
+      return (
+        <RolePage
+          title="Page Not Found"
+          description="This HR module is not registered. Check pageRegistry.js."
+          role={userRole}
+          pageId={currentPage}
+        />
+      );
+    }
+
+    if (userRole === ROLES.DEPT_ADMIN) {
+      if (currentPage === 'dashboard') {
+        return (
+          <DashboardHome
+            heading={roleConfig.heading}
+            subtitle={roleConfig.subtitle}
+            workContextLine={workContextLine}
+            widgets={dashboardWidgets}
+            pages={roleConfig.pages}
+            onNavigate={handleNavigate}
+            loading={dashboardLoading}
+          />
+        );
+      }
+
+      if (currentPage === 'leaves') {
+        return <LeavesPage />;
+      }
+
+      const DeptPage = resolvePortalPageComponent(ROLES.DEPT_ADMIN, currentPage);
+      const deptView = renderPortalPage(DeptPage);
+      if (deptView) {
+        return deptView;
+      }
+
+      return (
+        <RolePage
+          title="Page Not Found"
+          description="This department module is not registered. Check pageRegistry.js."
+          role={userRole}
+          pageId={currentPage}
+        />
+      );
     }
 
     if (userRole === ROLES.MANAGER) {
@@ -275,6 +372,7 @@ const UnifiedDashboard = () => {
           <DashboardHome
             heading={roleConfig.heading}
             subtitle={roleConfig.subtitle}
+            workContextLine={workContextLine}
             widgets={dashboardWidgets}
             pages={roleConfig.pages}
             onNavigate={handleNavigate}
@@ -295,27 +393,16 @@ const UnifiedDashboard = () => {
         return <PayrollPage />;
       }
 
-      const ManagerPage = MANAGER_PAGE_COMPONENTS[currentPage];
-      if (ManagerPage) {
-        return <ManagerPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
-      }
-
-      const managerPage = roleConfig.pages.find((item) => item.id === currentPage);
-      if (managerPage) {
-        return (
-          <RolePage
-            title={managerPage.label}
-            description={managerPage.description}
-            role={userRole}
-            pageId={currentPage}
-          />
-        );
+      const ManagerPage = resolvePortalPageComponent(ROLES.MANAGER, currentPage);
+      const managerView = renderPortalPage(ManagerPage);
+      if (managerView) {
+        return managerView;
       }
 
       return (
         <RolePage
-          title="Manager Module"
-          description="Live module data is unavailable for the selected page."
+          title="Page Not Found"
+          description="This manager module is not registered. Check pageRegistry.js."
           role={userRole}
           pageId={currentPage}
         />
@@ -327,6 +414,7 @@ const UnifiedDashboard = () => {
         <DashboardHome
           heading={roleConfig.heading}
           subtitle={roleConfig.subtitle}
+          workContextLine={workContextLine}
           widgets={dashboardWidgets}
           pages={roleConfig.pages}
           onNavigate={handleNavigate}
@@ -355,38 +443,30 @@ const UnifiedDashboard = () => {
       return <PayrollPage />;
     }
 
-    if (userRole === ROLES.SUPER_ADMIN) {
-      const SuperAdminPage = SUPER_ADMIN_PAGE_COMPONENTS[currentPage];
-      if (SuperAdminPage) {
-        return <SuperAdminPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
-      }
+    const ResolvedPage = resolvePortalPageComponent(userRole, currentPage);
+    const resolvedView = renderPortalPage(ResolvedPage);
+    if (resolvedView) {
+      return resolvedView;
     }
 
-    const StandardPage = STANDARD_PAGE_COMPONENTS[currentPage];
-    if (StandardPage) {
-      return <StandardPage />;
-    }
-
-    const page = roleConfig.pages.find((item) => item.id === currentPage);
-    if (!page) {
-      return (
-        <RolePage
-          title="Page Not Found"
-          description="This module is not available for the current access role."
-        />
-      );
-    }
-
-    return <RolePage title={page.label} description={page.description} role={userRole} pageId={page.id} />;
+    return (
+      <RolePage
+        title="Page Not Found"
+        description="This module is not registered for your role. Check pageRegistry.js."
+        role={userRole}
+        pageId={currentPage}
+      />
+    );
   };
 
   return (
-    <div className="app-shell flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="app-shell flex min-h-0 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
       <HRSidebar
         currentPage={currentPage}
         onNavigate={handleNavigate}
         pageConfigs={sidebarPageConfigs}
         portalLabel={roleConfig.portalLabel}
+        contextSubtitle={workContextLine}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
@@ -397,13 +477,28 @@ const UnifiedDashboard = () => {
           onClearNotifications={handleClearNotifications}
         />
 
-        <main ref={contentScrollRef} className="flex-1 overflow-auto">
-          <div className="p-4 md:p-8">
+        <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col p-3 md:p-5">
             <div
-              className="rounded-2xl bg-white/70 border border-slate-200/80 ring-1 ring-white/60 overflow-hidden"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/70 ring-1 ring-white/60"
               style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
             >
-              {renderPageContent()}
+              <div
+                ref={contentScrollRef}
+                className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain"
+              >
+                <Suspense
+                  fallback={
+                    <LoadingSpinner
+                      variant="card"
+                      message="Loading module…"
+                      className="flex-1 min-h-[12rem]"
+                    />
+                  }
+                >
+                  {renderPageContent()}
+                </Suspense>
+              </div>
             </div>
           </div>
         </main>

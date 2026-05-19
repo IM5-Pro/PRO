@@ -51,7 +51,7 @@ const createReview = async (req, res) => {
  */
 const updateReview = async (req, res) => {
   try {
-    const { reviewId } = req.params;
+    const reviewId = req.params.id || req.params.reviewId;
 
     if (!reviewId || reviewId.trim().length === 0) {
       return sendError(res, 400, "Validation failed", { reviewId: "Review ID is required" });
@@ -78,7 +78,7 @@ const updateReview = async (req, res) => {
  */
 const deleteReview = async (req, res) => {
   try {
-    const { reviewId } = req.params;
+    const reviewId = req.params.id || req.params.reviewId;
 
     if (!reviewId || reviewId.trim().length === 0) {
       return sendError(res, 400, "Validation failed", { reviewId: "Review ID is required" });
@@ -99,11 +99,11 @@ const deleteReview = async (req, res) => {
 };
 
 /**
- * View performance review for an employee
+ * View performance review for an employee (by employee id in route param)
  */
 const viewReview = async (req, res) => {
   try {
-    const { employeeId } = req.params;
+    const employeeId = req.params.id || req.params.employeeId;
 
     if (!employeeId || employeeId.trim().length === 0) {
       return sendError(res, 400, "Validation failed", { employeeId: "Employee ID is required" });
@@ -122,11 +122,52 @@ const viewReview = async (req, res) => {
 };
 
 /**
+ * List performance reviews (optional employeeId query)
+ */
+const listReviews = async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.employeeId) {
+      filter.employeeId = req.query.employeeId;
+    }
+    const reviews = await PerformanceReview.find(filter)
+      .populate(["employeeId", "reviewerId"])
+      .sort({ reviewDate: -1 });
+    sendSuccess(res, 200, "Reviews retrieved successfully", { reviews, count: reviews.length });
+  } catch (err) {
+    console.error("List reviews error:", err);
+    sendError(res, 500, "Internal server error", err.message);
+  }
+};
+
+/**
+ * List goals (optional employeeId / status query)
+ */
+const listGoals = async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.employeeId) {
+      filter.employeeId = req.query.employeeId;
+    }
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+    const goals = await Goal.find(filter)
+      .populate("employeeId assignedBy")
+      .sort({ createdAt: -1 });
+    sendSuccess(res, 200, "Goals retrieved successfully", { goals, count: goals.length });
+  } catch (err) {
+    console.error("List goals error:", err);
+    sendError(res, 500, "Internal server error", err.message);
+  }
+};
+
+/**
  * Submit a review (mark as completed/submitted)
  */
 const submitReview = async (req, res) => {
   try {
-    const { reviewId } = req.params;
+    const reviewId = req.params.id || req.params.reviewId;
 
     if (!reviewId || reviewId.trim().length === 0) {
       return sendError(res, 400, "Validation failed", { reviewId: "Review ID is required" });
@@ -155,7 +196,7 @@ const submitReview = async (req, res) => {
  */
 const approveReview = async (req, res) => {
   try {
-    const { reviewId } = req.params;
+    const reviewId = req.params.id || req.params.reviewId;
 
     if (!reviewId || reviewId.trim().length === 0) {
       return sendError(res, 400, "Validation failed", { reviewId: "Review ID is required" });
@@ -184,7 +225,7 @@ const approveReview = async (req, res) => {
  */
 const rejectReview = async (req, res) => {
   try {
-    const { reviewId } = req.params;
+    const reviewId = req.params.id || req.params.reviewId;
     const { reason } = req.body;
 
     if (!reviewId || reviewId.trim().length === 0) {
@@ -253,7 +294,7 @@ const goalCreate = async (req, res) => {
  */
 const goalUpdate = async (req, res) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.id || req.params.goalId;
 
     if (!goalId || goalId.trim().length === 0) {
       return sendError(res, 400, "Validation failed", { goalId: "Goal ID is required" });
@@ -280,7 +321,7 @@ const goalUpdate = async (req, res) => {
  */
 const goalDelete = async (req, res) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.id || req.params.goalId;
 
     if (!goalId || goalId.trim().length === 0) {
       return sendError(res, 400, "Validation failed", { goalId: "Goal ID is required" });
@@ -305,7 +346,7 @@ const goalDelete = async (req, res) => {
  */
 const goalAssign = async (req, res) => {
   try {
-    const { employeeId } = req.params;
+    const employeeId = req.params.id || req.params.employeeId;
     const { title, description, targetValue, goalType, startDate, endDate, priority } = req.body;
 
     const validation = validateGoal({
@@ -353,7 +394,7 @@ const goalAssign = async (req, res) => {
  */
 const goalView = async (req, res) => {
   try {
-    const { employeeId } = req.params;
+    const employeeId = req.params.id || req.params.employeeId;
     const { status } = req.query;
 
     if (!employeeId || employeeId.trim().length === 0) {
@@ -379,6 +420,7 @@ export default {
   updateReview,
   deleteReview,
   viewReview,
+  listReviews,
   submitReview,
   approveReview,
   rejectReview,
@@ -387,4 +429,5 @@ export default {
   goalDelete,
   goalAssign,
   goalView,
+  listGoals,
 };

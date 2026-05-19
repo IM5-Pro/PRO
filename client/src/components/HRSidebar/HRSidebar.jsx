@@ -16,6 +16,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { FiCircle, FiMenu, FiX } from 'react-icons/fi';
+import { groupSidebarPages } from '../../utils/sidebarNav';
 
 /**
  * HRSidebar Component
@@ -34,6 +35,7 @@ const HRSidebar = ({
   onNavigate = () => {},
   pageConfigs = [],
   portalLabel = 'HR Operations',
+  contextSubtitle = '',
 }) => {
   // ============================================================================
   // STATE MANAGEMENT
@@ -44,22 +46,8 @@ const HRSidebar = ({
   // MEMOIZED COMPUTATIONS
   // ============================================================================
 
-  /**
-   * Organize page configs by category for better UI organization
-   * Memoized to prevent unnecessary recalculations
-   */
-  const groupedPages = useMemo(() => {
-    const groups = {};
-
-    pageConfigs.forEach((page) => {
-      if (!groups[page.category]) {
-        groups[page.category] = [];
-      }
-      groups[page.category].push(page);
-    });
-
-    return groups;
-  }, [pageConfigs]);
+  /** Sections in enterprise order with labels (pages pre-sorted in config). */
+  const navSections = useMemo(() => groupSidebarPages(pageConfigs), [pageConfigs]);
 
   // ============================================================================
   // EVENT HANDLERS
@@ -164,17 +152,28 @@ const HRSidebar = ({
    * @param {Array<Object>} items - Items in this category
    * @returns {JSX.Element} Category section
    */
-  const renderCategoryGroup = useCallback(
-    (category, items) => {
-      // Skip rendering if only one item and it's dashboard
-      if (items.length === 1 && items[0].id === 'dashboard') {
-        return renderMenuItem(items[0]);
+  const renderNavSection = useCallback(
+    (section) => {
+      const { category, label, items } = section;
+      const isOverviewOnly = items.length === 1 && items[0].id === 'dashboard';
+
+      if (isOverviewOnly) {
+        return (
+          <div key={category} className="mb-1">
+            {renderMenuItem(items[0])}
+          </div>
+        );
       }
 
       return (
-        <div key={category} className="space-y-2">
-          {/* Category items */}
-          {items.map((item) => renderMenuItem(item))}
+        <div key={category} className="mb-4 last:mb-2">
+          <p
+            className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+            aria-hidden="true"
+          >
+            {label}
+          </p>
+          <div className="space-y-0.5">{items.map((item) => renderMenuItem(item))}</div>
         </div>
       );
     },
@@ -204,7 +203,7 @@ const HRSidebar = ({
           ======================================== */}
       <aside
         className={`
-          fixed md:static left-0 top-0 h-screen w-64
+          fixed md:static left-0 top-0 h-full max-h-[100dvh] md:max-h-none w-64
           bg-white/90 text-slate-800 shadow-sm border-r border-slate-200/80
           transform transition-transform duration-300 md:translate-x-0 z-40
           flex flex-col overflow-hidden
@@ -217,15 +216,18 @@ const HRSidebar = ({
         <div className="p-6 border-b border-white/40">
           <h1 className="text-2xl font-bold">HRMS Suite</h1>
           <p className="text-slate-600 text-sm">{portalLabel}</p>
+          {contextSubtitle ? (
+            <p className="mt-2 text-xs font-medium text-slate-500 leading-snug border-t border-slate-100/80 pt-2">
+              {contextSubtitle}
+            </p>
+          ) : null}
         </div>
 
         {/* ========================================
             MAIN NAVIGATION MENU
             ======================================== */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          {Object.entries(groupedPages).map(([category, items]) =>
-            renderCategoryGroup(category, items)
-          )}
+        <nav className="flex-1 overflow-y-auto p-3 md:p-4" aria-label="Main navigation">
+          {navSections.map((section) => renderNavSection(section))}
         </nav>
 
       </aside>

@@ -24,7 +24,6 @@ import {
   deleteAllNotifications,
   getTimeAgo,
 } from '../services/notificationApi';
-import { getCookie } from '../utils/cookies';
 
 /**
  * Create NotificationContext
@@ -304,11 +303,15 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
   useEffect(() => {
     isMountedRef.current = true;
 
-    // Check if user is authenticated by checking for auth token in cookies
-    // The API client looks for 'authToken' cookie
-    const token = getCookie('authToken');
-    
-    if (token) {
+    const cachedUser = (() => {
+      try {
+        return sessionStorage.getItem('hrms_user');
+      } catch {
+        return null;
+      }
+    })();
+
+    if (cachedUser) {
       // Initial fetch only if authenticated
       fetchNotificationsData();
 

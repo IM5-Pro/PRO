@@ -10,6 +10,7 @@ const ROLE_ALIASES = {
   employee: ROLES.EMPLOYEE,
   manager: ROLES.MANAGER,
   hr_admin: ROLES.HR_ADMIN,
+  dept_admin: ROLES.DEPT_ADMIN,
   super_admin: ROLES.SUPER_ADMIN,
   hr: ROLES.HR_ADMIN,
   admin: ROLES.HR_ADMIN,

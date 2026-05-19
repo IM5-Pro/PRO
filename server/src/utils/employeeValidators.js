@@ -1,4 +1,5 @@
 // Employee validation utilities
+import mongoose from "mongoose";
 
 /**
  * Validate employee creation/update
@@ -116,6 +117,13 @@ const validateEmployeeData = (body, isUpdate = false) => {
 
   if (body.zipCode && !/^\d{5,6}$/.test(body.zipCode.toString())) {
     errors.zipCode = "Zip code must be 5-6 digits";
+  }
+
+  if (body.assignedProjectId != null && String(body.assignedProjectId).trim() !== "") {
+    const raw = String(body.assignedProjectId).trim();
+    if (!mongoose.Types.ObjectId.isValid(raw)) {
+      errors.assignedProjectId = "assignedProjectId must be a valid id";
+    }
   }
 
   return {

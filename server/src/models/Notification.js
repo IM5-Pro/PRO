@@ -77,6 +77,9 @@ const notificationSchema = new mongoose.Schema(
         "asset_maintenance",
         "system_access_grant",
         "system_access_revoke",
+        "tool_provisioning_manager_review",
+        "tool_provisioning_it_awareness",
+        "tool_provisioning_it_install",
 
         // Documents & Compliance
         "document_request",
@@ -141,6 +144,7 @@ const notificationSchema = new mongoose.Schema(
         "document",
         "announcement",
         "system",
+        "provisioning_ticket",
       ],
     },
 

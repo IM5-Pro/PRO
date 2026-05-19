@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import API from '../../api/client';
 import { PAYROLL_DETAIL_ENDPOINTS } from '../../api/endpoints';
 import PayrollForm from './PayrollForm';
+import { formatINR } from '../../utils/currency';
 
 const showToast = (msg, type = 'success') => {
   const toast = document.createElement('div');
@@ -59,14 +60,17 @@ const PayrollSection = ({ employeeId }) => {
         <button className="btn-secondary btn-xs" onClick={handleEdit} disabled={actionLoading || loading || !payroll} aria-label="Edit payroll">Edit</button>
       </h2>
       {loading ? (
-        <div className="flex items-center gap-2"><span className="spinner" /> Loading...</div>
+        <div className="flex items-center gap-3 text-slate-500" role="status" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
+          <span className="text-sm leading-none">Loading...</span>
+        </div>
       ) : error ? (
         <div className="text-red-500">{error}</div>
       ) : payroll ? (
         <div className="border p-3 rounded">
-          <div><b>CTC:</b> {payroll.ctc}</div>
-          <div><b>Basic:</b> {payroll.basic}</div>
-          <div><b>HRA:</b> {payroll.hra}</div>
+          <div><b>CTC:</b> {formatINR(payroll.ctc, { fallback: payroll.ctc || '—' })}</div>
+          <div><b>Basic:</b> {formatINR(payroll.basic, { fallback: payroll.basic || '—' })}</div>
+          <div><b>HRA:</b> {formatINR(payroll.hra, { fallback: payroll.hra || '—' })}</div>
           <div><b>Bank:</b> {payroll.bankName} ({payroll.bankAccountNumber})</div>
           <div><b>IFSC:</b> {payroll.ifscCode}</div>
           <div><b>PF No:</b> {payroll.pfNumber}</div>
@@ -77,7 +81,6 @@ const PayrollSection = ({ employeeId }) => {
         </div>
       ) : (
         <div className="text-gray-400 flex flex-col items-center py-6">
-          <span className="material-icons text-4xl mb-2">payments</span>
           <span>No payroll data.</span>
         </div>
       )}

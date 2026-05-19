@@ -6,9 +6,11 @@ import {
   fetchDepartments,
   toErrorMessage,
 } from '../../../services/adminOperationsApi';
+import { assignDepartmentManager, fetchEmployeesForSelect } from '../../../services/operationsModulesApi';
 
 const DepartmentsAdmin = () => {
   const [departments, setDepartments] = useState([]);
+  const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState('');
   const [banner, setBanner] = useState({ type: '', text: '' });
@@ -30,6 +32,27 @@ const DepartmentsAdmin = () => {
   useEffect(() => {
     loadDepartments();
   }, [loadDepartments]);
+
+  useEffect(() => {
+    fetchEmployeesForSelect()
+      .then(setManagers)
+      .catch(() => setManagers([]));
+  }, []);
+
+  const handleAssignManager = async (departmentId, managerId) => {
+    if (!departmentId || !managerId) return;
+    setActionLoading(`manager-${departmentId}`);
+    setBanner({ type: '', text: '' });
+    try {
+      await assignDepartmentManager(departmentId, managerId);
+      setBanner({ type: 'success', text: 'Department manager updated.' });
+      await loadDepartments();
+    } catch (error) {
+      setBanner({ type: 'error', text: toErrorMessage(error, 'Failed to assign manager') });
+    } finally {
+      setActionLoading('');
+    }
+  };
 
   const handleCreate = async (event) => {
     event.preventDefault();
@@ -134,6 +157,7 @@ const DepartmentsAdmin = () => {
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="text-left py-3 px-3 text-slate-600">Name</th>
                 <th className="text-left py-3 px-3 text-slate-600">Code</th>
+                <th className="text-left py-3 px-3 text-slate-600">Manager</th>
                 <th className="text-left py-3 px-3 text-slate-600">Status</th>
                 <th className="text-left py-3 px-3 text-slate-600">Action</th>
               </tr>
@@ -141,11 +165,11 @@ const DepartmentsAdmin = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="py-6 px-3 text-center text-slate-500">Loading departments...</td>
+                  <td colSpan={5} className="py-6 px-3 text-center text-slate-500">Loading departments...</td>
                 </tr>
               ) : departments.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-6 px-3 text-center text-slate-500">No departments found</td>
+                  <td colSpan={5} className="py-6 px-3 text-center text-slate-500">No departments found</td>
                 </tr>
               ) : (
                 departments.map((department) => {
@@ -154,6 +178,25 @@ const DepartmentsAdmin = () => {
                     <tr key={departmentId} className="border-b border-slate-100">
                       <td className="py-3 px-3 text-slate-800 font-medium">{department?.name || '-'}</td>
                       <td className="py-3 px-3 text-slate-700">{department?.code || '-'}</td>
+                      <td className="py-3 px-3 text-slate-700 min-w-[200px]">
+                        <select
+                          className="w-full px-2 py-1 border border-slate-300 rounded-lg text-sm"
+                          value={department?.managerId?._id || department?.managerId || ''}
+                          disabled={actionLoading === `manager-${departmentId}`}
+                          onChange={(e) => handleAssignManager(departmentId, e.target.value)}
+                        >
+                          <option value="">— Select manager —</option>
+                          {managers.map((emp) => {
+                            const id = emp._id || emp.id;
+                            const label = [emp.firstName, emp.lastName].filter(Boolean).join(' ') || emp.email || id;
+                            return (
+                              <option key={id} value={id}>
+                                {label}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </td>
                       <td className="py-3 px-3 text-slate-700">{department?.status || 'active'}</td>
                       <td className="py-3 px-3">
                         <button

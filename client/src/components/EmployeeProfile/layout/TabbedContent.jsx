@@ -6,7 +6,8 @@ const TabbedContent = ({ tabs, activeTab, onTabChange, children }) => (
       {tabs.map((tab, idx) => (
         <button
           key={tab.key}
-          className={`px-4 py-2 rounded-t-lg font-semibold text-sm transition-all duration-150 ${
+          type="button"
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-t-lg font-semibold text-sm transition-all duration-150 ${
             activeTab === tab.key
               ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-600'
               : 'text-slate-500 hover:text-blue-600'
@@ -16,8 +17,8 @@ const TabbedContent = ({ tabs, activeTab, onTabChange, children }) => (
           aria-controls={`tabpanel-${tab.key}`}
           role="tab"
         >
-          {tab.icon && <span className="mr-1 align-middle">{tab.icon}</span>}
-          {tab.label}
+          {tab.icon ? <span className="shrink-0 flex items-center" aria-hidden>{tab.icon}</span> : null}
+          <span>{tab.label}</span>
         </button>
       ))}
     </div>

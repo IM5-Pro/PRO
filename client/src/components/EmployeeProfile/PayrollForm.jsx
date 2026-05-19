@@ -6,9 +6,9 @@ const PayrollForm = ({ initial, onSave, onCancel }) => {
   const handleSubmit = e => { e.preventDefault(); onSave(form); };
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
-      <input name="ctc" value={form.ctc} onChange={handleChange} placeholder="CTC" className="input-modern" />
-      <input name="basic" value={form.basic} onChange={handleChange} placeholder="Basic" className="input-modern" />
-      <input name="hra" value={form.hra} onChange={handleChange} placeholder="HRA" className="input-modern" />
+      <input name="ctc" value={form.ctc} onChange={handleChange} placeholder="CTC (₹ per annum)" className="input-modern" />
+      <input name="basic" value={form.basic} onChange={handleChange} placeholder="Basic (₹)" className="input-modern" />
+      <input name="hra" value={form.hra} onChange={handleChange} placeholder="HRA (₹)" className="input-modern" />
       <input name="bankName" value={form.bankName} onChange={handleChange} placeholder="Bank Name" className="input-modern" />
       <input name="bankAccountNumber" value={form.bankAccountNumber} onChange={handleChange} placeholder="Bank Account Number" className="input-modern" />
       <input name="ifscCode" value={form.ifscCode} onChange={handleChange} placeholder="IFSC Code" className="input-modern" />

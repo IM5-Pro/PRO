@@ -132,7 +132,6 @@ const DocumentsSection = ({ employeeId }) => {
         <div className="text-red-500">{error}</div>
       ) : filteredDocuments.length === 0 ? (
         <div className="text-gray-400 flex flex-col items-center py-6">
-          <span className="material-icons text-4xl mb-2">description</span>
           <span>No documents found.</span>
         </div>
       ) : (

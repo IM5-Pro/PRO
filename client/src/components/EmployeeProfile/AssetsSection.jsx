@@ -110,7 +110,6 @@ const AssetsSection = ({ employeeId }) => {
         <div className="text-red-500">{error}</div>
       ) : filteredAssets.length === 0 ? (
         <div className="text-gray-400 flex flex-col items-center py-6">
-          <span className="material-icons text-4xl mb-2">inventory_2</span>
           <span>No assets found.</span>
         </div>
       ) : (

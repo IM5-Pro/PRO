@@ -41,7 +41,11 @@ const NotificationBadge = ({ count, highlight = false }) => {
  */
 const getNavigationPath = (notification) => {
   const { type } = notification;
-  
+
+  if (type && String(type).startsWith('tool_provisioning')) {
+    return '/';
+  }
+
   // Exact type matches (more precise than includes)
   const LEAVE_TYPES = ['leave_request', 'leave_approval', 'leave_rejection', 'leave_cancelled'];
   const ATTENDANCE_TYPES = ['attendance_alert', 'attendance_late_arrival', 'attendance_absent', 'attendance_correction', 'attendance_overtime', 'attendance_shift_change'];

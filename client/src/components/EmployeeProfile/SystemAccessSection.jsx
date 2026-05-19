@@ -59,7 +59,10 @@ const SystemAccessSection = ({ employeeId }) => {
         <button className="btn-secondary btn-xs" onClick={handleEdit} disabled={actionLoading || loading || !access} aria-label="Edit system access">Edit</button>
       </h2>
       {loading ? (
-        <div className="flex items-center gap-2"><span className="spinner" /> Loading...</div>
+        <div className="flex items-center gap-3 text-slate-500" role="status" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
+          <span className="text-sm leading-none">Loading...</span>
+        </div>
       ) : error ? (
         <div className="text-red-500">{error}</div>
       ) : access ? (
@@ -72,7 +75,6 @@ const SystemAccessSection = ({ employeeId }) => {
         </div>
       ) : (
         <div className="text-gray-400 flex flex-col items-center py-6">
-          <span className="material-icons text-4xl mb-2">vpn_key</span>
           <span>No system access data.</span>
         </div>
       )}

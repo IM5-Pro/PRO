@@ -4,12 +4,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiDollarSign, FiDownload } from 'react-icons/fi';
+import { FiDownload } from 'react-icons/fi';
+import RupeeIcon from '../icons/RupeeIcon';
 import API from '../../api/client';
 import { PAYROLL_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { canAccessPayrollRuns, normalizeRole } from '../../utils/roles';
+import { formatINR } from '../../utils/currency';
 
 const toPayload = (response) => response?.data || {};
 
@@ -27,18 +29,6 @@ const extractRows = (payload, key) => {
   }
 
   return [];
-};
-
-const toCurrency = (value) => {
-  const numeric = Number(value || 0);
-  if (Number.isNaN(numeric)) {
-    return '0.00';
-  }
-
-  return numeric.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 };
 
 const Payroll = () => {
@@ -217,7 +207,7 @@ const Payroll = () => {
       {/* Header */}
       <div>
         <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-          <FiDollarSign className="w-10 h-10" /> Payroll
+          <RupeeIcon className="w-10 h-10" /> Payroll
         </h1>
         <p className={`${colors.text.tertiary} mb-8`}>View your salary information and payslips</p>
       </div>
@@ -240,17 +230,17 @@ const Payroll = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 border border-green-700/50 rounded-2xl p-6 hover:border-green-600/70 transition-all">
               <p className="text-green-400 text-sm font-medium mb-2">Gross Salary</p>
-              <p className="text-3xl font-bold text-white">${toCurrency(salary.gross)}</p>
+              <p className="text-3xl font-bold text-white">{formatINR(salary.gross)}</p>
             </div>
 
             <div className="bg-gradient-to-br from-red-900/30 to-pink-900/30 border border-red-700/50 rounded-2xl p-6 hover:border-red-600/70 transition-all">
               <p className="text-red-400 text-sm font-medium mb-2">Deductions</p>
-              <p className="text-3xl font-bold text-white">${toCurrency(salary.deductions)}</p>
+              <p className="text-3xl font-bold text-white">{formatINR(salary.deductions)}</p>
             </div>
 
             <div className="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border border-blue-700/50 rounded-2xl p-6 hover:border-blue-600/70 transition-all">
               <p className="text-blue-400 text-sm font-medium mb-2">Net Salary</p>
-              <p className="text-3xl font-bold text-white">${toCurrency(salary.net)}</p>
+              <p className="text-3xl font-bold text-white">{formatINR(salary.net)}</p>
             </div>
           </div>
 
@@ -264,7 +254,7 @@ const Payroll = () => {
                 {earnings.map((earning, idx) => (
                   <div key={`${earning.item}-${idx}`} className="flex items-center justify-between p-3 bg-slate-700/30 border border-slate-700/50 rounded-lg">
                     <span className={colors.text.secondary}>{earning.item}</span>
-                    <span className="text-green-400 font-semibold">${toCurrency(earning.amount)}</span>
+                    <span className="text-green-400 font-semibold">{formatINR(earning.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -278,7 +268,7 @@ const Payroll = () => {
                 {deductions.map((deduction, idx) => (
                   <div key={`${deduction.item}-${idx}`} className="flex items-center justify-between p-3 bg-slate-700/30 border border-slate-700/50 rounded-lg">
                     <span className={colors.text.secondary}>{deduction.item}</span>
-                    <span className="text-red-400 font-semibold">${toCurrency(deduction.amount)}</span>
+                    <span className="text-red-400 font-semibold">{formatINR(deduction.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -303,7 +293,7 @@ const Payroll = () => {
                   {payslips.map((payslip) => (
                     <tr key={payslip.id} className={`border-b ${colors.border.primary} hover:bg-slate-700/30 transition-colors`}>
                       <td className={`px-4 py-3 ${colors.text.primary} font-medium`}>{payslip.month}</td>
-                      <td className="px-4 py-3 text-green-400 font-semibold">${toCurrency(payslip.amount)}</td>
+                      <td className="px-4 py-3 text-green-400 font-semibold">{formatINR(payslip.amount)}</td>
                       <td className={`px-4 py-3 ${colors.text.tertiary}`}>{new Date(payslip.date).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-center">
                         <button
@@ -341,7 +331,7 @@ const Payroll = () => {
                   <tr key={run?._id || run?.id} className={`border-b ${colors.border.primary} hover:bg-slate-700/30 transition-colors`}>
                     <td className={`px-4 py-3 ${colors.text.primary} font-medium`}>{run?.month || 'N/A'}</td>
                     <td className={`px-4 py-3 ${colors.text.secondary}`}>{run?.status || 'N/A'}</td>
-                    <td className="px-4 py-3 text-green-400 font-semibold">${toCurrency(run?.totalPayout || 0)}</td>
+                    <td className="px-4 py-3 text-green-400 font-semibold">{formatINR(run?.totalPayout || 0)}</td>
                   </tr>
                 ))}
               </tbody>

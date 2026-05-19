@@ -72,8 +72,7 @@ const PerformanceSection = ({ employeeId }) => {
           {performance.updatedAt && <div className="text-xs text-gray-400 mt-2">Last updated: {new Date(performance.updatedAt).toLocaleString()}</div>}
         </div>
       ) : (
-        <div className="text-gray-400 flex flex-col items-center py-6">
-          <span className="material-icons text-4xl mb-2">trending_up</span>
+        <div className="text-gray-400 flex flex-col items-center py-6 text-sm">
           <span>No performance data.</span>
         </div>
       )}

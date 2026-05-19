@@ -24,6 +24,7 @@ import {
   fetchDepartments,
   fetchDesignations,
   fetchDesignationsByDepartment,
+  fetchProjects,
   fetchAdminEmployees,
   fetchAllAdminEmployees,
   fetchEmployeeProfile,
@@ -44,6 +45,7 @@ const EMPTY_CREATE_FORM = {
   joinDate: '',
   phoneNumber: '',
   accountRole: 'EMPLOYEE',
+  assignedProjectId: '',
 };
 
 const EMPTY_EDIT_FORM = {
@@ -204,6 +206,7 @@ const HRUserManagement = () => {
   const [managerOptions, setManagerOptions] = useState([]);
   const [managerSearchQuery, setManagerSearchQuery] = useState('');
   const [managerOptionsLoading, setManagerOptionsLoading] = useState(false);
+  const [projects, setProjects] = useState([]);
 
   const resetCreateForm = useCallback(() => {
     setCreateForm(EMPTY_CREATE_FORM);
@@ -241,9 +244,10 @@ const HRUserManagement = () => {
   const loadReferenceData = useCallback(async () => {
     setReferenceLoading(true);
     try {
-      const [departmentRows, designationRows] = await Promise.all([
+      const [departmentRows, designationRows, projectRows] = await Promise.all([
         fetchDepartments(),
         fetchDesignations(),
+        fetchProjects(),
       ]);
 
       setDepartments(
@@ -256,6 +260,12 @@ const HRUserManagement = () => {
         designationRows
           .map((designation, index) => toDesignationOption(designation, index))
           .filter((designation) => designation.name && designation.isActive),
+      );
+
+      setProjects(
+        Array.isArray(projectRows)
+          ? projectRows.filter((row) => row && row.name && row.isActive !== false)
+          : [],
       );
     } catch (error) {
       setBanner((previous) => {
@@ -1296,8 +1306,27 @@ const HRUserManagement = () => {
                       </select>
                     </div>
                     <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Assigned project (optional)</label>
+                      <select
+                        value={createForm.assignedProjectId}
+                        onChange={setCreateValue('assignedProjectId')}
+                        disabled={referenceLoading}
+                        className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
+                      >
+                        <option value="">None — no tooling ticket</option>
+                        {projects.map((project) => (
+                          <option key={String(project._id || project.id)} value={String(project._id || project.id)}>
+                            {project.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        If set, IM5 opens a provisioning ticket with the project&apos;s required tools and notifies the manager and IT.
+                      </p>
+                    </div>
+                    <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Salary</label>
-                      <input value={createForm.salary} onChange={setCreateValue('salary')} placeholder="Salary" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                      <input value={createForm.salary} onChange={setCreateValue('salary')} placeholder="Salary (₹)" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Join Date</label>
@@ -1499,7 +1528,7 @@ const HRUserManagement = () => {
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1">Salary</label>
-                          <input value={editForm.salary} onChange={setEditValue('salary')} placeholder="Salary" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                          <input value={editForm.salary} onChange={setEditValue('salary')} placeholder="Salary (₹)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1">City</label>

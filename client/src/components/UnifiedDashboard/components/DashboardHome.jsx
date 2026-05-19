@@ -1,7 +1,7 @@
 import React from 'react';
 import { FiCircle } from 'react-icons/fi';
 
-const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading }) => {
+const DashboardHome = ({ heading, subtitle, workContextLine, widgets, pages, onNavigate, loading }) => {
   const quickPages = pages.filter((page) => page.id !== 'dashboard').slice(0, 6);
 
   // Accent color mapping for widgets and icons
@@ -27,6 +27,12 @@ const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading 
       <div className="mb-8 rounded-2xl bg-gradient-to-r from-blue-50 via-white to-amber-50 p-6 md:p-8 shadow-sm flex flex-col gap-1">
         <h1 className="text-3xl font-extrabold text-slate-800 mb-1 tracking-tight" style={{ fontFamily: 'Inter, Roboto, sans-serif' }}>{heading}</h1>
         <p className="text-base text-slate-500 font-medium">{subtitle}</p>
+        {workContextLine ? (
+          <p className="mt-2 text-sm font-medium text-slate-600">
+            <span className="text-slate-400 font-normal">Work context · </span>
+            {workContextLine}
+          </p>
+        ) : null}
       </div>
 
       {/* Stats cards */}

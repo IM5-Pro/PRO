@@ -31,6 +31,28 @@ import SystemSettingsAdminPage from '../Pages/SuperAdmin/SystemSettingsAdmin';
 import AuditLogsAdminPage from '../Pages/SuperAdmin/AuditLogsAdmin';
 import ResignationAdminViewPage from '../Pages/SuperAdmin/ResignationAdminView';
 import RoleTransferAdmin from '../Pages/SuperAdmin/RoleTransferAdmin';
+import UnifiedComponentsGallery from './components/UnifiedComponentsGallery';
+import RecruitmentManagementPage from '../Pages/operations/RecruitmentManagement';
+import ToolProvisioningPage from '../Pages/operations/ToolProvisioningPage';
+import ProjectsAdminPage from '../Pages/operations/ProjectsAdmin';
+import ShiftManagementPage from '../Pages/operations/ShiftManagement';
+import OrgStructurePage from '../Pages/operations/OrgStructurePage';
+import EmployeeBulkOpsPage from '../Pages/operations/EmployeeBulkOps';
+import PerformanceManagementPage from '../Pages/operations/PerformanceManagement';
+import AttendanceApprovalsPage from '../Pages/operations/AttendanceApprovals';
+import ProfileChangeApprovalsPage from '../Pages/HR/ProfileChangeApprovals';
+
+export const OPERATIONS_PAGE_COMPONENTS = {
+  recruitment: RecruitmentManagementPage,
+  'tool-provisioning': ToolProvisioningPage,
+  'projects-admin': ProjectsAdminPage,
+  'shift-management': ShiftManagementPage,
+  'org-structure': OrgStructurePage,
+  'employee-bulk-ops': EmployeeBulkOpsPage,
+  'performance-management': PerformanceManagementPage,
+  'attendance-approvals': AttendanceApprovalsPage,
+  'profile-approvals': ProfileChangeApprovalsPage,
+};
 
 export const STANDARD_PAGE_COMPONENTS = {
   dashboard: DashboardPage,
@@ -64,9 +86,11 @@ export const MANAGER_PAGE_COMPONENTS = {
   settings: SettingsPortalPage,
   'team-collaboration': TeamCollaborationPage,
   'resignation': ResignationApprovalsPage,
+  ...OPERATIONS_PAGE_COMPONENTS,
 };
 
 export const HR_PAGE_COMPONENTS = {
+  dashboard: DashboardOverviewPage,
   'dashboard-overview': DashboardOverviewPage,
   announcements: AnnouncementsPage,
   'leaves-attendance': LeavesAttendancePage,
@@ -80,13 +104,36 @@ export const HR_PAGE_COMPONENTS = {
   masters: MastersPage,
   'admin-panel-config': AdminPanelConfigPage,
   'resignation': ResignationManagementPage,
+  settings: SettingsPortalPage,
+  'employee-profile': EmployeeProfilePage,
+  ...OPERATIONS_PAGE_COMPONENTS,
+};
+
+export const DEPT_ADMIN_PAGE_COMPONENTS = {
+  dashboard: DashboardPage,
+  attendance: AttendancePage,
+  leaves: LeavesPage,
+  settings: SettingsPortalPage,
+  'employee-profile': EmployeeProfilePage,
+  'attendance-approvals': AttendanceApprovalsPage,
+  'tool-provisioning': ToolProvisioningPage,
+  'org-structure': OrgStructurePage,
+  'performance-management': PerformanceManagementPage,
 };
 
 export const SUPER_ADMIN_PAGE_COMPONENTS = {
   departments: DepartmentsAdminPage,
+  employees: EmployeesPage,
+  announcements: AnnouncementsPage,
   'roles-permissions': RolesPermissionsAdminPage,
   'system-settings': SystemSettingsAdminPage,
   'audit-logs': AuditLogsAdminPage,
   'resignation': ResignationAdminViewPage,
   'role-transfer': RoleTransferAdmin,
+  settings: SettingsPortalPage,
+  'employee-profile': EmployeeProfilePage,
+  'projects-admin': ProjectsAdminPage,
+  'employee-bulk-ops': EmployeeBulkOpsPage,
+  'org-structure': OrgStructurePage,
+  'ui-components': UnifiedComponentsGallery,
 };

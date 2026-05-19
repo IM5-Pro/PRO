@@ -9,10 +9,13 @@ const withLimit = (path, limit) => {
 export const AUTH_ENDPOINTS = {
   login: '/auth/login',
   logout: '/auth/logout',
+  me: '/auth/me',
+  refreshToken: '/auth/refresh-token',
   registerSuperAdmin: '/auth/register-superadmin',
   forgotUsername: '/auth/forgot-username',
   forgotPassword: '/auth/forgot-password',
   resetPassword: '/auth/reset-password',
+  changePassword: '/auth/change-password',
   completeInitialPassword: '/auth/complete-initial-password',
   sessions: '/auth/sessions',
   terminateSession: '/auth/sessions/terminate',
@@ -29,6 +32,12 @@ export const ATTENDANCE_ENDPOINTS = {
   checkOut: '/attendance/check-out',
   manual: '/attendance/manual',
   sync: '/attendance/sync',
+  update: (attendanceId) => `/attendance/${attendanceId}`,
+  approve: (attendanceId) => `/attendance/${attendanceId}/approve`,
+  reject: (attendanceId) => `/attendance/${attendanceId}/reject`,
+  pendingApprovals: '/attendance/pending/approvals',
+  breakStart: '/attendance/break/start',
+  breakEnd: '/attendance/break/end',
 };
 
 export const LEAVE_ENDPOINTS = {
@@ -97,7 +106,12 @@ export const EMPLOYEE_ENDPOINTS = {
   },
   myTeam: (limit) => withLimit('/employees/my-team', limit),
   myProfile: '/employees/me/profile',
+  myManager: '/employees/me/manager',
   updateProfile: '/employees/profile/update',
+  myProfileChangeRequest: '/employees/me/profile-change-request',
+  profileChangesPending: '/employees/profile-change-requests/pending',
+  profileChangeApprove: (requestId) => `/employees/profile-change-requests/${requestId}/approve`,
+  profileChangeReject: (requestId) => `/employees/profile-change-requests/${requestId}/reject`,
   profile: (employeeId) => `/employees/${employeeId}/profile`,
   activate: (employeeId) => `/employees/${employeeId}/activate`,
   deactivate: (employeeId) => `/employees/${employeeId}/deactivate`,
@@ -239,8 +253,60 @@ export const PAYROLL_DETAIL_ENDPOINTS = {
 };
 
 export const PERFORMANCE_ENDPOINTS = {
-  get: (employeeId) => `/performance/${employeeId}`,
-  update: (employeeId) => `/performance/${employeeId}`,
+  reviews: (employeeId) =>
+    employeeId
+      ? `/performance/reviews?employeeId=${encodeURIComponent(employeeId)}`
+      : '/performance/reviews',
+  review: '/performance/review',
+  reviewById: (id) => `/performance/review/${id}`,
+  reviewSubmit: (id) => `/performance/review/${id}/submit`,
+  reviewApprove: (id) => `/performance/review/${id}/approve`,
+  reviewReject: (id) => `/performance/review/${id}/reject`,
+  goals: (employeeId) =>
+    employeeId
+      ? `/performance/goals?employeeId=${encodeURIComponent(employeeId)}`
+      : '/performance/goals',
+  goal: '/performance/goal',
+  goalById: (id) => `/performance/goal/${id}`,
+  goalAssign: (employeeId) => `/performance/goal/${employeeId}/assign`,
+  goalByEmployee: (employeeId) => `/performance/goal/${employeeId}`,
+  /** @deprecated use reviewByEmployee via reviews query */
+  get: (employeeId) => `/performance/review/${employeeId}`,
+  update: (employeeId) => `/performance/review/${employeeId}`,
+};
+
+export const RECRUITMENT_ENDPOINTS = {
+  jobs: '/recruitment/job',
+  job: (id) => `/recruitment/job/${id}`,
+  candidates: (jobId) =>
+    jobId ? `/recruitment/candidate?jobId=${encodeURIComponent(jobId)}` : '/recruitment/candidate',
+  candidateApply: '/recruitment/candidate/apply',
+  candidate: (id) => `/recruitment/candidate/${id}`,
+  candidateReject: (id) => `/recruitment/candidate/${id}/reject`,
+  candidateHire: (id) => `/recruitment/candidate/${id}/hire`,
+  interviews: (opts = {}) => {
+    const params = [];
+    if (opts.jobId) params.push(`jobId=${encodeURIComponent(opts.jobId)}`);
+    if (opts.candidateId) params.push(`candidateId=${encodeURIComponent(opts.candidateId)}`);
+    return params.length ? `/recruitment/interview?${params.join('&')}` : '/recruitment/interview';
+  },
+  interview: '/recruitment/interview',
+  interviewById: (id) => `/recruitment/interview/${id}`,
+};
+
+export const TOOL_PROVISIONING_ENDPOINTS = {
+  list: (status) =>
+    status ? `/tool-provisioning-tickets?status=${encodeURIComponent(status)}` : '/tool-provisioning-tickets',
+  pendingApproval: '/tool-provisioning-tickets/pending-approval',
+  get: (ticketId) => `/tool-provisioning-tickets/${ticketId}`,
+  approve: (ticketId) => `/tool-provisioning-tickets/${ticketId}/approve`,
+  reject: (ticketId) => `/tool-provisioning-tickets/${ticketId}/reject`,
+};
+
+export const EMPLOYEE_BULK_ENDPOINTS = {
+  bulkImport: '/employees/bulk/import',
+  bulkUpdate: '/employees/bulk/update',
+  transferDept: (employeeId) => `/employees/${employeeId}/transfer-dept`,
 };
 
 export const DOCUMENT_ENDPOINTS = {
@@ -290,6 +356,13 @@ export const SHIFT_ENDPOINTS = {
   getEmployeeShift: (employeeId) => `/shifts/employee/${employeeId}`,
   getEmployeeShiftHistory: (employeeId) => `/shifts/employee/${employeeId}/history`,
   getShiftEmployees: (shiftId) => `/shifts/${shiftId}/employees`,
+};
+
+export const PROJECT_ENDPOINTS = {
+  list: '/projects',
+  get: (projectId) => `/projects/${projectId}`,
+  create: '/projects',
+  update: (projectId) => `/projects/${projectId}`,
 };
 
 export const NOTIFICATION_ENDPOINTS = {

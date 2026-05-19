@@ -16,6 +16,7 @@ import {
   listByQuery,
   updateById,
 } from "../repositories/employeeRepository.js";
+import { maybeProvisionToolsAfterHire } from "./toolProvisioningService.js";
 
 const normalizeEmail = (email) => (typeof email === "string" ? email.toLowerCase().trim() : "");
 
@@ -116,6 +117,15 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
       }
     }
 
+    const assignedProjectRaw =
+      typeof body.assignedProjectId === "string"
+        ? body.assignedProjectId.trim()
+        : body.assignedProjectId;
+    const assignedProjectOid =
+      assignedProjectRaw && mongoose.Types.ObjectId.isValid(String(assignedProjectRaw))
+        ? new mongoose.Types.ObjectId(String(assignedProjectRaw))
+        : null;
+
     const employeePayload = {
       email: normalizedEmail,
       firstName: body.firstName,
@@ -127,9 +137,15 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
       managerID: body.managerID || body.managerId || null,
       managerId: body.managerId || body.managerID || null,
       joinDate: body.joinDate || new Date(),
+      joiningDate: body.joinDate || new Date(),
       dateOfBirth: body.dateOfBirth || null,
+      phoneNumber: body.phoneNumber || body.phone || "",
+      phone: body.phoneNumber || body.phone || "",
+      employmentType: body.employmentType || "FULL_TIME",
+      profileCompletionStatus: "pending_employee",
       isActive: true,
       createdBy: actorId,
+      ...(assignedProjectOid ? { assignedProjectId: assignedProjectOid } : {}),
     };
 
     const employee = await createEmployee(employeePayload, session);
@@ -199,6 +215,19 @@ const createEmployeeWithAudit = async ({ body, actorId, actorRole }) => {
     );
 
     await session.commitTransaction();
+
+    if (assignedProjectOid) {
+      try {
+        await maybeProvisionToolsAfterHire({
+          employeeId: employee._id,
+          assignedProjectId: assignedProjectOid,
+          triggeredByUserId: actorId,
+        });
+      } catch (provisionError) {
+        console.error("Tool provisioning after hire failed:", provisionError);
+      }
+    }
+
     return {
       employee,
       loginAccountCreated,

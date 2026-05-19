@@ -1,8 +1,21 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import API from '../../api/client';
-import { EMPLOYEE_ENDPOINTS } from '../../api/endpoints';
+import {
+  ATTENDANCE_ENDPOINTS,
+  EMPLOYEE_ENDPOINTS,
+  EXPERIENCE_ENDPOINTS,
+  LEAVE_ENDPOINTS,
+  PAYROLL_ENDPOINTS,
+} from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import {
+  FiBriefcase,
+  FiFolder,
+  FiLayout,
+  FiTrendingUp,
+  FiUser,
+} from 'react-icons/fi';
 import TopHeader from '../EmployeeProfile/layout/TopHeader';
 import ProfileSidebar from '../EmployeeProfile/layout/ProfileSidebar';
 import TabbedContent from '../EmployeeProfile/layout/TabbedContent';
@@ -12,12 +25,17 @@ import JobTab from '../EmployeeProfile/layout/tabs/JobTab';
 import PayrollTab from '../EmployeeProfile/layout/tabs/PayrollTab';
 import DocumentsTab from '../EmployeeProfile/layout/tabs/DocumentsTab';
 import PerformanceTab from '../EmployeeProfile/layout/tabs/PerformanceTab';
+import { formatINR } from '../../utils/currency';
+import RupeeIcon from '../icons/RupeeIcon';
+import {
+  mergeProfileWithPending,
+  submitProfileForApproval,
+} from '../../services/profileChangeApi';
 
-const formatRole = (value = '') => {
-  return String(value)
+const formatRole = (value = '') =>
+  String(value)
     .replace(/_/g, ' ')
     .toLowerCase();
-};
 
 const getLocation = (employee) => {
   const location = [
@@ -27,18 +45,52 @@ const getLocation = (employee) => {
     .filter(Boolean)
     .join(', ');
 
-  return location || 'HQ Campus';
+  return location || '—';
+};
+
+const formatDate = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+const toDateInputValue = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const formatEmploymentType = (value) => {
+  if (!value) return '—';
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const unwrapPayloadData = (response) => {
+  const body = response?.data;
+  if (body && typeof body === 'object' && 'data' in body && body.data !== undefined) {
+    return body.data;
+  }
+  return body ?? {};
 };
 
 const DEFAULT_PHONE = '+1-234-567-8900';
 const DEFAULT_EMAIL = 'employee@company.com';
-const DEFAULT_BIO = 'Focused on delivering reliable outcomes and collaborating effectively with the team.';
-
+const DEFAULT_BIO =
+  'Focused on delivering reliable outcomes and collaborating effectively with the team.';
 
 const EmployeeProfile = () => {
   const { user = {} } = useAuth();
   const [profile, setProfile] = useState({
     name: user?.name || 'Employee',
+    fullName: user?.name || 'Employee',
     role: formatRole(user?.role || 'EMPLOYEE'),
     designation: user?.designation || 'Employee',
     department: user?.department || 'General',
@@ -51,91 +103,260 @@ const EmployeeProfile = () => {
     city: '',
     state: '',
     zipCode: '',
+    country: '',
     address: '',
+    dob: '',
+    gender: '',
+    bloodGroup: '',
     emergencyContact: { name: '', relation: '', phone: '' },
+    employeeCode: '',
+    employeeMongoId: '',
+    status: '',
+    manager: '',
+    panNumber: '',
+    aadhaarNumber: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    dateOfBirthInput: '',
+    employmentType: '',
+    salary: '',
+    lastLogin: '',
+    lastUpdate: '',
   });
   const [editMode, setEditMode] = useState(false);
   const [editProfile, setEditProfile] = useState(profile);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [experienceRows, setExperienceRows] = useState([]);
+  const [payrollView, setPayrollView] = useState({
+    salary: '—',
+    bankName: '—',
+    accountNumber: '—',
+    ifsc: '—',
+    pan: '—',
+    pfNumber: '—',
+    esiNumber: '—',
+    payslips: [],
+  });
+  const [documentsList, setDocumentsList] = useState([]);
+  const [pendingProfileChange, setPendingProfileChange] = useState(null);
+  const [profileCompletionStatus, setProfileCompletionStatus] = useState('complete');
+  const [saveNotice, setSaveNotice] = useState('');
 
-  useEffect(() => {
-    let mounted = true;
-    const loadProfile = async () => {
-      try {
-        const response = await API.get(EMPLOYEE_ENDPOINTS.myProfile);
-        const employee = response?.data?.data || response?.data || {};
-        const nextProfile = {
-          name: [employee?.firstName, employee?.lastName].filter(Boolean).join(' ') || user?.name || 'Employee',
-          role: formatRole(user?.role || 'EMPLOYEE'),
-          designation: employee?.designation || 'Employee',
-          department: employee?.department || user?.department || 'General',
-          email: employee?.email || user?.email || DEFAULT_EMAIL,
-          phone: employee?.phoneNumber || employee?.phone || user?.phone || DEFAULT_PHONE,
-          location: getLocation(employee),
-          bio: DEFAULT_BIO,
-          avatar: user?.avatar || '👨‍💼',
-          city: employee?.city || employee?.address?.city || '',
-          state: employee?.state || employee?.address?.state || '',
-          zipCode: employee?.zipCode || employee?.address?.zipCode || '',
-          address: employee?.addressLine || employee?.address?.street || '',
-          emergencyContact: employee?.emergencyContact || { name: '', relation: '', phone: '' },
-        };
-        if (mounted) {
-          setProfile(nextProfile);
-          setEditProfile(nextProfile);
+  const loadProfile = useCallback(async () => {
+    try {
+      const [profileRes, managerRes] = await Promise.all([
+        API.get(EMPLOYEE_ENDPOINTS.myProfile),
+        API.get(EMPLOYEE_ENDPOINTS.myManager).catch(() => ({ data: {} })),
+      ]);
+
+      const profileBody = profileRes?.data || {};
+      const employee = unwrapPayloadData(profileRes) || profileBody.data;
+      setPendingProfileChange(profileBody.pendingProfileChange || null);
+      setProfileCompletionStatus(profileBody.profileCompletionStatus || 'complete');
+      const managerPayload = unwrapPayloadData(managerRes);
+      const managerName = managerPayload
+        ? [managerPayload.firstName, managerPayload.lastName].filter(Boolean).join(' ').trim()
+        : '';
+
+      const joinRaw = employee?.joinDate || employee?.joiningDate;
+      const fullName = [employee?.firstName, employee?.middleName, employee?.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      const nextProfile = {
+        name: fullName || user?.name || 'Employee',
+        fullName: fullName || user?.name || 'Employee',
+        role: formatRole(user?.role || 'EMPLOYEE'),
+        designation: employee?.designation || 'Employee',
+        department: employee?.department || user?.department || 'General',
+        email: employee?.email || user?.email || DEFAULT_EMAIL,
+        phone: employee?.phoneNumber || employee?.phone || user?.phone || DEFAULT_PHONE,
+        location: getLocation(employee),
+        joinDate: formatDate(joinRaw) || '—',
+        bio: DEFAULT_BIO,
+        avatar: user?.avatar || '👨‍💼',
+        city: employee?.city || employee?.address?.city || '',
+        state: employee?.state || employee?.address?.state || '',
+        zipCode: employee?.zipCode || employee?.address?.zipCode || '',
+        country: employee?.address?.country || employee?.country || '',
+        address: employee?.addressLine || employee?.address?.street || '',
+        dob: formatDate(employee?.dateOfBirth),
+        gender: employee?.gender || '',
+        bloodGroup: employee?.bloodGroup || '',
+        emergencyContact: employee?.emergencyContact || { name: '', relation: '', phone: '' },
+        employeeCode: employee?.employeeCode || '—',
+        employeeMongoId: String(employee?._id || user?.employeeId || ''),
+        status: employee?.status || '—',
+        manager: managerName || '—',
+        panNumber: employee?.panNumber ?? '',
+        aadhaarNumber: employee?.aadhaarNumber ?? '',
+        firstName: employee?.firstName || '',
+        middleName: employee?.middleName || '',
+        lastName: employee?.lastName || '',
+        dateOfBirthInput: toDateInputValue(employee?.dateOfBirth),
+        employmentType: employee?.employmentType || '',
+        salary: employee?.salary != null ? formatINR(employee.salary) : '—',
+        lastLogin: user?.lastLogin ? formatDate(user.lastLogin) : '—',
+        lastUpdate: formatDate(employee?.updatedAt) || '—',
+      };
+
+      setProfile(nextProfile);
+      setEditProfile(nextProfile);
+
+      const empId = employee?._id || user?.employeeId;
+      if (empId) {
+        try {
+          const expRes = await API.get(EXPERIENCE_ENDPOINTS.list(empId));
+          const expData = unwrapPayloadData(expRes);
+          const list = Array.isArray(expData) ? expData : [];
+          setExperienceRows(
+            list.map((row) => ({
+              role: row.jobTitle || row.role || '—',
+              company: row.companyName || row.company || '—',
+              from: formatDate(row.from),
+              to: row.to ? formatDate(row.to) : 'Present',
+            })),
+          );
+        } catch {
+          setExperienceRows([]);
         }
-      } catch (err) {
-        // Optionally handle error
+      } else {
+        setExperienceRows([]);
       }
-    };
-    loadProfile();
-    return () => {
-      mounted = false;
-    };
-  }, [user?.avatar, user?.department, user?.email, user?.name, user?.phone, user?.role]);
 
-  // Live attendance and leave stats
-  const [attendanceStats, setAttendanceStats] = useState({ present: 0, absent: 0, late: 0, percentage: 0 });
-  const [leaveStats, setLeaveStats] = useState({ totalLeaves: 0, usedLeaves: 0, sickLeaves: 0, casualLeaves: 0 });
+      const docs = Array.isArray(employee?.documents) ? employee.documents : [];
+      setDocumentsList(
+        docs.map((doc) => ({
+          name: doc.documentType || doc.fileName || 'Document',
+          url: doc.fileUrl || '#',
+        })),
+      );
+    } catch (err) {
+      console.error('Profile load failed', err);
+    }
+  }, [user?.avatar, user?.department, user?.email, user?.employeeId, user?.lastLogin, user?.name, user?.phone, user?.role]);
 
   useEffect(() => {
-    // Fetch attendance summary
+    loadProfile();
+  }, [loadProfile]);
+
+  const [attendanceStats, setAttendanceStats] = useState({
+    present: 0,
+    absent: 0,
+    late: 0,
+    percentage: 0,
+  });
+  const [leaveStats, setLeaveStats] = useState({
+    totalLeaves: 0,
+    usedLeaves: 0,
+    sickLeaves: 0,
+    casualLeaves: 0,
+  });
+
+  const employeeIdForApis = useMemo(() => user?.employeeId, [user?.employeeId]);
+
+  useEffect(() => {
     const fetchAttendanceStats = async () => {
       try {
-        const res = await API.get('/attendance/monthly-summary');
-        const d = res.data?.data || {};
+        const res = await API.get(ATTENDANCE_ENDPOINTS.monthlySummary);
+        const body = res?.data || {};
+        const summary = body.summary || {};
+        const total = summary.totalRecords || 0;
+        const present = summary.presentCount ?? 0;
+        const pct = total > 0 ? Math.round((present / total) * 100) : 0;
         setAttendanceStats({
-          present: d.daysPresent ?? d.presentDays ?? 0,
-          absent: d.daysAbsent ?? d.absentDays ?? 0,
-          late: d.lateDays ?? d.late ?? 0,
-          percentage: d.attendancePercentage ?? d.percentage ?? 0,
+          present,
+          absent: summary.absentCount ?? 0,
+          late: summary.lateCount ?? 0,
+          percentage: pct,
         });
       } catch {
         setAttendanceStats({ present: 0, absent: 0, late: 0, percentage: 0 });
       }
     };
-    // Fetch leave stats
+
     const fetchLeaveStats = async () => {
       try {
-        const res = await API.get('/leaves/balance');
-        const d = res.data?.data || {};
+        const url = employeeIdForApis
+          ? LEAVE_ENDPOINTS.balance(employeeIdForApis)
+          : LEAVE_ENDPOINTS.balance();
+        const res = await API.get(url);
+        const balances = unwrapPayloadData(res);
+        const rows = Array.isArray(balances) ? balances : [];
+        let remaining = 0;
+        let used = 0;
+        rows.forEach((b) => {
+          remaining += Number(b.remainingDays) || 0;
+          used += Number(b.usedDays) || 0;
+        });
         setLeaveStats({
-          totalLeaves: d.totalLeaves ?? 0,
-          usedLeaves: d.usedLeaves ?? 0,
-          sickLeaves: d.sickLeaves ?? 0,
-          casualLeaves: d.casualLeaves ?? 0,
+          totalLeaves: remaining + used,
+          usedLeaves: used,
+          sickLeaves: 0,
+          casualLeaves: 0,
         });
       } catch {
         setLeaveStats({ totalLeaves: 0, usedLeaves: 0, sickLeaves: 0, casualLeaves: 0 });
       }
     };
+
+    const fetchPayroll = async () => {
+      try {
+        const res = await API.get(PAYROLL_ENDPOINTS.own);
+        const body = res?.data || {};
+        const details = Array.isArray(body.details) ? body.details : [];
+        const sorted = [...details].sort(
+          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+        );
+        const latest = sorted[0];
+        const payslips = sorted.slice(0, 12).map((d) => {
+          const run = d.payrollRunId;
+          const monthLabel =
+            run && (run.month || run.label)
+              ? `${run.month || ''} ${run.year || ''}`.trim()
+              : formatDate(d.createdAt);
+          const path = d._id ? PAYROLL_ENDPOINTS.download(d._id) : '';
+          const baseURL = String(API.defaults?.baseURL || '').replace(/\/$/, '');
+          const url =
+            path && baseURL ? `${baseURL}${path.startsWith('/') ? path : `/${path}`}` : '#';
+          return {
+            month: monthLabel || 'Period',
+            year: run?.year || '',
+            url,
+          };
+        });
+        setPayrollView({
+          salary: latest?.netSalary != null ? formatINR(latest.netSalary) : '—',
+          bankName: '—',
+          accountNumber: '—',
+          ifsc: '—',
+          pan: '—',
+          pfNumber: latest?.pf != null ? String(latest.pf) : '—',
+          esiNumber: latest?.esi != null ? String(latest.esi) : '—',
+          payslips,
+        });
+      } catch {
+        setPayrollView({
+          salary: '—',
+          bankName: '—',
+          accountNumber: '—',
+          ifsc: '—',
+          pan: '—',
+          pfNumber: '—',
+          esiNumber: '—',
+          payslips: [],
+        });
+      }
+    };
+
     fetchAttendanceStats();
     fetchLeaveStats();
-  }, []);
+    fetchPayroll();
+  }, [employeeIdForApis]);
 
-
-  // Edit handlers
   const handleEdit = () => {
     setEditProfile(profile);
     setEditMode(true);
@@ -161,52 +382,105 @@ const EmployeeProfile = () => {
     }));
   };
 
-  const handleSave = async () => {
+  const buildProfilePayload = () => ({
+    firstName: editProfile.firstName,
+    middleName: editProfile.middleName,
+    lastName: editProfile.lastName,
+    phoneNumber: editProfile.phone,
+    dateOfBirth: editProfile.dateOfBirthInput || '',
+    panNumber: editProfile.panNumber,
+    aadhaarNumber: editProfile.aadhaarNumber,
+    gender: editProfile.gender,
+    bloodGroup: editProfile.bloodGroup,
+    address: editProfile.address,
+    city: editProfile.city,
+    state: editProfile.state,
+    zipCode: editProfile.zipCode,
+    country: editProfile.country,
+    emergencyContact: editProfile.emergencyContact,
+  });
+
+  const handleSaveDraft = async () => {
     setSaving(true);
     setError('');
+    setSaveNotice('');
     try {
-      // Get the employee ID from the user context
-      const employeeId = user?._id || user?.id;
-      if (!employeeId) {
-        setError('User ID not found.');
-        setSaving(false);
-        return;
-      }
-      const payload = {
-        phoneNumber: editProfile.phone,
-        address: editProfile.address,
-        city: editProfile.city,
-        state: editProfile.state,
-        zipCode: editProfile.zipCode,
-        emergencyContact: editProfile.emergencyContact,
-      };
-      await API.put(EMPLOYEE_ENDPOINTS.update(employeeId), payload);
-      setProfile((prev) => ({ ...prev, ...editProfile }));
-      setEditMode(false);
+      await submitProfileForApproval(buildProfilePayload(), { submitForApproval: false });
+      setSaveNotice('Draft saved. Submit for HR approval when you are ready.');
+      await loadProfile();
     } catch (err) {
-      setError('Failed to update profile.');
+      setError(err?.response?.data?.message || 'Failed to save draft.');
     } finally {
       setSaving(false);
     }
   };
 
-  // Tab state and config
+  const handleSubmitForApproval = async () => {
+    setSaving(true);
+    setError('');
+    setSaveNotice('');
+    try {
+      await submitProfileForApproval(buildProfilePayload(), { submitForApproval: true });
+      setEditMode(false);
+      setSaveNotice('Submitted for HR approval. Changes will show after HR reviews them.');
+      await loadProfile();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to submit profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('overview');
-  const tabs = [
-    { key: 'overview', label: 'Overview', icon: <span className="material-icons">dashboard</span> },
-    { key: 'personal', label: 'Personal', icon: <span className="material-icons">person</span> },
-    { key: 'job', label: 'Job', icon: <span className="material-icons">work</span> },
-    { key: 'payroll', label: 'Payroll', icon: <span className="material-icons">payments</span> },
-    { key: 'documents', label: 'Documents', icon: <span className="material-icons">description</span> },
-    { key: 'performance', label: 'Performance', icon: <span className="material-icons">trending_up</span> },
-  ];
+  const tabs = useMemo(
+    () => [
+      {
+        key: 'overview',
+        label: 'Profile overview',
+        icon: <FiLayout className="h-4 w-4" aria-hidden />,
+      },
+      {
+        key: 'personal',
+        label: 'Personal & contact',
+        icon: <FiUser className="h-4 w-4" aria-hidden />,
+      },
+      {
+        key: 'job',
+        label: 'Job & employment',
+        icon: <FiBriefcase className="h-4 w-4" aria-hidden />,
+      },
+      {
+        key: 'payroll',
+        label: 'Payroll & payslips',
+        icon: <RupeeIcon className="h-4 w-4" aria-hidden />,
+      },
+      {
+        key: 'documents',
+        label: 'Documents',
+        icon: <FiFolder className="h-4 w-4" aria-hidden />,
+      },
+      {
+        key: 'performance',
+        label: 'Performance',
+        icon: <FiTrendingUp className="h-4 w-4" aria-hidden />,
+      },
+    ],
+    [],
+  );
+
+  const sidebarEmployeeId = user?.employeeId || profile.employeeMongoId || '—';
+  const { display: displayProfile, hasPending } = mergeProfileWithPending(profile, pendingProfileChange);
+  const pendingReview =
+    hasPending || pendingProfileChange?.status === 'PENDING' || profileCompletionStatus === 'pending_hr';
+  const needsOnboarding =
+    profileCompletionStatus === 'pending_employee' && pendingProfileChange?.status !== 'PENDING';
 
   return (
     <div className="min-h-screen bg-slate-50">
       <TopHeader
         name={profile.name}
         role={profile.designation || profile.role}
-        status={true ? 'active' : 'inactive'}
+        status={String(profile.status || '').toUpperCase() === 'ACTIVE' ? 'active' : 'inactive'}
         onEdit={handleEdit}
         onDownload={() => {}}
         onMore={() => {}}
@@ -218,82 +492,369 @@ const EmployeeProfile = () => {
             name={profile.name}
             designation={profile.designation}
             department={profile.department}
-            employeeId={user.employeeId || user._id}
+            employeeId={sidebarEmployeeId}
             email={profile.email}
             phone={profile.phone}
             joinDate={profile.joinDate}
-            experience={'2.1 Years'}
+            experience="—"
             location={profile.location}
-            manager={profile.manager}
+            manager={profile.manager !== '—' ? profile.manager : ''}
             onMessage={() => {}}
             onViewTeam={() => {}}
             onManagerClick={() => {}}
           />
         </div>
         <main className="flex-1 min-w-0">
+          {pendingReview && !editMode ? (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <strong>Under HR review.</strong> Your submitted profile changes are pending HR approval.
+            </div>
+          ) : null}
+          {needsOnboarding && !editMode ? (
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              <strong>Complete your profile.</strong> Fill remaining details and submit for HR approval.
+            </div>
+          ) : null}
+          {saveNotice && !editMode ? (
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {saveNotice}
+            </div>
+          ) : null}
           {editMode ? (
-            <div className="bg-white rounded shadow p-6 max-w-xl mx-auto">
-              <h2 className="text-lg font-semibold mb-4">Edit Profile</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-slate-500">Phone</label>
-                  <input className="input input-bordered w-full" name="phone" value={editProfile.phone} onChange={handleChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">Address</label>
-                  <input className="input input-bordered w-full" name="address" value={editProfile.address} onChange={handleChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">City</label>
-                  <input className="input input-bordered w-full" name="city" value={editProfile.city} onChange={handleChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">State</label>
-                  <input className="input input-bordered w-full" name="state" value={editProfile.state} onChange={handleChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">Zip Code</label>
-                  <input className="input input-bordered w-full" name="zipCode" value={editProfile.zipCode} onChange={handleChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">Emergency Contact Name</label>
-                  <input className="input input-bordered w-full" name="name" value={editProfile.emergencyContact?.name || ''} onChange={handleEmergencyChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">Emergency Contact Relation</label>
-                  <input className="input input-bordered w-full" name="relation" value={editProfile.emergencyContact?.relation || ''} onChange={handleEmergencyChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">Emergency Contact Phone</label>
-                  <input className="input input-bordered w-full" name="phone" value={editProfile.emergencyContact?.phone || ''} onChange={handleEmergencyChange} />
-                </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 md:p-8 w-full max-w-4xl mx-auto space-y-8">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Edit profile</h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Save a draft or submit for HR approval. Approved changes appear on your employee record.
+                </p>
               </div>
-              {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
-              <div className="flex gap-2 mt-6">
-                <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>Cancel</button>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+                  Work details (read-only)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  These fields are maintained by HR. Contact HR if something needs to be corrected.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                  {[
+                    ['Work email', editProfile.email],
+                    ['Employee code', editProfile.employeeCode],
+                    ['Designation', editProfile.designation],
+                    ['Department', editProfile.department],
+                    ['Manager', editProfile.manager],
+                    ['Join date', editProfile.joinDate],
+                    ['Status', editProfile.status],
+                    ['Employment type', formatEmploymentType(editProfile.employmentType)],
+                    ['Salary on record', editProfile.salary],
+                  ].map(([label, val]) => (
+                    <div key={label} className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-slate-600">{label}</span>
+                      <input
+                        type="text"
+                        readOnly
+                        tabIndex={-1}
+                        className="input input-bordered w-full bg-slate-50 text-slate-700 cursor-default border-slate-200"
+                        value={val ?? ''}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Identity</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-firstName">
+                      First name
+                    </label>
+                    <input
+                      id="ep-firstName"
+                      className="input input-bordered w-full"
+                      name="firstName"
+                      value={editProfile.firstName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-middleName">
+                      Middle name
+                    </label>
+                    <input
+                      id="ep-middleName"
+                      className="input input-bordered w-full"
+                      name="middleName"
+                      value={editProfile.middleName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-lastName">
+                      Last name
+                    </label>
+                    <input
+                      id="ep-lastName"
+                      className="input input-bordered w-full"
+                      name="lastName"
+                      value={editProfile.lastName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-dob">
+                      Date of birth
+                    </label>
+                    <input
+                      id="ep-dob"
+                      type="date"
+                      className="input input-bordered w-full"
+                      name="dateOfBirthInput"
+                      value={editProfile.dateOfBirthInput}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-gender">
+                      Gender
+                    </label>
+                    <input
+                      id="ep-gender"
+                      className="input input-bordered w-full"
+                      name="gender"
+                      value={editProfile.gender}
+                      onChange={handleChange}
+                      list="ep-gender-options"
+                      placeholder="Type or pick a suggestion"
+                    />
+                    <datalist id="ep-gender-options">
+                      <option value="Male" />
+                      <option value="Female" />
+                      <option value="Other" />
+                      <option value="Prefer not to say" />
+                    </datalist>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-blood">
+                      Blood group
+                    </label>
+                    <input
+                      id="ep-blood"
+                      className="input input-bordered w-full"
+                      name="bloodGroup"
+                      value={editProfile.bloodGroup}
+                      onChange={handleChange}
+                      list="ep-blood-options"
+                      placeholder="e.g. O+"
+                    />
+                    <datalist id="ep-blood-options">
+                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'].map((bg) => (
+                        <option key={bg} value={bg} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+                  Contact & address
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-phone">
+                      Phone
+                    </label>
+                    <input
+                      id="ep-phone"
+                      className="input input-bordered w-full"
+                      name="phone"
+                      value={editProfile.phone}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-address">
+                      Street / address line
+                    </label>
+                    <input
+                      id="ep-address"
+                      className="input input-bordered w-full"
+                      name="address"
+                      value={editProfile.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-city">
+                      City
+                    </label>
+                    <input
+                      id="ep-city"
+                      className="input input-bordered w-full"
+                      name="city"
+                      value={editProfile.city}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-state">
+                      State / region
+                    </label>
+                    <input
+                      id="ep-state"
+                      className="input input-bordered w-full"
+                      name="state"
+                      value={editProfile.state}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-country">
+                      Country
+                    </label>
+                    <input
+                      id="ep-country"
+                      className="input input-bordered w-full"
+                      name="country"
+                      value={editProfile.country}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-zip">
+                      Postal code
+                    </label>
+                    <input
+                      id="ep-zip"
+                      className="input input-bordered w-full"
+                      name="zipCode"
+                      value={editProfile.zipCode}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+                  Government IDs
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-pan">
+                      PAN
+                    </label>
+                    <input
+                      id="ep-pan"
+                      className="input input-bordered w-full uppercase"
+                      name="panNumber"
+                      value={editProfile.panNumber}
+                      onChange={handleChange}
+                      autoCapitalize="characters"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-aadhaar">
+                      Aadhaar
+                    </label>
+                    <input
+                      id="ep-aadhaar"
+                      className="input input-bordered w-full"
+                      name="aadhaarNumber"
+                      value={editProfile.aadhaarNumber}
+                      onChange={handleChange}
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+                  Emergency contact
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-ec-name">
+                      Name
+                    </label>
+                    <input
+                      id="ep-ec-name"
+                      className="input input-bordered w-full"
+                      name="name"
+                      value={editProfile.emergencyContact?.name || ''}
+                      onChange={handleEmergencyChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-ec-relation">
+                      Relation
+                    </label>
+                    <input
+                      id="ep-ec-relation"
+                      className="input input-bordered w-full"
+                      name="relation"
+                      value={editProfile.emergencyContact?.relation || ''}
+                      onChange={handleEmergencyChange}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-ec-phone">
+                      Phone
+                    </label>
+                    <input
+                      id="ep-ec-phone"
+                      className="input input-bordered w-full"
+                      name="phone"
+                      value={editProfile.emergencyContact?.phone || ''}
+                      onChange={handleEmergencyChange}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {error && (
+                <div className="rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2 border border-red-100">
+                  {error}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-3 pt-2">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSubmitForApproval}
+                  disabled={saving || pendingProfileChange?.status === 'PENDING'}
+                >
+                  {saving ? 'Submitting…' : 'Submit for HR approval'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={handleSaveDraft} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save draft'}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={handleCancel} disabled={saving}>
+                  Cancel
+                </button>
               </div>
             </div>
           ) : (
             <TabbedContent tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
-              {/* Render tab content based on activeTab */}
               {activeTab === 'overview' && (
-                <OverviewTab profile={profile} attendanceStats={attendanceStats} leaveStats={leaveStats} />
+                <OverviewTab profile={displayProfile} attendanceStats={attendanceStats} leaveStats={leaveStats} />
               )}
-              {activeTab === 'personal' && (
-                <PersonalTab profile={profile} />
-              )}
-              {activeTab === 'job' && (
-                <JobTab profile={profile} experience={user.experience || []} />
-              )}
-              {activeTab === 'payroll' && (
-                <PayrollTab payroll={user.payroll || { salary: '-', bankName: '-', accountNumber: '-', ifsc: '-', pan: '-', pfNumber: '-', esiNumber: '-', payslips: [] }} />
-              )}
-              {activeTab === 'documents' && (
-                <DocumentsTab documents={user.documents || []} />
-              )}
+              {activeTab === 'personal' && <PersonalTab profile={displayProfile} />}
+              {activeTab === 'job' && <JobTab profile={displayProfile} experience={experienceRows} />}
+              {activeTab === 'payroll' && <PayrollTab payroll={payrollView} />}
+              {activeTab === 'documents' && <DocumentsTab documents={documentsList} />}
               {activeTab === 'performance' && (
-                <PerformanceTab performance={user.performance || { rating: '-', lastReview: '-', goalsMet: '-', feedback: '-', timeline: [] }} />
+                <PerformanceTab
+                  performance={{
+                    rating: '—',
+                    lastReview: '—',
+                    goalsMet: '—',
+                    feedback: '—',
+                    timeline: [],
+                  }}
+                />
               )}
             </TabbedContent>
           )}

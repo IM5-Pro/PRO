@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema(
     middleName: { type: String, default: "", trim: true },
     lastName: { type: String, default: "", trim: true },
     role: String,
+    /** Preserved when account is downgraded to EMPLOYEE during resignation notice (audit only). */
+    roleBeforeResignationNotice: { type: String, default: null },
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

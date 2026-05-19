@@ -8,18 +8,26 @@ import { FiClock, FiCheckCircle, FiXCircle, FiLogIn, FiLogOut, FiMapPin, FiAlert
 import { useTheme } from '../../context/ThemeContext';
 import AttendanceSheet from '../AttendanceSheet/AttendanceSheet';
 import { usePunch } from '../../context/PunchContext';
+import { useAuth } from '../../context/AuthContext';
+import { normalizeRole, ROLES } from '../../utils/roles';
+import BreakTrackingPanel from '../Attendance/BreakTrackingPanel';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
 import { getMonthDateRangeParams } from '../../utils/monthDateRange';
 
+const APPROVAL_ROLES = new Set([ROLES.MANAGER, ROLES.HR_ADMIN, ROLES.DEPT_ADMIN, ROLES.SUPER_ADMIN]);
+
 const Attendance = () => {
   const { colors } = useTheme();
+  const { user } = useAuth();
+  const userRole = normalizeRole(user?.role);
+  const showApprovalsLink = APPROVAL_ROLES.has(userRole);
 
   // Shared punch state from context
   const {
     punchInTime, punchOutTime, punchInLocation, punchOutLocation,
-    workingHours, attendanceStatus, loading, locationLabel, locationLoading,
-    punchIn, punchOut,
+    workingHours, attendanceStatus, todayAttendance, loading, locationLabel, locationLoading,
+    punchIn, punchOut, reload,
   } = usePunch();
 
   // Live clock
@@ -210,6 +218,36 @@ const Attendance = () => {
           );
         })}
       </div>
+
+      {punchInTime && !punchOutTime ? (
+        <div className="mb-8">
+          <BreakTrackingPanel
+            currentAttendance={todayAttendance}
+            onSuccess={() => {
+              reload?.();
+              loadMonthlySummary();
+            }}
+          />
+        </div>
+      ) : null}
+
+      {showApprovalsLink ? (
+        <div className={`mb-8 rounded-2xl border ${colors.border.primary} bg-white/80 p-5`}>
+          <p className={`text-sm font-semibold ${colors.text.primary} mb-1`}>Team attendance corrections</p>
+          <p className={`text-sm ${colors.text.tertiary} mb-3`}>
+            Review and approve pending attendance records from the approvals workspace.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.assign('/dashboard?page=attendance-approvals');
+            }}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+          >
+            Open attendance approvals
+          </button>
+        </div>
+      ) : null}
 
       {/* Attendance Sheet Calendar */}
       <div className="mt-8">

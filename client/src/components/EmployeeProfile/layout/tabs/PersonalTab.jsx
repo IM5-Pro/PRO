@@ -1,32 +1,33 @@
 import React from 'react';
 
+const sectionTitle = 'font-semibold text-lg text-slate-800 border-b border-slate-100 pb-2 mb-3';
+
 const PersonalTab = ({ profile }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="material-icons text-blue-500">person</span>
-        <h3 className="font-semibold text-lg text-slate-800">Personal Details</h3>
-      </div>
-      <div className="flex flex-wrap gap-4 mt-2">
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Full Name</span><span>{profile.fullName}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Email</span><span>{profile.email}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Phone</span><span>{profile.phone}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Address</span><span>{profile.address}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">City</span><span>{profile.city}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">State</span><span>{profile.state}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Country</span><span>{profile.country}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Pincode</span><span>{profile.pincode}</span></div>
+      <h3 className={sectionTitle}>Contact & address</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-2">
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Full name</span><span className="text-slate-800">{profile.fullName || profile.name || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Email</span><span className="text-slate-800 break-all">{profile.email}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Phone</span><span className="text-slate-800">{profile.phone}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Date of birth</span><span className="text-slate-800">{profile.dob || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Gender</span><span className="text-slate-800">{profile.gender || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Blood group</span><span className="text-slate-800">{profile.bloodGroup || '—'}</span></div>
+        <div className="flex flex-col gap-0.5 sm:col-span-2"><span className="text-xs text-slate-400">Address</span><span className="text-slate-800">{profile.address || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">City</span><span className="text-slate-800">{profile.city || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">State</span><span className="text-slate-800">{profile.state || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Country</span><span className="text-slate-800">{profile.country || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Postal code</span><span className="text-slate-800">{profile.zipCode || profile.pincode || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">PAN</span><span className="text-slate-800">{profile.panNumber || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Aadhaar</span><span className="text-slate-800">{profile.aadhaarNumber || '—'}</span></div>
       </div>
     </div>
     <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="material-icons text-blue-500">contacts</span>
-        <h3 className="font-semibold text-lg text-slate-800">Emergency Contact</h3>
-      </div>
-      <div className="flex flex-wrap gap-4 mt-2">
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Name</span><span>{profile.emergencyContact?.name || '-'}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Relation</span><span>{profile.emergencyContact?.relation || '-'}</span></div>
-        <div className="flex flex-col"><span className="text-xs text-slate-400">Phone</span><span>{profile.emergencyContact?.phone || '-'}</span></div>
+      <h3 className={sectionTitle}>Emergency contact</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-2">
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Name</span><span className="text-slate-800">{profile.emergencyContact?.name || '—'}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-xs text-slate-400">Relation</span><span className="text-slate-800">{profile.emergencyContact?.relation || '—'}</span></div>
+        <div className="flex flex-col gap-0.5 sm:col-span-2"><span className="text-xs text-slate-400">Phone</span><span className="text-slate-800">{profile.emergencyContact?.phone || '—'}</span></div>
       </div>
     </div>
   </div>

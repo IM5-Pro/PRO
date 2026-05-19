@@ -447,6 +447,37 @@ const ROLE_PERMISSIONS = {
       reject: true,
       cancel: false,
     },
+
+    // Recruitment
+    recruitment: {
+      create_job: false,
+      update_job: true,
+      delete_job: false,
+      view_jobs: true,
+      apply_candidate: false,
+      update_candidate: true,
+      delete_candidate: false,
+      schedule_interview: true,
+      update_interview: true,
+      reject_candidate: true,
+      hire_candidate: false,
+    },
+
+    // Performance
+    performance: {
+      create_review: false,
+      update_review: true,
+      delete_review: false,
+      view_review: true,
+      submit_review: false,
+      approve_review: true,
+      reject_review: true,
+      goal_create: true,
+      goal_update: true,
+      goal_delete: false,
+      goal_assign: true,
+      goal_view: true,
+    },
   },
 
   EMPLOYEE: {
@@ -594,6 +625,37 @@ const ROLE_PERMISSIONS = {
       approve: false,
       reject: false,
       cancel: true, // Cancel own pending resignation
+    },
+
+    // Recruitment (job board)
+    recruitment: {
+      create_job: false,
+      update_job: false,
+      delete_job: false,
+      view_jobs: true,
+      apply_candidate: true,
+      update_candidate: false,
+      delete_candidate: false,
+      schedule_interview: false,
+      update_interview: false,
+      reject_candidate: false,
+      hire_candidate: false,
+    },
+
+    // Performance
+    performance: {
+      create_review: false,
+      update_review: false,
+      delete_review: false,
+      view_review: true,
+      submit_review: true,
+      approve_review: false,
+      reject_review: false,
+      goal_create: false,
+      goal_update: false,
+      goal_delete: false,
+      goal_assign: false,
+      goal_view: true,
     },
   },
 
@@ -752,6 +814,21 @@ const ROLE_PERMISSIONS = {
       approve: true, // Department-scoped approvals
       reject: true,
       cancel: false,
+    },
+
+    performance: {
+      create_review: false,
+      update_review: false,
+      delete_review: false,
+      view_review: true,
+      submit_review: false,
+      approve_review: true,
+      reject_review: true,
+      goal_create: false,
+      goal_update: false,
+      goal_delete: false,
+      goal_assign: false,
+      goal_view: true,
     },
   },
 

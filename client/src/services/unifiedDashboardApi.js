@@ -437,6 +437,7 @@ export const createEmployeeRecord = async ({
   salary,
   joinDate,
   dateOfBirth,
+  employmentType,
   phoneNumber,
   managerName,
   managerEmail,
@@ -445,6 +446,7 @@ export const createEmployeeRecord = async ({
   state,
   zipCode,
   accountRole,
+  assignedProjectId,
 }) => {
   const normalizedFirstName = String(firstName || '').trim();
   const normalizedLastName = String(lastName || '').trim();
@@ -521,6 +523,11 @@ export const createEmployeeRecord = async ({
     payload.dateOfBirth = normalizedDateOfBirth;
   }
 
+  const normalizedEmploymentType = String(employmentType || '').trim().toUpperCase();
+  if (normalizedEmploymentType) {
+    payload.employmentType = normalizedEmploymentType;
+  }
+
   const normalizedPhoneNumber = String(phoneNumber || '').trim();
   if (normalizedPhoneNumber) {
     if (!/^\d{10}$/.test(normalizedPhoneNumber)) {
@@ -547,6 +554,11 @@ export const createEmployeeRecord = async ({
     }
 
     payload.zipCode = normalizedZipCode;
+  }
+
+  const normalizedProjectId = String(assignedProjectId || '').trim();
+  if (normalizedProjectId) {
+    payload.assignedProjectId = normalizedProjectId;
   }
 
   const response = await API.post(EMPLOYEE_ENDPOINTS.create, payload);

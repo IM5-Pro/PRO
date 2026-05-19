@@ -1,9 +1,5 @@
 import axios from 'axios';
-import { getCookie, setCookie, removeCookie } from '../utils/cookies';
 
-const AUTH_COOKIE = 'authToken';
-const REFRESH_COOKIE = 'refreshToken';
-const USER_COOKIE = 'user';
 const PUNCH_COOKIES = ['isPunchedIn', 'punchInTime', 'hasPunchedInToday', 'punchDayKey', 'dailyWorkingHours'];
 const AUTH_EXEMPT_401_PATHS = [
   '/auth/login',
@@ -12,13 +8,15 @@ const AUTH_EXEMPT_401_PATHS = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/complete-initial-password',
+  '/auth/refresh-token',
 ];
 
-const clearSessionCookies = () => {
-  removeCookie(AUTH_COOKIE);
-  removeCookie(REFRESH_COOKIE);
-  removeCookie(USER_COOKIE);
-  PUNCH_COOKIES.forEach((name) => removeCookie(name));
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:7888/api';
+
+const clearPunchCookies = () => {
+  PUNCH_COOKIES.forEach((name) => {
+    document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Strict`;
+  });
 };
 
 const redirectToLoginWithCurrentPath = () => {
@@ -33,21 +31,23 @@ const isAuthExemptRequest = (url = '') => {
 };
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:7888/api',
+  baseURL: API_BASE,
+  withCredentials: true,
 });
 
-API.interceptors.request.use(
-  (config) => {
-    const token = getCookie(AUTH_COOKIE);
+let refreshPromise = null;
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+const refreshSession = async () => {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_BASE}/auth/refresh-token`, {}, { withCredentials: true })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
 
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  return refreshPromise;
+};
 
 API.interceptors.response.use(
   (response) => response,
@@ -55,43 +55,24 @@ API.interceptors.response.use(
     const status = error?.response?.status;
     const requestUrl = error?.config?.url || '';
     const isAuthExempt = isAuthExemptRequest(requestUrl);
+    const originalConfig = error?.config;
 
-    // 403 can be a valid permission denial for logged-in users.
-    // Any non-auth 401 means the user session is no longer valid.
-    if (status === 401 && !isAuthExempt) {
-      const refreshToken = getCookie(REFRESH_COOKIE);
-      if (refreshToken && !requestUrl.includes('/refresh-token')) {
-        try {
-          const refreshResponse = await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:7888/api'}/auth/refresh-token`,
-            { refreshToken }
-          );
+    if (status === 401 && !isAuthExempt && originalConfig && !originalConfig._retry) {
+      originalConfig._retry = true;
 
-          const refreshed = refreshResponse?.data?.data;
-          if (refreshed?.accessToken) {
-            setCookie(AUTH_COOKIE, refreshed.accessToken, 8 * 60 * 60); // 8h as in AuthContext
-            if (refreshed?.refreshToken) {
-              setCookie(REFRESH_COOKIE, refreshed.refreshToken, 7 * 24 * 60 * 60);
-            }
-            // retry original request with new access token
-            const originalConfig = error.config;
-            originalConfig.headers = originalConfig.headers || {};
-            originalConfig.headers.Authorization = `Bearer ${refreshed.accessToken}`;
-            return axios(originalConfig);
-          }
-        } catch (refreshError) {
-          // refresh failed, continue to logout below
+      try {
+        await refreshSession();
+        return API(originalConfig);
+      } catch (_refreshError) {
+        clearPunchCookies();
+        if (!window.location.pathname.startsWith('/login')) {
+          redirectToLoginWithCurrentPath();
         }
-      }
-
-      clearSessionCookies();
-      if (!window.location.pathname.startsWith('/login')) {
-        redirectToLoginWithCurrentPath();
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default API;

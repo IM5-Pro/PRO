@@ -27,9 +27,9 @@ const ProfileSidebar = ({
     <div className="text-xs text-slate-400 mb-2">{email}</div>
     <div className="text-xs text-slate-400 mb-4">{phone}</div>
     <div className="flex flex-col gap-1 w-full text-xs text-slate-600 mb-4">
-      <div>📅 Joined: {joinDate}</div>
-      <div>🕒 Experience: {experience}</div>
-      <div>📍 {location}</div>
+      <div>Joined: {joinDate || '—'}</div>
+      <div>Experience: {experience}</div>
+      <div>Location: {location}</div>
     </div>
     {manager && (
       <div className="mb-3 text-xs text-blue-600 cursor-pointer" onClick={onManagerClick} title="View Manager Profile">

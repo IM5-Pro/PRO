@@ -20,7 +20,7 @@ import {
   deleteShift,
   createManualAttendance,
 } from "../controllers/AttendanceController.js";
-import { permissionGuard } from "../middleware/permissionGuard.js";
+import { permissionGuard, multiPermissionGuard } from "../middleware/permissionGuard.js";
 import authGuard from "../middleware/authGuard.js";
 
 const router = express.Router();
@@ -73,7 +73,10 @@ router.get(
 
 router.get(
   "/monthly-summary",
-  permissionGuard("attendance", "view_team"),
+  multiPermissionGuard([
+    { resource: "attendance", action: "view_team" },
+    { resource: "attendance", action: "view_own" },
+  ]),
   monthlySummary
 );
 
@@ -162,8 +165,14 @@ router.get(
   async (req, res) => {
     try {
       const { getPendingApprovals } = await import("../services/attendanceAutoMarkService.js");
-      const managerId = req.user.id;
-      const pendingRecords = await getPendingApprovals(managerId);
+      const { getResolvedEmployeeIdFromAuth } = await import(
+        "../services/attendancePunchService.js"
+      );
+      const managerEmployeeId = await getResolvedEmployeeIdFromAuth(req);
+      const pendingRecords = await getPendingApprovals({
+        userRole: req.user?.role,
+        managerEmployeeId,
+      });
       res.json({ success: true, data: pendingRecords });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });

@@ -18,7 +18,8 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { FiBarChart2, FiBriefcase, FiClock, FiDollarSign, FiEdit2, FiTrendingUp, FiUserPlus, FiUsers, FiAlertCircle } from 'react-icons/fi';
+import { FiBarChart2, FiBriefcase, FiClock, FiEdit2, FiTrendingUp, FiUserPlus, FiUsers, FiAlertCircle } from 'react-icons/fi';
+import RupeeIcon from '../../icons/RupeeIcon';
 import { useTheme } from '../../../context/ThemeContext';
 import manpowerPlanningApi from '../../../services/manpowerPlanningApi';
 
@@ -523,7 +524,7 @@ const ManpowerPlanning = ({ user = {}, pageConfig = {}, onUserUpdate = () => {},
                 { label: 'Create Plan', icon: FiEdit2, onClick: () => handlePlanningSubmit({ source: 'quick-action' }) },
                 { label: 'View Reports', icon: FiTrendingUp, page: 'announcements' },
                 { label: 'Department Stats', icon: FiBarChart2, page: 'masters' },
-                { label: 'Budget Review', icon: FiDollarSign, page: 'hr-payroll' },
+                { label: 'Budget Review', icon: RupeeIcon, page: 'hr-payroll' },
                 { label: 'Recruitment', icon: FiUserPlus, page: 'user-management' },
               ].map((action, idx) => {
                 const ActionIcon = action.icon;

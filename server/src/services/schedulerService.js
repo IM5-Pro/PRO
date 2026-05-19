@@ -5,6 +5,7 @@
 
 import { CronJob } from "cron";
 import { autoMarkAttendance } from "./attendanceAutoMarkService.js";
+import { processResignationNoticeCompletions } from "./resignationNoticeService.js";
 
 let scheduledJobs = [];
 
@@ -32,6 +33,23 @@ export const initializeScheduledJobs = () => {
       name: "autoMarkAttendance",
       job: autoMarkJob,
       schedule: "0 22 * * * (10 PM daily)",
+    });
+
+    const resignationNoticeJob = new CronJob("15 1 * * *", async () => {
+      console.log(
+        `\n⏰ Running scheduled task: Resignation notice completions at ${new Date().toISOString()}`,
+      );
+      try {
+        await processResignationNoticeCompletions();
+      } catch (err) {
+        console.error("Error in resignation notice job:", err);
+      }
+    }, null, true);
+
+    scheduledJobs.push({
+      name: "resignationNoticeCompletions",
+      job: resignationNoticeJob,
+      schedule: "15 1 * * * (01:15 UTC daily)",
     });
 
     console.log("✅ Scheduled jobs initialized:");
@@ -76,4 +94,8 @@ export const triggerAutoMark = async () => {
   }
 };
 
-export default { initializeScheduledJobs, stopScheduledJobs, triggerAutoMark };
+export const triggerResignationNoticeCompletions = async () => {
+  return processResignationNoticeCompletions();
+};
+
+export default { initializeScheduledJobs, stopScheduledJobs, triggerAutoMark, triggerResignationNoticeCompletions };

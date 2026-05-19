@@ -5,7 +5,9 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiSearch, FiFilter, FiMail, FiPhone, FiMapPin, FiMoreVertical, FiPlus, FiKey, FiCalendar, FiBriefcase, FiHash, FiUser, FiDollarSign, FiAlertCircle } from 'react-icons/fi';
+import { FiUsers, FiSearch, FiFilter, FiMail, FiPhone, FiMapPin, FiMoreVertical, FiPlus, FiKey, FiCalendar, FiBriefcase, FiHash, FiUser, FiAlertCircle } from 'react-icons/fi';
+import RupeeIcon from '../icons/RupeeIcon';
+import { formatINR } from '../../utils/currency';
 import API from '../../api/client';
 import { EMPLOYEE_ENDPOINTS, USER_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
@@ -946,7 +948,7 @@ const Employees = () => {
                       <InfoRow icon={FiMapPin} value={location} />
                       <InfoRow icon={FiCalendar} value={joinDate ? `Joined ${new Date(joinDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}` : null} />
                       {canCreateEmployee && emp.salary != null && emp.salary > 0 && (
-                        <InfoRow icon={FiDollarSign} value={`₹${Number(emp.salary).toLocaleString()} / month`} />
+                        <InfoRow icon={RupeeIcon} value={`${formatINR(emp.salary, { wholeNumber: true })} / month`} />
                       )}
 
                       {/* Emergency Contact */}

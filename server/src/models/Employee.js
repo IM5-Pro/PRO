@@ -66,6 +66,8 @@ const employeeSchema = new mongoose.Schema(
     joinDate: { type: Date, default: Date.now },
     joiningDate: { type: Date, default: Date.now },
     dateOfBirth: { type: Date },
+    gender: { type: String, trim: true, default: "" },
+    bloodGroup: { type: String, trim: true, default: "" },
     employmentType: {
       type: String,
       enum: ["FULL_TIME", "PART_TIME", "CONTRACT"],
@@ -81,6 +83,12 @@ const employeeSchema = new mongoose.Schema(
     salaryTemplateId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SalaryTemplate",
+    },
+    assignedProjectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      default: null,
+      index: true,
     },
     address: {
       street: { type: String, default: "" },
@@ -99,6 +107,11 @@ const employeeSchema = new mongoose.Schema(
       phone: { type: String, default: "" },
     },
     documents: [employeeDocumentSchema],
+    profileCompletionStatus: {
+      type: String,
+      enum: ["pending_employee", "pending_hr", "complete"],
+      default: "pending_employee",
+    },
     status: {
       type: String,
       enum: ["ACTIVE", "RESIGNED", "TERMINATED"],

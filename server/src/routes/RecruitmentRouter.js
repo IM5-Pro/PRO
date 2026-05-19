@@ -34,6 +34,20 @@ router.get(
   recruitmentController.viewJobs,
 );
 
+router.get(
+  "/candidate",
+  authGuard,
+  permissionGuard("recruitment.view_jobs"),
+  recruitmentController.listCandidates,
+);
+
+router.get(
+  "/interview",
+  authGuard,
+  permissionGuard("recruitment.view_jobs"),
+  recruitmentController.listInterviews,
+);
+
 // candidate actions
 router.post(
   "/candidate/apply",

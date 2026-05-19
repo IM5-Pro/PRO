@@ -12,8 +12,11 @@ import {
   processPayrollRun,
   rejectLeaveRequest,
 } from '../../../services/unifiedDashboardApi';
+import { formatINR } from '../../../utils/currency';
 
 const apiPayload = (response) => response?.data || {};
+
+const MONEY_COLUMN_PATTERN = /salary|gross|net|payout|budget|ctc|basic|hra|amount|pay|deduction|earning|total/i;
 
 const extractListRows = (payload) => {
   if (Array.isArray(payload)) {
@@ -25,7 +28,7 @@ const extractListRows = (payload) => {
   return [];
 };
 
-const formatValue = (value) => {
+const formatValue = (value, columnKey = '') => {
   if (value === null || value === undefined) {
     return '-';
   }
@@ -40,6 +43,20 @@ const formatValue = (value) => {
     }
 
     return JSON.stringify(value).slice(0, 60);
+  }
+
+  if (columnKey && MONEY_COLUMN_PATTERN.test(columnKey)) {
+    const inr = formatINR(value);
+    if (inr !== '—') {
+      return inr;
+    }
+  }
+
+  if (typeof value === 'string' && /[$₹]/.test(value)) {
+    const inr = formatINR(value);
+    if (inr !== '—') {
+      return inr;
+    }
   }
 
   return String(value);
@@ -186,6 +203,12 @@ const buildRoleActions = (role, pageId) => {
         { key: 'salary', label: 'Salary (optional)', placeholder: 'Enter salary amount', inputType: 'number', required: false },
         { key: 'joinDate', label: 'Join Date (optional)', placeholder: 'YYYY-MM-DD', inputType: 'date', required: false },
         { key: 'phoneNumber', label: 'Phone Number (optional)', placeholder: '10-digit phone number', required: false },
+        { key: 'employmentType', label: 'Employment type (optional)', placeholder: 'Select type', inputType: 'select', options: [
+          { value: 'FULL_TIME', label: 'Full time' },
+          { value: 'PART_TIME', label: 'Part time' },
+          { value: 'CONTRACT', label: 'Contract' },
+        ], required: false },
+        { key: 'dateOfBirth', label: 'Date of birth (optional)', placeholder: 'YYYY-MM-DD', inputType: 'date', required: false },
         { key: 'managerId', label: 'Reporting Manager (optional)', placeholder: 'Select manager', inputType: 'select', required: false },
         {
           key: 'accountRole',
@@ -212,6 +235,8 @@ const buildRoleActions = (role, pageId) => {
           salary: values.salary,
           joinDate: values.joinDate,
           phoneNumber: values.phoneNumber,
+          employmentType: values.employmentType,
+          dateOfBirth: values.dateOfBirth,
           managerId: values.managerId,
           accountRole: values.accountRole,
         });
@@ -918,9 +943,12 @@ const RolePage = ({ title, description, role, pageId }) => {
       )}
 
       {loading ? (
-        <div className="flex items-center gap-3 text-slate-400 py-16">
-          <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-          Loading records...
+        <div className="flex items-center justify-center gap-3 py-16 text-slate-500">
+          <div
+            className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600"
+            aria-hidden="true"
+          />
+          <span className="text-sm font-medium leading-none">Loading records...</span>
         </div>
       ) : datasets.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">
@@ -988,7 +1016,7 @@ const RolePage = ({ title, description, role, pageId }) => {
                                   {col === 'isActive' || col === 'status' ? (
                                     <StatusBadge value={row[col]} col={col} />
                                   ) : (
-                                    formatValue(row[col])
+                                    formatValue(row[col], col)
                                   )}
                                 </td>
                               ))}

@@ -8,6 +8,7 @@ import {
   LEAVE_ENDPOINTS,
   PAYROLL_ENDPOINTS,
   PERMISSION_ENDPOINTS,
+  PROJECT_ENDPOINTS,
   ROLE_ENDPOINTS,
   USER_ENDPOINTS,
 } from '../api/endpoints';
@@ -137,6 +138,12 @@ export const resetEmployeePassword = async (employeeId) => {
 
 export const fetchDepartments = async () => {
   const response = await API.get(`${DEPARTMENT_ENDPOINTS.list}?limit=${MASTERS_PAGE_LIMIT}`);
+  const payload = toPayload(response);
+  return extractRows(payload, ['data']);
+};
+
+export const fetchProjects = async () => {
+  const response = await API.get(PROJECT_ENDPOINTS.list);
   const payload = toPayload(response);
   return extractRows(payload, ['data']);
 };

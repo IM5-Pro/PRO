@@ -10,13 +10,14 @@ const TopHeader = ({ name, role, status = 'active', onEdit, onDownload, onMore }
     <div className="flex items-center gap-4">
       <div className="text-xl font-bold text-slate-800">{name}</div>
       <div className="text-base text-slate-500 font-medium">{role}</div>
-      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[status] || statusColors.active}`}
-        >{status === 'active' ? '🟢 Active' : '🔴 Inactive'}</span>
+      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[status] || statusColors.active}`}>
+        {status === 'active' ? 'Active' : 'Inactive'}
+      </span>
     </div>
     <div className="flex items-center gap-2">
-      <button className="btn-secondary btn-xs" onClick={onEdit} title="Edit Profile">✏️ Edit Profile</button>
-      <button className="btn-secondary btn-xs" onClick={onDownload} title="Download Profile">📄 Download</button>
-      <button className="btn-secondary btn-xs" onClick={onMore} title="More Actions">⚙️ More</button>
+      <button type="button" className="btn-secondary btn-xs" onClick={onEdit} title="Edit profile">Edit profile</button>
+      <button type="button" className="btn-secondary btn-xs" onClick={onDownload} title="Download profile">Download</button>
+      <button type="button" className="btn-secondary btn-xs" onClick={onMore} title="More actions">More</button>
     </div>
   </header>
 );

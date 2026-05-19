@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiCheckCircle, FiDollarSign, FiDownload, FiLock, FiRefreshCw, FiUnlock, FiXCircle } from 'react-icons/fi';
+import { FiCheckCircle, FiDownload, FiLock, FiRefreshCw, FiUnlock, FiXCircle } from 'react-icons/fi';
+import RupeeIcon from '../../icons/RupeeIcon';
 import {
   createPayrollRun,
   fetchPayrollRuns,
@@ -10,11 +11,7 @@ import {
   toErrorMessage,
   unlockPayrollRun,
 } from '../../../services/adminOperationsApi';
-
-const formatCurrency = (value) => {
-  const amount = Number(value || 0);
-  return amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
+import { formatINR } from '../../../utils/currency';
 
 const HRPayroll = () => {
   const [runs, setRuns] = useState([]);
@@ -170,7 +167,7 @@ const HRPayroll = () => {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-              <FiDollarSign size={30} /> Payroll Management
+              <RupeeIcon size={30} /> Payroll Management
             </h1>
             <p className="text-slate-600 mt-1">Run monthly payroll, process, and generate payslips</p>
           </div>
@@ -251,7 +248,7 @@ const HRPayroll = () => {
                       >
                         <td className="py-3 px-3 text-slate-800 font-medium">{run?.month || '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{run?.status || '-'}</td>
-                        <td className="py-3 px-3 text-slate-700">INR {formatCurrency(run?.totalPayout || 0)}</td>
+                        <td className="py-3 px-3 text-slate-700">{formatINR(run?.totalPayout || 0)}</td>
                         <td className="py-3 px-3 text-slate-700">{run?.createdAt ? new Date(run.createdAt).toLocaleDateString() : '-'}</td>
                       </tr>
                     );
@@ -303,15 +300,15 @@ const HRPayroll = () => {
         </div>
         <div className="rounded-xl bg-white border border-slate-200 p-4">
           <p className="text-xs text-slate-500">Gross</p>
-          <p className="text-2xl font-bold text-slate-800">INR {formatCurrency(payrollSummary.grossTotal)}</p>
+          <p className="text-2xl font-bold text-slate-800">{formatINR(payrollSummary.grossTotal)}</p>
         </div>
         <div className="rounded-xl bg-white border border-slate-200 p-4">
           <p className="text-xs text-slate-500">Deductions</p>
-          <p className="text-2xl font-bold text-slate-800">INR {formatCurrency(payrollSummary.deductionsTotal)}</p>
+          <p className="text-2xl font-bold text-slate-800">{formatINR(payrollSummary.deductionsTotal)}</p>
         </div>
         <div className="rounded-xl bg-white border border-slate-200 p-4">
           <p className="text-xs text-slate-500">Net Payout</p>
-          <p className="text-2xl font-bold text-slate-800">INR {formatCurrency(payrollSummary.netTotal)}</p>
+          <p className="text-2xl font-bold text-slate-800">{formatINR(payrollSummary.netTotal)}</p>
         </div>
       </div>
 
@@ -343,9 +340,9 @@ const HRPayroll = () => {
                   return (
                     <tr key={slip?._id || slip?.id} className="border-b border-slate-100">
                       <td className="py-3 px-3 text-slate-800 font-medium">{employeeName}</td>
-                      <td className="py-3 px-3 text-slate-700">INR {formatCurrency(slip?.grossSalary || 0)}</td>
-                      <td className="py-3 px-3 text-slate-700">INR {formatCurrency(slip?.totalDeductions || 0)}</td>
-                      <td className="py-3 px-3 text-slate-700">INR {formatCurrency(slip?.netSalary || 0)}</td>
+                      <td className="py-3 px-3 text-slate-700">{formatINR(slip?.grossSalary || 0)}</td>
+                      <td className="py-3 px-3 text-slate-700">{formatINR(slip?.totalDeductions || 0)}</td>
+                      <td className="py-3 px-3 text-slate-700">{formatINR(slip?.netSalary || 0)}</td>
                       <td className="py-3 px-3">
                         <a
                           href={getPayrollDownloadUrl(slip?._id || slip?.id)}

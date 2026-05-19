@@ -8,6 +8,12 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -15,7 +21,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
-  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#root {
+  min-height: 100dvh;
 }
 
 code {
@@ -166,6 +176,10 @@ code {
     @apply px-6 py-3 font-semibold rounded-xl transition-all duration-300 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
 
+  .spinner {
+    @apply inline-block h-5 w-5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin;
+  }
+
   .btn-primary {
     @apply btn-base bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:shadow-blue-500/40 hover:-translate-y-0.5;
   }
@@ -279,6 +293,26 @@ code {
 }
 
 @layer components {
+}
+
+/* Dashboard fills the viewport edge-to-edge */
+.app-shell {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  z-index: 0;
+}
+
+.app-shell .min-h-screen {
+  min-height: 100%;
+}
+
+.app-shell aside {
+  height: 100%;
+  max-height: 100%;
 }
 
 /* Enterprise visual consistency for app pages (excludes login/auth screens). */

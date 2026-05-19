@@ -3,9 +3,10 @@
  * Custom CSS for the HRMS Dashboard
  */
 
-/* Smooth scrolling behavior */
+/* Slightly denser UI via root rem scale (avoids zoom: 90% leaving empty space at the bottom) */
 html {
   scroll-behavior: auto;
+  font-size: 90%;
 }
 
 /* Scrollbar styling */

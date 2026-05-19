@@ -296,8 +296,8 @@ const Masters = () => {
                 </option>
               ))}
             </select>
-            <input type="number" min="0" value={designationForm.minSalary} onChange={updateForm(setDesignationForm, 'minSalary')} placeholder="Min salary" className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <input type="number" min="0" value={designationForm.maxSalary} onChange={updateForm(setDesignationForm, 'maxSalary')} placeholder="Max salary" className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="number" min="0" value={designationForm.minSalary} onChange={updateForm(setDesignationForm, 'minSalary')} placeholder="Min salary (₹)" className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="number" min="0" value={designationForm.maxSalary} onChange={updateForm(setDesignationForm, 'maxSalary')} placeholder="Max salary (₹)" className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <input type="number" min="0" value={designationForm.maxHeadcount} onChange={updateForm(setDesignationForm, 'maxHeadcount')} placeholder="Max headcount" className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <button type="submit" disabled={actionLoading === 'create-designation'} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50">
               <span className="inline-flex items-center gap-2">

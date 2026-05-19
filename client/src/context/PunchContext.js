@@ -38,6 +38,7 @@ export const PunchProvider = ({ children }) => {
   const [punchOutLocation, setPunchOutLocation] = useState(null);
   const [workingHours, setWorkingHours] = useState(null);
   const [attendanceStatus, setAttendanceStatus] = useState(null);
+  const [todayAttendance, setTodayAttendance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [locationLabel, setLocationLabel] = useState('Office');
   const [coords, setCoords] = useState(null);
@@ -83,6 +84,7 @@ export const PunchProvider = ({ children }) => {
     setPunchOutLocation(null);
     setWorkingHours(null);
     setAttendanceStatus(null);
+    setTodayAttendance(null);
   }, []);
 
   const syncPunchStorage = useCallback((status, hasPunchedToday, checkInTime = null) => {
@@ -226,6 +228,7 @@ export const PunchProvider = ({ children }) => {
       const openRecord = records.find((r) => r?.checkInTime && !r?.checkOutTime);
       const datedRecord = records.find((r) => toDayKey(r?.attendanceDate || r?.checkInTime) === todayKey);
       const todayRecord = openRecord || datedRecord || null;
+      setTodayAttendance(todayRecord);
 
       if (todayRecord) {
         if (todayRecord.checkInTime) {
@@ -249,10 +252,12 @@ export const PunchProvider = ({ children }) => {
 
         setAttendanceStatus(todayRecord.status);
       } else {
+        setTodayAttendance(null);
         clearPunchState();
         syncPunchStorage(null, false);
       }
     } catch {
+      setTodayAttendance(null);
       clearPunchState();
     } finally {
       setLoading(false);
@@ -386,6 +391,7 @@ export const PunchProvider = ({ children }) => {
       punchOutLocation,
       workingHours,
       attendanceStatus,
+      todayAttendance,
       loading,
       locationLabel,
       locationLoading,

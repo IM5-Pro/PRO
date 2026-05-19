@@ -16,6 +16,7 @@ import Register from './components/Register/Register';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import UnifiedDashboard from './components/UnifiedDashboard/UnifiedDashboard';
 import PunchInOut from './components/PunchInOut/PunchInOut';
+import LoadingSpinner from './components/Auth/LoadingSpinner';
 import { getCookie } from './utils/cookies';
 import { ROLES } from './utils/roles';
 
@@ -54,16 +55,7 @@ const AppContent = () => {
   // LOADING STATE
   // ============================================================================
   if (loading) {
-    return (
-      <div className="app-loading-bg flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="text-center">
-          <div className="inline-block">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-slate-700 text-lg font-semibold">Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner variant="fullpage" message="Loading..." size="lg" />;
   }
 
   // ============================================================================

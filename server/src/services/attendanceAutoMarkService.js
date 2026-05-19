@@ -246,25 +246,44 @@ export const autoMarkAttendance = async () => {
   }
 };
 
-/**
- * Get pending attendance approvals for a manager
- */
-export const getPendingApprovals = async (managerId) => {
-  try {
-    // Get employees managed by this manager
-    const managedEmployees = await Employee.find({ managerId });
-    const employeeIds = managedEmployees.map((emp) => emp._id);
+const managedEmployeesQuery = (managerEmployeeId) => ({
+  $or: [
+    { manager: managerEmployeeId },
+    { managerId: managerEmployeeId },
+    { managerID: managerEmployeeId },
+  ],
+});
 
-    // Get pending manual attendance records
-    const pendingRecords = await Attendance.find({
-      employee: { $in: employeeIds },
+/**
+ * Get pending attendance approvals for a manager or HR admin.
+ * @param {{ userRole?: string, managerEmployeeId?: string }} options
+ */
+export const getPendingApprovals = async ({ userRole, managerEmployeeId } = {}) => {
+  try {
+    const query = {
       approvalStatus: "Pending",
-      requiresManagerApproval: true,
       isArchived: false,
-    })
-      .populate("employee", "firstName lastName email")
+    };
+
+    const isOrgWideViewer =
+      userRole === "SUPER_ADMIN" || userRole === "HR_ADMIN" || userRole === "DEPT_ADMIN";
+
+    if (!isOrgWideViewer) {
+      if (!managerEmployeeId) {
+        return [];
+      }
+      const managedEmployees = await Employee.find(managedEmployeesQuery(managerEmployeeId));
+      const employeeIds = managedEmployees.map((emp) => emp._id);
+      if (!employeeIds.length) {
+        return [];
+      }
+      query.employee = { $in: employeeIds };
+    }
+
+    const pendingRecords = await Attendance.find(query)
+      .populate("employee", "firstName lastName email employeeCode designation department")
       .populate("shift")
-      .sort({ createdAt: -1 });
+      .sort({ attendanceDate: -1, createdAt: -1 });
 
     return pendingRecords;
   } catch (err) {

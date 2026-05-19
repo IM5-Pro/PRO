@@ -1,3 +1,4 @@
+/** Non-auth UI flags only — JWTs are HttpOnly cookies set by the API (`hrms_access`, `hrms_refresh`). */
 const shouldUseSecureCookie = () => window.location.protocol === 'https:';
 
 export const setCookie = (name, value, maxAgeSeconds = 86400) => {

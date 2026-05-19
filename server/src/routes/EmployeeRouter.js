@@ -2,6 +2,7 @@ import express from "express";
 import authGuard from "../middleware/authGuard.js";
 import roleGuard from "../middleware/roleGuard.js";
 import * as employeeController from "../controllers/EmployeeController.js";
+import * as profileChangeController from "../controllers/EmployeeProfileChangeController.js";
 
 const router = express.Router();
 
@@ -139,13 +140,44 @@ router.get(
 );
 
 /**
- * Update own profile (EMPLOYEE only)
+ * Profile change approvals (HR)
+ */
+router.get(
+  "/profile-change-requests/pending",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN"),
+  profileChangeController.listPendingForHr,
+);
+
+router.post(
+  "/profile-change-requests/:requestId/approve",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN"),
+  profileChangeController.approveRequest,
+);
+
+router.post(
+  "/profile-change-requests/:requestId/reject",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN"),
+  profileChangeController.rejectRequest,
+);
+
+router.get(
+  "/me/profile-change-request",
+  authGuard,
+  roleGuard("EMPLOYEE"),
+  profileChangeController.getMyPendingProfileChange,
+);
+
+/**
+ * Update own profile — employees submit for HR approval; HR uses PUT /:employeeId
  * PUT /api/employees/profile/update
  */
 router.put(
   "/profile/update",
   authGuard,
-  roleGuard("SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"),
+  roleGuard("EMPLOYEE"),
   employeeController.updateProfile
 );
 

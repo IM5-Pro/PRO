@@ -109,7 +109,6 @@ const ExperienceSection = ({ employeeId }) => {
         <div className="text-red-500">{error}</div>
       ) : filteredExperience.length === 0 ? (
         <div className="text-gray-400 flex flex-col items-center py-6">
-          <span className="material-icons text-4xl mb-2">work</span>
           <span>No experience records found.</span>
         </div>
       ) : (

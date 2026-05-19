@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/AuthRouter.js";
@@ -31,6 +32,9 @@ import educationRoutes from "./src/routes/EducationRouter.js";
 import experienceRoutes from "./src/routes/ExperienceRouter.js";
 import assetRoutes from "./src/routes/AssetRouter.js";
 import systemAccessRoutes from "./src/routes/SystemAccessRouter.js";
+import projectRoutes from "./src/routes/ProjectRouter.js";
+import toolProvisioningRoutes from "./src/routes/ToolProvisioningRouter.js";
+import securityHeaders from "./src/middleware/securityHeaders.js";
 
 dotenv.config();
 
@@ -51,6 +55,8 @@ connectDB().then(() => {
     initializeScheduledJobs();
   })();
 });
+app.use(securityHeaders);
+
 // Middleware
 /* app.use(
   cors({
@@ -77,9 +83,11 @@ app.use(
       }
     },
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -107,6 +115,8 @@ app.use("/api/education", educationRoutes);
 app.use("/api/experience", experienceRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/system-access", systemAccessRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/tool-provisioning-tickets", toolProvisioningRoutes);
 
 // start server only when not running tests
 if (process.env.NODE_ENV !== "test") {

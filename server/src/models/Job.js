@@ -8,7 +8,7 @@ const jobSchema = new mongoose.Schema(
     designationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Designation",
-      required: true,
+      default: null,
     },
     location: { type: String, required: true },
     jobType: {
@@ -17,8 +17,8 @@ const jobSchema = new mongoose.Schema(
       required: true,
     },
     salaryRange: {
-      min: { type: Number, required: true },
-      max: { type: Number, required: true },
+      min: { type: Number, default: 0 },
+      max: { type: Number, default: 0 },
     },
     requiredSkills: [{ type: String }],
     requirements: { type: String },

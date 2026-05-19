@@ -5,6 +5,20 @@ import {permissionGuard} from "../middleware/permissionGuard.js";
 
 const router = express.Router();
 
+router.get(
+  "/reviews",
+  authGuard,
+  permissionGuard("performance.view_review"),
+  performanceController.listReviews,
+);
+
+router.get(
+  "/goals",
+  authGuard,
+  permissionGuard("performance.goal_view"),
+  performanceController.listGoals,
+);
+
 // review endpoints
 router.post(
   "/review",

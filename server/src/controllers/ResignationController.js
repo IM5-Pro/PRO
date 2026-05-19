@@ -20,6 +20,11 @@ import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 import mongoose from "mongoose";
+import {
+  applyNoticePeriodRoleDowngrade,
+  finalizeResignationAfterNotice,
+  isNoticePeriodEnded,
+} from "../services/resignationNoticeService.js";
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -599,28 +604,25 @@ export const approveResignation = async (req, res) => {
       resignation.hrApprovalAt = new Date();
       resignation.hrApprovedBy = userId;
       resignation.hrApprovalNotes = approvalNotes || "";
-      resignation.approvedLastDayOfWork =
-        approvedLastDayOfWork || resignation.requestedLastDayOfWork;
-
-      // Update employee status
-      await Employee.findByIdAndUpdate(
-        resignation.employeeId,
-        {
-          status: "RESIGNED",
-          $push: {
-            statusHistory: {
-              status: "RESIGNED",
-              changedAt: new Date(),
-              changedBy: userId,
-            },
-          },
-        },
-        { session }
+      resignation.approvedLastDayOfWork = new Date(
+        approvedLastDayOfWork || resignation.requestedLastDayOfWork,
       );
     }
 
     resignation.updatedBy = userId;
     await resignation.save({ session });
+
+    if (approverRole === "HR_ADMIN" || approverRole === "SUPER_ADMIN") {
+      if (isNoticePeriodEnded(resignation.approvedLastDayOfWork)) {
+        const fin = await finalizeResignationAfterNotice(resignation._id, userId, session);
+        if (fin.updated) {
+          resignation.status = "COMPLETED";
+        }
+      } else {
+        await applyNoticePeriodRoleDowngrade(resignation.employeeId, session);
+      }
+    }
+
     await session.commitTransaction();
     session.endSession();
 

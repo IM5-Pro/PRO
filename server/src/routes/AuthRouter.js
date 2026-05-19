@@ -31,6 +31,7 @@ router.post(
 
 router.post("/login", loginRateLimiter, authController.login);
 router.post("/refresh-token", authController.refreshToken);
+router.get("/me", authGuard, authController.getCurrentUser);
 router.post("/forgot-username", authController.forgotUsername);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);

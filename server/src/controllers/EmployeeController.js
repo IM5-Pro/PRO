@@ -18,47 +18,11 @@ import {
 } from "../services/employeeService.js";
 import { assignDesignationToEmployee } from "../services/designationAssignmentService.js";
 import { generateSignedDocumentUrl } from "../utils/documentSigner.js";
-
-const resolveCurrentEmployee = async (userId, employeeIdHint = null) => {
-  const populateQuery = (query) => query
-    .populate("managerID", "firstName lastName email designation")
-    .populate("managerId", "firstName lastName email designation");
-
-  const normalizedHint =
-    typeof employeeIdHint === "string" && employeeIdHint.trim()
-      ? employeeIdHint.trim()
-      : employeeIdHint;
-
-  if (normalizedHint) {
-    const employeeByHint = await populateQuery(Employee.findById(normalizedHint));
-    if (employeeByHint) {
-      return employeeByHint;
-    }
-  }
-
-  const authUser = await User.findById(userId).select("employeeId").lean();
-  if (authUser?.employeeId) {
-    const employeeByLinkedId = await populateQuery(Employee.findById(authUser.employeeId));
-    if (employeeByLinkedId) {
-      return employeeByLinkedId;
-    }
-  }
-
-  let employee = await populateQuery(Employee.findById(userId));
-
-  if (!employee) {
-    employee = await populateQuery(Employee.findOne({ createdBy: userId }));
-  }
-
-  return employee;
-};
-
-const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const resolveCurrentEmployeeId = async (userId, employeeIdHint = null) => {
-  const currentEmployee = await resolveCurrentEmployee(userId, employeeIdHint);
-  return currentEmployee?._id?.toString() || null;
-};
+import {
+  escapeRegex,
+  resolveCurrentEmployee,
+  resolveCurrentEmployeeId,
+} from "../services/employeeContextService.js";
 
 /**
  * Create new employee (HR_ADMIN, SUPER_ADMIN only)
@@ -267,8 +231,15 @@ const myProfile = async (req, res) => {
       return sendError(res, 404, "Employee profile not found for current user");
     }
 
+    const { getActiveProfileChangeRequest } = await import(
+      "../services/employeeProfileChangeService.js"
+    );
+    const pendingProfileChange = await getActiveProfileChangeRequest(employee._id);
+
     return sendSuccess(res, 200, "Profile retrieved successfully", {
       data: employee,
+      profileCompletionStatus: employee.profileCompletionStatus || "complete",
+      pendingProfileChange: pendingProfileChange || null,
     });
   } catch (err) {
     console.error("My profile error:", err);
@@ -604,38 +575,27 @@ const viewProfile = async (req, res) => {
 
 /**
  * Update own profile (EMPLOYEE)
+ * Persists fields HR can view on the employee record; syncs linked User name fields.
  */
 const updateProfile = async (req, res) => {
   try {
-    const employeeId = req.user.id;
-    const allowedFields = [
-      "phoneNumber",
-      "address",
-      "addressLine",
-      "city",
-      "state",
-      "zipCode",
-      "emergencyContact",
-    ];
-
-    // Filter to allow only certain fields
-    const updateData = {};
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
-      }
-    });
-
-    if (typeof req.body.address === "string") {
-      updateData.addressLine = req.body.address;
-      updateData.address = {
-        street: req.body.address,
-        city: req.body.city || "",
-        state: req.body.state || "",
-        country: "",
-        zipCode: req.body.zipCode || "",
-      };
+    if (req.user.role === "EMPLOYEE") {
+      const { submitProfileUpdateForEmployee } = await import(
+        "./EmployeeProfileChangeController.js"
+      );
+      return submitProfileUpdateForEmployee(req, res);
     }
+
+    const employeeId = await resolveCurrentEmployeeId(req.user.id, req.user.employeeId);
+    if (!employeeId) {
+      return res.status(403).json({
+        success: false,
+        message: "Employee profile not linked to this account",
+      });
+    }
+
+    const trim = (v) => (typeof v === "string" ? v.trim() : v);
+    const body = req.body || {};
 
     const employee = await Employee.findById(employeeId);
     if (!employee) {
@@ -645,30 +605,137 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    const updatedEmployee = await Employee.findByIdAndUpdate(
-      employeeId,
-      updateData,
-      { new: true }
+    const updateData = {};
+
+    if (body.firstName !== undefined) {
+      updateData.firstName = trim(body.firstName) || employee.firstName;
+    }
+    if (body.middleName !== undefined) {
+      updateData.middleName = trim(body.middleName) || "";
+    }
+    if (body.lastName !== undefined) {
+      updateData.lastName = trim(body.lastName) || employee.lastName;
+    }
+
+    if (body.phoneNumber !== undefined) {
+      updateData.phoneNumber = trim(body.phoneNumber) || "";
+      updateData.phone = updateData.phoneNumber;
+    }
+
+    if (body.dateOfBirth !== undefined && body.dateOfBirth !== null && String(body.dateOfBirth).trim() !== "") {
+      const d = new Date(body.dateOfBirth);
+      updateData.dateOfBirth = Number.isNaN(d.getTime()) ? employee.dateOfBirth : d;
+    } else if (body.dateOfBirth === "" || body.dateOfBirth === null) {
+      updateData.dateOfBirth = null;
+    }
+
+    if (body.panNumber !== undefined) {
+      const pan = trim(body.panNumber)?.toUpperCase() || "";
+      updateData.panNumber = pan || null;
+    }
+    if (body.aadhaarNumber !== undefined) {
+      updateData.aadhaarNumber = trim(body.aadhaarNumber)?.replace(/\s/g, "") || null;
+    }
+    if (body.gender !== undefined) {
+      updateData.gender = trim(body.gender) || "";
+    }
+    if (body.bloodGroup !== undefined) {
+      updateData.bloodGroup = trim(body.bloodGroup) || "";
+    }
+
+    if (body.emergencyContact !== undefined && typeof body.emergencyContact === "object") {
+      updateData.emergencyContact = {
+        name: trim(body.emergencyContact.name) || "",
+        relation: trim(body.emergencyContact.relation) || "",
+        phone: trim(body.emergencyContact.phone) || "",
+      };
+    }
+
+    const existingStreet =
+      trim(employee.addressLine) ||
+      trim(employee.address?.street) ||
+      "";
+    const street =
+      typeof body.address === "string"
+        ? trim(body.address)
+        : body.addressLine !== undefined
+          ? trim(body.addressLine)
+          : existingStreet;
+    const city = body.city !== undefined ? trim(body.city) : employee.city || "";
+    const state = body.state !== undefined ? trim(body.state) : employee.state || "";
+    const zipCode = body.zipCode !== undefined ? trim(body.zipCode) : employee.zipCode || "";
+    const country =
+      body.country !== undefined
+        ? trim(body.country)
+        : (employee.address && employee.address.country) || "";
+
+    if (
+      body.address !== undefined ||
+      body.addressLine !== undefined ||
+      body.city !== undefined ||
+      body.state !== undefined ||
+      body.zipCode !== undefined ||
+      body.country !== undefined
+    ) {
+      updateData.addressLine = street;
+      updateData.city = city;
+      updateData.state = state;
+      updateData.zipCode = zipCode;
+      updateData.address = {
+        street: street || "",
+        city: city || "",
+        state: state || "",
+        country: country || "",
+        zipCode: zipCode || "",
+      };
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid fields to update",
+      });
+    }
+
+    updateData.updatedBy = req.user.id;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(employeeId, updateData, { new: true });
+
+    await User.updateMany(
+      { employeeId: updatedEmployee._id },
+      {
+        $set: {
+          firstName: updatedEmployee.firstName || "",
+          middleName: updatedEmployee.middleName || "",
+          lastName: updatedEmployee.lastName || "",
+        },
+      },
     );
 
-    // Log action
     await AuditLog.create({
       userId: req.user.id,
       action: "employee.update_profile",
       entityType: "Employee",
       entityId: employeeId,
-      description: `Updated own profile`,
+      description: "Updated own profile",
       changes: updateData,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
       data: updatedEmployee,
     });
   } catch (err) {
     console.error("Update profile error:", err);
-    res.status(500).json({
+    if (err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Duplicate value (PAN or Aadhaar may already be in use)",
+        error: err.message,
+      });
+    }
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: err.message,
