@@ -262,6 +262,7 @@ export const getPendingApprovals = async ({ userRole, managerEmployeeId } = {}) 
   try {
     const query = {
       approvalStatus: "Pending",
+      requiresManagerApproval: true,
       isArchived: false,
     };
 

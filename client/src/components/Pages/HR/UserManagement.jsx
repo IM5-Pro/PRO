@@ -24,9 +24,9 @@ import {
   fetchDepartments,
   fetchDesignations,
   fetchDesignationsByDepartment,
+  fetchManagersByDepartment,
   fetchProjects,
   fetchAdminEmployees,
-  fetchAllAdminEmployees,
   fetchEmployeeProfile,
   resetEmployeePassword,
   toErrorMessage,
@@ -46,6 +46,7 @@ const EMPTY_CREATE_FORM = {
   phoneNumber: '',
   accountRole: 'EMPLOYEE',
   assignedProjectId: '',
+  managerId: '',
 };
 
 const EMPTY_EDIT_FORM = {
@@ -287,15 +288,41 @@ const HRUserManagement = () => {
     loadReferenceData();
   }, [loadReferenceData]);
 
-  const loadManagerOptions = useCallback(async () => {
+  const mapManagerRows = useCallback((rows) => {
+    return (Array.isArray(rows) ? rows : [])
+      .map((manager, index) => {
+        const id = toOptionId(manager?._id || manager?.id || `manager-${index}`);
+        const name = [manager?.firstName, manager?.lastName].filter(Boolean).join(' ').trim()
+          || String(manager?.email || '').trim()
+          || 'Manager';
+
+        return {
+          id,
+          name,
+          email: manager?.email || '',
+          department: manager?.department || '',
+          designation: manager?.designation || 'Manager',
+        };
+      })
+      .filter((manager) => manager.id)
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, []);
+
+  const loadManagerOptions = useCallback(async (department, search = '') => {
+    const normalizedDepartment = String(department || '').trim();
+    if (!normalizedDepartment) {
+      setManagerOptions([]);
+      return;
+    }
+
     setManagerOptionsLoading(true);
     try {
-      const rows = await fetchAllAdminEmployees(200);
-      const mapped = rows
-        .map((employee, index) => toEmployeeCard(employee, index))
-        .filter((employee) => employee.id && employee.name)
-        .sort((left, right) => left.name.localeCompare(right.name));
-      setManagerOptions(mapped);
+      const rows = await fetchManagersByDepartment({
+        department: normalizedDepartment,
+        search,
+        limit: 200,
+      });
+      setManagerOptions(mapManagerRows(rows));
     } catch (error) {
       setManagerOptions([]);
       setBanner((previous) => {
@@ -307,14 +334,31 @@ const HRUserManagement = () => {
     } finally {
       setManagerOptionsLoading(false);
     }
-  }, []);
+  }, [mapManagerRows]);
 
   useEffect(() => {
     if (!editOpen) {
       return;
     }
-    loadManagerOptions();
-  }, [editOpen, loadManagerOptions]);
+
+    const timer = setTimeout(() => {
+      loadManagerOptions(editForm.department, managerSearchQuery);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [editOpen, editForm.department, loadManagerOptions, managerSearchQuery]);
+
+  useEffect(() => {
+    if (!createOpen) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      loadManagerOptions(createForm.department);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [createOpen, createForm.department, loadManagerOptions]);
 
   const filteredManagerOptions = useMemo(() => {
     const normalizedQuery = normalizeText(managerSearchQuery);
@@ -646,6 +690,7 @@ const HRUserManagement = () => {
                   && !isDesignationInDepartment(previous.designation, nextValue, selectedCreateDepartmentRecord?.id)
                     ? ''
                     : previous.designation,
+                managerId: '',
               }
             : {
                 [field]: nextValue,
@@ -693,6 +738,7 @@ const HRUserManagement = () => {
                 && !isDesignationInDepartment(previous.designation, nextValue, selectedEditDepartmentRecord?.id)
                   ? ''
                   : previous.designation,
+              managerId: '',
             }
           : {
               [field]: nextValue,
@@ -1337,12 +1383,31 @@ const HRUserManagement = () => {
                       <input value={createForm.phoneNumber} onChange={setCreateValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Manager Name</label>
-                      <input value={createForm.managerName} onChange={setCreateValue('managerName')} placeholder="Manager name" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Manager Email</label>
-                      <input type="email" value={createForm.managerEmail} onChange={setCreateValue('managerEmail')} placeholder="manager@ispace.com" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Reporting Manager (optional)</label>
+                      <select
+                        value={createForm.managerId}
+                        onChange={setCreateValue('managerId')}
+                        disabled={!createForm.department || managerOptionsLoading}
+                        className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
+                      >
+                        <option value="">
+                          {!createForm.department
+                            ? 'Select department first'
+                            : managerOptionsLoading
+                              ? 'Loading managers...'
+                              : 'No manager assigned'}
+                        </option>
+                        {filteredManagerOptions.map((managerOption) => (
+                          <option key={managerOption.id} value={managerOption.id}>
+                            {managerOption.name} — {managerOption.designation}
+                          </option>
+                        ))}
+                      </select>
+                      {createForm.department && !managerOptionsLoading && filteredManagerOptions.length === 0 && (
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          No managers found in {createForm.department}. Assign a department head or manager role in that department.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Account Role</label>
@@ -1485,11 +1550,15 @@ const HRUserManagement = () => {
                           <select
                             value={editForm.managerId}
                             onChange={setEditValue('managerId')}
-                            disabled={managerOptionsLoading}
+                            disabled={!editForm.department || managerOptionsLoading}
                             className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
                           >
                             <option value="">
-                              {managerOptionsLoading ? 'Loading employees...' : 'No manager assigned'}
+                              {!editForm.department
+                                ? 'Select department first'
+                                : managerOptionsLoading
+                                  ? 'Loading managers...'
+                                  : 'No manager assigned'}
                             </option>
                             {filteredManagerOptions.map((managerOption) => (
                               <option key={managerOption.id} value={managerOption.id}>

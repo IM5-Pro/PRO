@@ -26,28 +26,13 @@ const AttendanceApprovals = () => {
     setLoading(true);
     setError('');
     try {
-      let list = [];
-      try {
-        const pendingRes = await API.get(ATTENDANCE_ENDPOINTS.pendingApprovals);
-        const pendingData = unwrap(pendingRes);
-        list = Array.isArray(pendingData) ? pendingData : pendingData?.records || [];
-      } catch {
-        /* fall back to team list */
-      }
-      if (!list.length) {
-        const res = await API.get(ATTENDANCE_ENDPOINTS.team(200));
-        const data = unwrap(res);
-        const teamList = Array.isArray(data) ? data : data?.records || data?.attendance || [];
-        list = teamList.filter(
-          (r) =>
-            String(r.approvalStatus || r.status || '').toLowerCase().includes('pending') ||
-            r.requiresApproval === true,
-        );
-        if (!list.length) list = teamList.slice(0, 50);
-      }
+      const pendingRes = await API.get(ATTENDANCE_ENDPOINTS.pendingApprovals);
+      const pendingData = unwrap(pendingRes);
+      const list = Array.isArray(pendingData) ? pendingData : pendingData?.records || [];
       setRows(list);
     } catch (err) {
-      setError(toErrorMessage(err, 'Failed to load attendance records'));
+      setRows([]);
+      setError(toErrorMessage(err, 'Failed to load pending attendance approvals'));
     } finally {
       setLoading(false);
     }
@@ -95,7 +80,7 @@ const AttendanceApprovals = () => {
               {!loading && rows.length === 0 && (
                 <tr>
                   <td colSpan={3} className="px-4 py-8 text-center text-slate-500">
-                    No records to review
+                    No manual attendance entries awaiting approval
                   </td>
                 </tr>
               )}

@@ -104,6 +104,28 @@ export const fetchEmployeeProfile = async (employeeId) => {
   return unwrapData(payload);
 };
 
+export const fetchManagersByDepartment = async ({
+  department = '',
+  search = '',
+  limit = 200,
+} = {}) => {
+  const normalizedDepartment = String(department || '').trim();
+  if (!normalizedDepartment) {
+    return [];
+  }
+
+  const normalizedSearch = String(search || '').trim();
+  const response = await API.get(
+    EMPLOYEE_ENDPOINTS.managers({
+      limit,
+      department: normalizedDepartment,
+      search: normalizedSearch || undefined,
+    }),
+  );
+  const payload = toPayload(response);
+  return extractRows(payload, ['data']);
+};
+
 export const createAdminEmployee = async (input) => {
   return createEmployeeRecord(input);
 };

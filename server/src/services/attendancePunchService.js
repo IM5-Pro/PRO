@@ -343,6 +343,10 @@ const syncAttendanceTotalsFromPunches = async ({
     .join(" | ");
   attendance.updatedBy = actorId;
 
+  if (!attendance.requiresManagerApproval && !attendance.manuallyAddedBy) {
+    attendance.approvalStatus = "Approved";
+  }
+
   await attendance.save();
   return attendance;
 };

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Employee from "../models/Employee.js";
+import Department from "../models/Department.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
 import EmployeeDesignationHistory from "../models/EmployeeDesignationHistory.js";
@@ -91,6 +92,61 @@ const listEmployees = async (req, res) => {
   }
 };
 
+const buildManagerDepartmentFilter = async (normalizedDepartment) => {
+  const departmentLabels = new Set([normalizedDepartment]);
+
+  const deptDoc = await Department.findOne({
+    $or: [
+      { name: { $regex: `^${escapeRegex(normalizedDepartment)}$`, $options: "i" } },
+      { code: { $regex: `^${escapeRegex(normalizedDepartment)}$`, $options: "i" } },
+    ],
+  }).lean();
+
+  if (deptDoc?.name) {
+    departmentLabels.add(String(deptDoc.name).trim());
+  }
+  if (deptDoc?.code) {
+    departmentLabels.add(String(deptDoc.code).trim());
+  }
+
+  const departmentOr = [...departmentLabels]
+    .filter(Boolean)
+    .map((label) => ({
+      department: { $regex: `^${escapeRegex(label)}$`, $options: "i" },
+    }));
+
+  return { deptDoc, departmentOr };
+};
+
+const buildManagerEmployeeFilters = async ({ normalizedDepartment, normalizedSearch }) => {
+  const filters = [{ isActive: true }];
+
+  if (normalizedDepartment) {
+    const { departmentOr } = await buildManagerDepartmentFilter(normalizedDepartment);
+    if (departmentOr.length > 0) {
+      filters.push({ $or: departmentOr });
+    }
+  }
+
+  if (normalizedSearch) {
+    const searchRegex = new RegExp(escapeRegex(normalizedSearch), "i");
+    filters.push({
+      $or: [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { email: searchRegex },
+        { designation: searchRegex },
+      ],
+    });
+  }
+
+  if (filters.length === 1) {
+    return filters[0];
+  }
+
+  return { $and: filters };
+};
+
 /**
  * List managers for assignment dropdown (HR_ADMIN, SUPER_ADMIN)
  */
@@ -101,23 +157,18 @@ const listManagers = async (req, res) => {
     const normalizedDepartment = String(department || "").trim();
     const normalizedSearch = String(search || "").trim();
 
-    const sharedFilters = { isActive: true };
-    if (normalizedDepartment) {
-      sharedFilters.department = { $regex: `^${escapeRegex(normalizedDepartment)}$`, $options: "i" };
+    if (!normalizedDepartment) {
+      return sendSuccess(res, 200, "Managers retrieved successfully", { data: [] });
     }
 
-    if (normalizedSearch) {
-      const searchRegex = new RegExp(escapeRegex(normalizedSearch), "i");
-      sharedFilters.$or = [
-        { firstName: searchRegex },
-        { lastName: searchRegex },
-        { email: searchRegex },
-        { designation: searchRegex },
-      ];
-    }
+    const { deptDoc } = await buildManagerDepartmentFilter(normalizedDepartment);
+    const sharedFilters = await buildManagerEmployeeFilters({
+      normalizedDepartment,
+      normalizedSearch,
+    });
 
     const managerUsers = await User.find({
-      role: "MANAGER",
+      role: { $in: ["MANAGER", "DEPT_ADMIN"] },
       isActive: true,
       employeeId: { $exists: true, $ne: null },
     })
@@ -128,7 +179,7 @@ const listManagers = async (req, res) => {
       .map((user) => user.employeeId)
       .filter(Boolean);
 
-    const [roleManagers, designationManagers] = await Promise.all([
+    const [roleManagers, designationManagers, departmentHead] = await Promise.all([
       managerEmployeeIds.length > 0
         ? Employee.find({ _id: { $in: managerEmployeeIds }, ...sharedFilters })
             .select("firstName lastName email designation department")
@@ -144,12 +195,21 @@ const listManagers = async (req, res) => {
         .sort({ firstName: 1 })
         .limit(parsedLimit)
         .lean(),
+      deptDoc?.managerId
+        ? Employee.findOne({ _id: deptDoc.managerId, isActive: true })
+            .select("firstName lastName email designation department")
+            .lean()
+        : Promise.resolve(null),
     ]);
 
     const merged = new Map();
     [...roleManagers, ...designationManagers].forEach((manager) => {
       merged.set(String(manager._id), manager);
     });
+
+    if (departmentHead?._id) {
+      merged.set(String(departmentHead._id), departmentHead);
+    }
 
     const managers = [...merged.values()].sort((left, right) => {
       const leftName = `${left.firstName || ""} ${left.lastName || ""}`.trim();

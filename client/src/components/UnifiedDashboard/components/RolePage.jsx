@@ -445,15 +445,19 @@ const RolePage = ({ title, description, role, pageId }) => {
       return;
     }
 
+    const department = String(selectedCreateEmployeeDepartment || '').trim();
+    if (!department) {
+      setCreateEmployeeManagers({ rows: [], loading: false });
+      return;
+    }
+
     let active = true;
     setCreateEmployeeManagers((previous) => ({ ...previous, loading: true }));
-
-    const department = String(selectedCreateEmployeeDepartment || '').trim();
 
     API.get(
       EMPLOYEE_ENDPOINTS.managers({
         limit: 200,
-        department: department || undefined,
+        department,
       }),
     )
       .then((response) => {
@@ -474,6 +478,31 @@ const RolePage = ({ title, description, role, pageId }) => {
       active = false;
     };
   }, [openActionId, selectedCreateEmployeeDepartment]);
+
+  useEffect(() => {
+    if (openActionId !== 'create-employee') {
+      return;
+    }
+
+    const selectedManagerId = String(formValues['create-employee']?.managerId || '').trim();
+    if (!selectedManagerId) {
+      return;
+    }
+
+    const stillValid = (createEmployeeManagers.rows || []).some(
+      (manager) => normalizeId(manager?._id || manager?.id) === selectedManagerId,
+    );
+
+    if (!stillValid) {
+      setFormValues((previous) => ({
+        ...previous,
+        'create-employee': {
+          ...(previous['create-employee'] || {}),
+          managerId: '',
+        },
+      }));
+    }
+  }, [openActionId, createEmployeeManagers.rows, formValues]);
 
   const runAction = useCallback(
     async (action, overrides = {}) => {
@@ -759,6 +788,9 @@ const RolePage = ({ title, description, role, pageId }) => {
       return getFilteredDesignationsForCreate(actionValues.department);
     }
     if (field.key === 'managerId') {
+      if (!String(actionValues.department || '').trim()) {
+        return [];
+      }
       return managerSelectOptions;
     }
     return field.options || [];
@@ -880,7 +912,7 @@ const RolePage = ({ title, description, role, pageId }) => {
                             && (
                               (field.key === 'department' && createEmployeeMasters.loading)
                               || (field.key === 'designation' && createEmployeeMasters.loading)
-                              || (field.key === 'managerId' && createEmployeeManagers.loading)
+                              || (field.key === 'managerId' && (!values.department || createEmployeeManagers.loading))
                             )
                           }
                           className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white disabled:opacity-60"
@@ -890,9 +922,11 @@ const RolePage = ({ title, description, role, pageId }) => {
                               ? 'Loading departments...'
                               : action.id === 'create-employee' && field.key === 'designation' && createEmployeeMasters.loading
                                 ? 'Loading designations...'
-                                : action.id === 'create-employee' && field.key === 'managerId' && createEmployeeManagers.loading
-                                  ? 'Loading managers...'
-                                  : field.placeholder || `Select ${field.label}`}
+                                : action.id === 'create-employee' && field.key === 'managerId' && !values.department
+                                  ? 'Select department first'
+                                  : action.id === 'create-employee' && field.key === 'managerId' && createEmployeeManagers.loading
+                                    ? 'Loading managers...'
+                                    : field.placeholder || `Select ${field.label}`}
                           </option>
                           {(action.id === 'create-employee' ? getCreateEmployeeFieldOptions(field, values) : (field.options || []))
                             .map((option) => {

@@ -5,10 +5,10 @@
     <link rel="icon" href="%PUBLIC_URL%/icon1.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <!-- Baseline CSP for XSS risk reduction; tighten connect-src for production API host -->
+    <!-- CSP via meta: script/style/connect rules only. frame-ancestors is ignored in meta (use X-Frame-Options / CSP header on the host). -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://localhost:7888 http://localhost:5000 https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://localhost:7888 http://localhost:5000 https:; base-uri 'self'; form-action 'self'"
     />
     <meta
       name="IM5-Pro"

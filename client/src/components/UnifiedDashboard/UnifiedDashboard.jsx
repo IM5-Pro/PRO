@@ -17,9 +17,18 @@ import { sortPagesForSidebar } from '../../utils/sidebarNav';
 import { filterShippedPages } from '../../config/portalNavManifest';
 import {
   resolvePortalPageComponent,
+  resolvePortalPageForContext,
   isOperationsPage,
   isStandaloneStandardPage,
 } from '../../config/portalRoutes';
+import {
+  PORTAL_MODES,
+  canSwitchPortal,
+  getPortalModeOptions,
+  isWorkPortalMode,
+  persistPortalMode,
+  resolveActivePortalMode,
+} from '../../utils/portalMode';
 import { fetchDashboardWidgetValues } from '../../services/unifiedDashboardApi';
 import {
   attachMonoIconsToPages,
@@ -45,6 +54,18 @@ const UnifiedDashboard = () => {
 
   const userRole = user?.role || ROLES.EMPLOYEE;
   const isSingleDashboardLayout = SINGLE_DASHBOARD_ROLES.includes(userRole);
+  const portalSwitcherEnabled = canSwitchPortal(userRole);
+
+  const portalMode = useMemo(
+    () => resolveActivePortalMode(userRole, searchParams),
+    [searchParams, userRole],
+  );
+
+  const currentPage = searchParams.get('page') || 'dashboard';
+
+  const isWorkPortal = isWorkPortalMode(userRole, portalMode);
+  const widgetFetchRole = isWorkPortal ? ROLES.EMPLOYEE : userRole;
+  const portalModeOptions = useMemo(() => getPortalModeOptions(userRole), [userRole]);
 
   const workContextLine = useMemo(
     () => formatWorkContextLine(user?.designation, user?.department),
@@ -52,7 +73,9 @@ const UnifiedDashboard = () => {
   );
 
   const roleConfig = useMemo(() => {
-    const baseConfig = ROLE_DASHBOARD_CONFIG[userRole] || ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE];
+    const baseConfig = isWorkPortal
+      ? ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE]
+      : ROLE_DASHBOARD_CONFIG[userRole] || ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE];
     const withIcons = {
       ...baseConfig,
       pages: attachMonoIconsToPages(sortPagesForSidebar(filterShippedPages(baseConfig.pages))),
@@ -63,58 +86,66 @@ const UnifiedDashboard = () => {
       department: user?.department,
       role: userRole,
     });
-  }, [userRole, user?.designation, user?.department]);
+  }, [isWorkPortal, userRole, user?.designation, user?.department]);
 
-  const [currentPage, setCurrentPage] = useState(() => searchParams.get('page') || 'dashboard');
-
-  useEffect(() => {
-    const pageFromUrl = searchParams.get('page');
-    if (!pageFromUrl) {
-      return;
-    }
-
-    setCurrentPage((previousPage) => {
-      return previousPage === pageFromUrl ? previousPage : pageFromUrl;
-    });
-  }, [searchParams]);
+  const applySearchParams = useCallback(
+    (mutator) => {
+      const nextParams = new URLSearchParams(searchParams);
+      mutator(nextParams);
+      const nextQuery = nextParams.toString();
+      if (nextQuery === searchParams.toString()) {
+        return;
+      }
+      setSearchParams(nextParams, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
 
   useEffect(() => {
     const hasPage =
       roleConfig.pages.some((page) => page.id === currentPage) ||
       GLOBAL_PORTAL_PAGE_IDS.includes(currentPage);
     if (!hasPage && currentPage !== 'dashboard') {
-      setCurrentPage('dashboard');
+      applySearchParams((nextParams) => {
+        nextParams.delete('page');
+      });
     }
-  }, [currentPage, roleConfig.pages]);
+  }, [applySearchParams, currentPage, roleConfig.pages]);
 
   useEffect(() => {
     if (isSingleDashboardLayout && currentPage !== 'dashboard') {
-      setCurrentPage('dashboard');
+      applySearchParams((nextParams) => {
+        nextParams.delete('page');
+      });
     }
-  }, [currentPage, isSingleDashboardLayout]);
+  }, [applySearchParams, currentPage, isSingleDashboardLayout]);
 
+  const hasHydratedPortalUrlRef = useRef(false);
   useEffect(() => {
-    const currentPageFromUrl = searchParams.get('page') || 'dashboard';
-    if (currentPageFromUrl === currentPage) {
+    if (!portalSwitcherEnabled || hasHydratedPortalUrlRef.current) {
+      return;
+    }
+    hasHydratedPortalUrlRef.current = true;
+
+    if (searchParams.has('portal')) {
       return;
     }
 
-    const nextParams = new URLSearchParams(searchParams);
-    if (currentPage === 'dashboard') {
-      nextParams.delete('page');
-    } else {
-      nextParams.set('page', currentPage);
+    if (portalMode !== PORTAL_MODES.WORK) {
+      return;
     }
 
-    setSearchParams(nextParams, { replace: true });
-  }, [currentPage, searchParams, setSearchParams]);
+    applySearchParams((nextParams) => {
+      nextParams.set('portal', PORTAL_MODES.WORK);
+    });
+  }, [applySearchParams, portalMode, portalSwitcherEnabled, searchParams]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadWidgets = async () => {
       setDashboardLoading(true);
-      const liveValues = await fetchDashboardWidgetValues(userRole);
+      const liveValues = await fetchDashboardWidgetValues(widgetFetchRole);
 
       const mergedWidgets = roleConfig.widgets.map((widget) => {
         const liveValue = liveValues[widget.key];
@@ -135,13 +166,12 @@ const UnifiedDashboard = () => {
       }
     };
 
-    setDashboardWidgets(roleConfig.widgets);
     loadWidgets();
 
     return () => {
       isMounted = false;
     };
-  }, [roleConfig.widgets, userRole]);
+  }, [roleConfig.widgets, widgetFetchRole]);
 
   useEffect(() => {
     let isMounted = true;
@@ -178,7 +208,26 @@ const UnifiedDashboard = () => {
     if (contentScrollRef.current) {
       contentScrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
     }
-  }, [currentPage]);
+  }, [currentPage, portalMode]);
+
+  const handlePortalModeChange = useCallback(
+    (mode) => {
+      if (!portalSwitcherEnabled || mode === portalMode) {
+        return;
+      }
+
+      persistPortalMode(userRole, mode);
+      applySearchParams((nextParams) => {
+        nextParams.delete('page');
+        if (mode === PORTAL_MODES.WORK) {
+          nextParams.set('portal', PORTAL_MODES.WORK);
+        } else {
+          nextParams.delete('portal');
+        }
+      });
+    },
+    [applySearchParams, portalMode, portalSwitcherEnabled, userRole],
+  );
 
   const currentUser = useMemo(() => {
     return {
@@ -214,13 +263,21 @@ const UnifiedDashboard = () => {
   const handleNavigate = useCallback(
     (pageId) => {
       if (
-        roleConfig.pages.some((page) => page.id === pageId) ||
-        GLOBAL_PORTAL_PAGE_IDS.includes(pageId)
+        !roleConfig.pages.some((page) => page.id === pageId) &&
+        !GLOBAL_PORTAL_PAGE_IDS.includes(pageId)
       ) {
-        setCurrentPage(pageId);
+        return;
       }
+
+      applySearchParams((nextParams) => {
+        if (pageId === 'dashboard') {
+          nextParams.delete('page');
+        } else {
+          nextParams.set('page', pageId);
+        }
+      });
     },
-    [roleConfig.pages]
+    [applySearchParams, roleConfig.pages],
   );
 
   const handleProfileAction = useCallback(
@@ -278,7 +335,50 @@ const UnifiedDashboard = () => {
     [currentPage, currentUser, handleNavigate],
   );
 
+  const renderWorkPortalContent = () => {
+    if (currentPage === 'dashboard') {
+      return (
+        <DashboardHome
+          heading={roleConfig.heading}
+          subtitle={roleConfig.subtitle}
+          workContextLine={workContextLine}
+          widgets={dashboardWidgets}
+          pages={roleConfig.pages}
+          onNavigate={handleNavigate}
+          loading={dashboardLoading}
+        />
+      );
+    }
+
+    if (currentPage === 'leaves') {
+      return <LeavesPage />;
+    }
+
+    if (currentPage === 'payroll') {
+      return <PayrollPage />;
+    }
+
+    const WorkPage = resolvePortalPageForContext(userRole, currentPage, portalMode);
+    const workView = renderPortalPage(WorkPage);
+    if (workView) {
+      return workView;
+    }
+
+    return (
+      <RolePage
+        title="Page Not Found"
+        description="This module is not available in My work. Switch to your operations portal or pick another page."
+        role={userRole}
+        pageId={currentPage}
+      />
+    );
+  };
+
   const renderPageContent = () => {
+    if (isWorkPortal) {
+      return renderWorkPortalContent();
+    }
+
     if (userRole === ROLES.SUPER_ADMIN) {
       if (currentPage === 'dashboard') {
         return (
@@ -315,7 +415,7 @@ const UnifiedDashboard = () => {
         return <DashboardOverviewPage user={currentUser} pageConfig={{}} onUserUpdate={() => {}} onNavigate={handleNavigate} />;
       }
 
-      const HrPage = resolvePortalPageComponent(ROLES.HR_ADMIN, currentPage);
+      const HrPage = resolvePortalPageForContext(userRole, currentPage, portalMode);
       const hrView = renderPortalPage(HrPage);
       if (hrView) {
         return hrView;
@@ -350,7 +450,7 @@ const UnifiedDashboard = () => {
         return <LeavesPage />;
       }
 
-      const DeptPage = resolvePortalPageComponent(ROLES.DEPT_ADMIN, currentPage);
+      const DeptPage = resolvePortalPageForContext(userRole, currentPage, portalMode);
       const deptView = renderPortalPage(DeptPage);
       if (deptView) {
         return deptView;
@@ -393,7 +493,7 @@ const UnifiedDashboard = () => {
         return <PayrollPage />;
       }
 
-      const ManagerPage = resolvePortalPageComponent(ROLES.MANAGER, currentPage);
+      const ManagerPage = resolvePortalPageForContext(userRole, currentPage, portalMode);
       const managerView = renderPortalPage(ManagerPage);
       if (managerView) {
         return managerView;
@@ -443,7 +543,7 @@ const UnifiedDashboard = () => {
       return <PayrollPage />;
     }
 
-    const ResolvedPage = resolvePortalPageComponent(userRole, currentPage);
+    const ResolvedPage = resolvePortalPageForContext(userRole, currentPage, portalMode);
     const resolvedView = renderPortalPage(ResolvedPage);
     if (resolvedView) {
       return resolvedView;
@@ -475,6 +575,10 @@ const UnifiedDashboard = () => {
           onProfileClick={handleProfileAction}
           notificationCount={notificationCount}
           onClearNotifications={handleClearNotifications}
+          showPortalSwitcher={portalSwitcherEnabled}
+          portalMode={portalMode}
+          portalModeOptions={portalModeOptions}
+          onPortalModeChange={handlePortalModeChange}
         />
 
         <main className="flex flex-1 min-h-0 flex-col overflow-hidden">

@@ -193,6 +193,11 @@ const Employees = () => {
       return;
     }
 
+    if (!String(createForm.department || '').trim()) {
+      setManagerOptions([]);
+      return;
+    }
+
     const timer = setTimeout(() => {
       loadManagers({
         department: createForm.department,
@@ -227,6 +232,11 @@ const Employees = () => {
         ...previous,
         [field]: value,
       };
+
+      if (field === 'department') {
+        nextForm.designation = '';
+        nextForm.managerId = '';
+      }
 
       if ((field === 'firstName' || field === 'lastName') && !isEmailEdited) {
         const generatedEmail = formatEmployeeEmail(
@@ -761,10 +771,16 @@ const Employees = () => {
                 <select
                   value={createForm.managerId}
                   onChange={updateCreateForm('managerId')}
-                  disabled={managersLoading}
-                  className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!createForm.department.trim() || managersLoading}
+                  className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
                 >
-                  <option value="">No manager assigned</option>
+                  <option value="">
+                    {!createForm.department.trim()
+                      ? 'Select department first'
+                      : managersLoading
+                        ? 'Loading managers...'
+                        : 'No manager assigned'}
+                  </option>
                   {managerOptions.map((manager) => (
                     <option key={manager.id} value={manager.id}>
                       {manager.name} - {manager.designation}{manager.department ? ` (${manager.department})` : ''}

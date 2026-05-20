@@ -102,6 +102,8 @@ export const checkIn = async (req, res) => {
         remarks: derivedStatus.isLate ? "Auto-marked late based on shift policy" : "",
         shift: shiftConfig.shiftId || null,
         createdBy: req.user.id,
+        requiresManagerApproval: false,
+        approvalStatus: "Approved",
       });
     } else {
       // For existing record, append new punch if already checked out

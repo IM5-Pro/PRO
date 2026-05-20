@@ -1,4 +1,5 @@
 import { normalizeRole, ROLES } from '../utils/roles';
+import { isWorkPortalMode } from '../utils/portalMode';
 import {
   STANDARD_PAGE_COMPONENTS,
   HR_PAGE_COMPONENTS,
@@ -20,6 +21,13 @@ export const resolvePortalPageComponent = (role, pageId) => {
   const normalized = normalizeRole(role);
   const map = ROLE_PAGE_MAP[normalized] || STANDARD_PAGE_COMPONENTS;
   return map[pageId] || null;
+};
+
+export const resolvePortalPageForContext = (accountRole, pageId, portalMode) => {
+  if (isWorkPortalMode(accountRole, portalMode)) {
+    return resolvePortalPageComponent(ROLES.EMPLOYEE, pageId);
+  }
+  return resolvePortalPageComponent(accountRole, pageId);
 };
 
 export const isOperationsPage = (pageId) => Boolean(OPERATIONS_PAGE_COMPONENTS[pageId]);
