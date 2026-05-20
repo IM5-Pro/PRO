@@ -338,48 +338,66 @@ const HRHeader = ({
   // COMPONENT RENDER
   // ============================================================================
 
-  return (
-    <header className="sticky top-0 z-40 bg-white/90 border-b border-slate-200/80 shadow-sm">
-      <div
-        className={`px-4 md:px-8 ${portalSwitcher ? 'flex flex-col gap-3 py-3 md:py-3' : 'flex items-center justify-between gap-4 py-4'}`}
-      >
-        {/* Primary row: greeting / search + actions */}
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden md:gap-4">
-            <form
-              onSubmit={handleSearchSubmit}
-              className={`hidden min-w-0 shrink ${
-                portalSwitcher ? 'lg:flex lg:flex-1 lg:max-w-sm xl:max-w-md' : 'md:flex md:flex-1 md:max-w-md'
-              }`}
-            >
-              <div className="relative group w-full">
-                <FiSearch
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-blue-700 transition-colors duration-300"
-                  size={18}
-                />
-                <input
-                  type="text"
-                  placeholder="Search people, requests, payroll..."
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  className="w-full rounded-xl border-2 border-slate-400 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-900 shadow-lg placeholder-slate-700 transition-all duration-300 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  aria-label="Search HR system"
-                  maxLength={VALIDATION_RULES.SEARCH_MAX_LENGTH}
-                />
-              </div>
-            </form>
+  const searchForm = (
+    <form
+      onSubmit={handleSearchSubmit}
+      className={`hidden min-w-0 ${
+        portalSwitcher
+          ? 'lg:flex lg:flex-1 lg:max-w-sm xl:max-w-md'
+          : 'md:flex md:flex-1 md:max-w-md'
+      }`}
+    >
+      <div className="relative group w-full">
+        <FiSearch
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-blue-700 transition-colors duration-300"
+          size={18}
+        />
+        <input
+          type="text"
+          placeholder="Search people, requests, payroll..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          className={`w-full rounded-xl border-2 border-slate-400 bg-white pl-10 pr-4 text-slate-900 shadow-lg placeholder-slate-700 transition-all duration-300 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+            portalSwitcher
+              ? 'py-2.5 text-sm font-medium'
+              : 'py-3 font-medium'
+          }`}
+          aria-label="Search HR system"
+          maxLength={VALIDATION_RULES.SEARCH_MAX_LENGTH}
+        />
+      </div>
+    </form>
+  );
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-800">
-                {greeting}, {userDisplayName}!
-              </p>
-              <p className={`text-xs text-slate-600 ${portalSwitcher ? 'mt-0.5' : 'md:hidden'}`}>
-                {formattedDate}
-              </p>
-            </div>
-          </div>
+  const headerLeft = portalSwitcher ? (
+    <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden md:gap-4">
+      {searchForm}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-slate-800">
+          {greeting}, {userDisplayName}!
+        </p>
+        <p className="mt-0.5 text-xs text-slate-600">{formattedDate}</p>
+      </div>
+    </div>
+  ) : (
+    <div className="flex min-w-0 flex-1 items-center gap-4">
+      {searchForm}
+      <div className="min-w-0 md:hidden">
+        <p className="text-sm font-semibold text-slate-800">
+          {greeting}, {userDisplayName}!
+        </p>
+        <p className="text-xs text-slate-600">{formattedDate}</p>
+      </div>
+      <div className="hidden min-w-0 md:block">
+        <p className="truncate text-sm font-semibold text-slate-800">
+          {greeting}, {userDisplayName}!
+        </p>
+      </div>
+    </div>
+  );
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-4">
+  const headerActions = (
+    <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-6">
           {/* Current Time - Desktop Only */}
           <div
             className="hidden lg:flex flex-col items-end text-slate-700"
@@ -521,14 +539,33 @@ const HRHeader = ({
               </div>
             )}
           </div>
-          </div>
-        </div>
+    </div>
+  );
 
-        {/* Portal switcher — dedicated row so it does not overlap search or actions */}
-        {portalSwitcher && (
-          <div className="w-full min-w-0 border-t border-slate-100 pt-3 md:pt-2.5">
-            {portalSwitcher}
-          </div>
+  return (
+    <header className="sticky top-0 z-40 bg-white/90 border-b border-slate-200/80 shadow-sm">
+      <div
+        className={`px-4 md:px-8 ${
+          portalSwitcher
+            ? 'flex flex-col gap-3 py-3 md:py-3'
+            : 'flex items-center justify-between gap-4 py-4'
+        }`}
+      >
+        {portalSwitcher ? (
+          <>
+            <div className="flex w-full min-w-0 items-center justify-between gap-3">
+              {headerLeft}
+              {headerActions}
+            </div>
+            <div className="w-full min-w-0 border-t border-slate-100 pt-3 md:pt-2.5">
+              {portalSwitcher}
+            </div>
+          </>
+        ) : (
+          <>
+            {headerLeft}
+            {headerActions}
+          </>
         )}
       </div>
     </header>
