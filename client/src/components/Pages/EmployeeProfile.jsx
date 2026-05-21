@@ -29,6 +29,7 @@ import { formatINR } from '../../utils/currency';
 import {
   formatPayrollMonthLabel,
   pickPayrollDetailForDisplay,
+  filterPayrollDetailsByEmploymentStart,
   sortPayrollDetailsByPeriodDesc,
 } from '../../utils/payrollPeriod';
 import RupeeIcon from '../icons/RupeeIcon';
@@ -317,7 +318,8 @@ const EmployeeProfile = () => {
         const body = payrollRes?.data || {};
         const details = Array.isArray(body.details) ? body.details : [];
         const employee = profileRes?.data?.data || null;
-        const sorted = sortPayrollDetailsByPeriodDesc(details);
+        const eligible = filterPayrollDetailsByEmploymentStart(details, employee);
+        const sorted = sortPayrollDetailsByPeriodDesc(eligible);
         const { detail: compensation, isProjected } = pickPayrollDetailForDisplay(
           sorted,
           employee,

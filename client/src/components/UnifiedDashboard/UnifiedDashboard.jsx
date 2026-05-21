@@ -14,6 +14,7 @@ import HRSidebar from '../HRSidebar/HRSidebar';
 import { ROLES } from '../../utils/roles';
 import { applyOrgScopedDashboard, formatWorkContextLine } from '../../utils/dashboardVisibility';
 import { sortPagesForSidebar } from '../../utils/sidebarNav';
+import { prioritizePagesForRole } from '../../utils/sidebarUsageOrder';
 import { filterShippedPages } from '../../config/portalNavManifest';
 import {
   resolvePortalPageComponent,
@@ -41,7 +42,7 @@ import UnifiedComponentsGallery from './components/UnifiedComponentsGallery';
 import LoadingSpinner from '../Auth/LoadingSpinner';
 
 /** Available from header for every role; may be omitted from role sidebar lists. */
-const GLOBAL_PORTAL_PAGE_IDS = ['settings', 'employee-profile'];
+const GLOBAL_PORTAL_PAGE_IDS = ['settings', 'employee-profile', 'insurance-details'];
 
 const UnifiedDashboard = () => {
   const navigate = useNavigate();
@@ -73,12 +74,17 @@ const UnifiedDashboard = () => {
   );
 
   const roleConfig = useMemo(() => {
+    const sidebarRole = isWorkPortal ? ROLES.EMPLOYEE : userRole;
     const baseConfig = isWorkPortal
       ? ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE]
       : ROLE_DASHBOARD_CONFIG[userRole] || ROLE_DASHBOARD_CONFIG[ROLES.EMPLOYEE];
+    const pages = prioritizePagesForRole(
+      filterShippedPages(baseConfig.pages),
+      sidebarRole,
+    );
     const withIcons = {
       ...baseConfig,
-      pages: attachMonoIconsToPages(sortPagesForSidebar(filterShippedPages(baseConfig.pages))),
+      pages: attachMonoIconsToPages(sortPagesForSidebar(pages, { role: sidebarRole })),
       widgets: baseConfig.widgets,
     };
     return applyOrgScopedDashboard(withIcons, {
@@ -567,12 +573,15 @@ const UnifiedDashboard = () => {
         pageConfigs={sidebarPageConfigs}
         portalLabel={roleConfig.portalLabel}
         contextSubtitle={workContextLine}
+        sidebarRole={isWorkPortal ? ROLES.EMPLOYEE : userRole}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
         <HRHeader
           user={currentUser}
           onProfileClick={handleProfileAction}
+          onNavigate={handleNavigate}
+          portalPages={roleConfig.pages}
           notificationCount={notificationCount}
           onClearNotifications={handleClearNotifications}
           showPortalSwitcher={portalSwitcherEnabled}

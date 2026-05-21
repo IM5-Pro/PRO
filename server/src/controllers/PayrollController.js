@@ -22,6 +22,10 @@ import {
   toAmount,
 } from "../services/payrollCalculationService.js";
 import { calculateTaxBySlabs } from "../services/taxService.js";
+import {
+  filterPayrollDetailsByEmploymentStart,
+  isEmployeeEligibleForPayrollRun,
+} from "../utils/payrollPeriod.js";
 
 const ROLE = {
   SUPER_ADMIN: Roles.SUPER_ADMIN,
@@ -526,8 +530,12 @@ const viewOwn = async (req, res) => {
       return sendError(res, 403, "Employee mapping missing for authenticated user");
     }
 
-    const details = await PayrollDetail.find({ employeeId }).populate("payrollRunId");
-    sendSuccess(res, 200, "Own payroll details", { details });
+    const [details, employee] = await Promise.all([
+      PayrollDetail.find({ employeeId }).populate("payrollRunId"),
+      Employee.findById(employeeId).select("joinDate").lean(),
+    ]);
+    const eligibleDetails = filterPayrollDetailsByEmploymentStart(details, employee);
+    sendSuccess(res, 200, "Own payroll details", { details: eligibleDetails });
   } catch (err) {
     console.error("View own payroll error:", err);
     sendError(res, 500, "Internal server error", err.message);
@@ -540,7 +548,7 @@ const viewAll = async (req, res) => {
   }
 
   try {
-    const runs = await PayrollRun.find({}).sort({ createdAt: -1 });
+    const runs = await PayrollRun.find({}).sort({ month: -1, createdAt: -1 });
     sendSuccess(res, 200, "Payroll runs retrieved", { runs });
   } catch (err) {
     console.error("View all payroll error:", err);

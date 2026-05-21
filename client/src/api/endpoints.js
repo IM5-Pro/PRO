@@ -365,6 +365,23 @@ export const PROJECT_ENDPOINTS = {
   update: (projectId) => `/projects/${projectId}`,
 };
 
+export const INSURANCE_ENDPOINTS = {
+  myContext: '/insurance/me/context',
+  mySubmission: '/insurance/me/submission',
+  submissionsPending: '/insurance/submissions/pending',
+  submissionUpdate: (submissionId) => `/insurance/submissions/${submissionId}`,
+  submissionApprove: (submissionId) => `/insurance/submissions/${submissionId}/approve`,
+  submissionReject: (submissionId) => `/insurance/submissions/${submissionId}/reject`,
+  cycles: '/insurance/cycles',
+  cycleUpdate: (cycleId) => `/insurance/cycles/${cycleId}`,
+  cycleClose: (cycleId) => `/insurance/cycles/${cycleId}/close`,
+  cycleSummary: (cycleId) => `/insurance/cycles/${cycleId}/summary`,
+  cycleExport: (cycleId, { status = 'APPROVED', scope = 'nominees' } = {}) => {
+    const params = new URLSearchParams({ status, scope });
+    return `/insurance/cycles/${cycleId}/export?${params.toString()}`;
+  },
+};
+
 export const NOTIFICATION_ENDPOINTS = {
   list: (limit) => withLimit('/notifications', limit),
   all: '/notifications/all',

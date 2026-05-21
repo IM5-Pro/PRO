@@ -40,6 +40,27 @@ export const parsePayrollRunPeriod = (run) => {
   return null;
 };
 
+/**
+ * Sort payroll runs current month → past months (newest period first).
+ */
+export const comparePayrollRunsByPeriodDesc = (left, right) => {
+  const leftPeriod = parsePayrollRunPeriod(left);
+  const rightPeriod = parsePayrollRunPeriod(right);
+  const leftTime = leftPeriod?.getTime() ?? 0;
+  const rightTime = rightPeriod?.getTime() ?? 0;
+
+  if (rightTime !== leftTime) {
+    return rightTime - leftTime;
+  }
+
+  return (
+    new Date(right?.createdAt || 0).getTime() - new Date(left?.createdAt || 0).getTime()
+  );
+};
+
+export const sortPayrollRunsByPeriodDesc = (runs = []) =>
+  [...runs].sort(comparePayrollRunsByPeriodDesc);
+
 export const getPayrollDetailPeriod = (detail) =>
   parsePayrollRunPeriod(detail?.payrollRunId || detail?.payrollRun);
 
@@ -52,6 +73,50 @@ export const isPeriodInCurrentMonth = (periodDate) => {
   return (
     periodDate.getFullYear() === now.getFullYear() &&
     periodDate.getMonth() === now.getMonth()
+  );
+};
+
+/**
+ * First calendar day of the employee's join month (employment start for payroll).
+ */
+export const getEmploymentPeriodStart = (employeeRecord) => {
+  const raw = employeeRecord?.joinDate;
+  if (!raw) {
+    return null;
+  }
+
+  const join = new Date(raw);
+  if (Number.isNaN(join.getTime())) {
+    return null;
+  }
+
+  return new Date(join.getFullYear(), join.getMonth(), 1);
+};
+
+export const isPayrollDetailEligibleForEmployment = (detail, employmentStart) => {
+  if (!employmentStart) {
+    return true;
+  }
+
+  const period = getPayrollDetailPeriod(detail);
+  if (!period || Number.isNaN(period.getTime())) {
+    return true;
+  }
+
+  return period.getTime() >= employmentStart.getTime();
+};
+
+/**
+ * Hide payslips for payroll periods before the employee's join month.
+ */
+export const filterPayrollDetailsByEmploymentStart = (details = [], employeeRecord = null) => {
+  const employmentStart = getEmploymentPeriodStart(employeeRecord);
+  if (!employmentStart) {
+    return [...details];
+  }
+
+  return details.filter((detail) =>
+    isPayrollDetailEligibleForEmployment(detail, employmentStart),
   );
 };
 
@@ -88,7 +153,8 @@ const formatPayrollMonthLabel = (detail) => {
  * 3) Else most recent payslip by payroll period
  */
 export const pickPayrollDetailForDisplay = (details = [], employeeRecord = null) => {
-  const sorted = sortPayrollDetailsByPeriodDesc(details);
+  const eligible = filterPayrollDetailsByEmploymentStart(details, employeeRecord);
+  const sorted = sortPayrollDetailsByPeriodDesc(eligible);
   const projected = buildProjectedPayrollFromEmployee(employeeRecord);
   const projectedGross = Number(projected?.grossSalary || 0);
   const employeeSalary = Number(employeeRecord?.salary || 0);

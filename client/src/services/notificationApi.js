@@ -544,6 +544,24 @@ export const fetchNotificationsByRole = async (userRole = 'employee', options = 
   }
 };
 
+const mergeNotifications = (...groups) => {
+  const seen = new Set();
+  const merged = [];
+
+  for (const group of groups) {
+    for (const item of group || []) {
+      const id = item?.id;
+      if (!id || seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      merged.push(item);
+    }
+  }
+
+  return merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+};
+
 /**
  * Fetch notifications for employees
  * Includes: leave approvals/rejections, attendance alerts, payroll updates
@@ -556,13 +574,7 @@ export const fetchEmployeeNotifications = async () => {
     const attendance = notifications.filter(isAttendanceNotification);
     const payroll = notifications.filter(isPayrollNotification);
     const announcements = notifications.filter(isAnnouncementNotification);
-
-    const allNotifications = [
-      ...leaves,
-      ...attendance,
-      ...payroll,
-      ...announcements,
-    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const allNotifications = mergeNotifications(notifications);
 
     return {
       notifications: allNotifications,
@@ -593,11 +605,7 @@ export const fetchManagerNotifications = async ({ includeSynthetic = true } = {}
     const leavePending = notificationData.notifications.filter(isLeaveNotification);
     const announcements = notificationData.notifications.filter(isAnnouncementNotification);
 
-    const allNotifications = [
-      ...approvals,
-      ...leavePending,
-      ...announcements,
-    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const allNotifications = mergeNotifications(approvals, notificationData.notifications);
 
     return {
       notifications: allNotifications,
@@ -629,13 +637,7 @@ export const fetchHRNotifications = async ({ includeSynthetic = true } = {}) => 
     const systemAlerts = notificationData.notifications.filter(isSystemNotification);
     const announcements = notificationData.notifications.filter(isAnnouncementNotification);
 
-    const allNotifications = [
-      ...approvals,
-      ...attendance,
-      ...payroll,
-      ...systemAlerts,
-      ...announcements,
-    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const allNotifications = mergeNotifications(approvals, notificationData.notifications);
 
     return {
       notifications: allNotifications,
@@ -671,15 +673,7 @@ export const fetchComprehensiveNotifications = async ({ includeSynthetic = true 
     const announcements = notificationData.notifications.filter(isAnnouncementNotification);
     const systemAlerts = notificationData.notifications.filter(isSystemNotification);
 
-    // Combine and sort all notifications by timestamp (newest first)
-    const allNotifications = [
-      ...approvals,
-      ...leavePending,
-      ...attendance,
-      ...payroll,
-      ...announcements,
-      ...systemAlerts,
-    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const allNotifications = mergeNotifications(approvals, notificationData.notifications);
 
     return {
       notifications: allNotifications,

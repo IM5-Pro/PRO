@@ -17,6 +17,31 @@ import {
   updateById,
 } from "../repositories/employeeRepository.js";
 import { maybeProvisionToolsAfterHire } from "./toolProvisioningService.js";
+import { escapeRegex } from "./employeeContextService.js";
+
+const applySearchFilter = (query, searchTerm) => {
+  const term = String(searchTerm || "").trim();
+  if (!term) {
+    return query;
+  }
+
+  const regex = new RegExp(escapeRegex(term), "i");
+  const searchClause = {
+    $or: [
+      { firstName: regex },
+      { lastName: regex },
+      { email: regex },
+      { department: regex },
+      { designation: regex },
+    ],
+  };
+
+  if (!query || Object.keys(query).length === 0) {
+    return searchClause;
+  }
+
+  return { $and: [query, searchClause] };
+};
 
 const normalizeEmail = (email) => (typeof email === "string" ? email.toLowerCase().trim() : "");
 
@@ -266,7 +291,8 @@ const listEmployeesWithPagination = async ({ role, userId, queryParams, deptAdmi
     }
   }
 
-  const query = getListQuery({ role, userId, filters });
+  let query = getListQuery({ role, userId, filters });
+  query = applySearchFilter(query, queryParams.search);
 
   if (filters.cursor) {
     const employees = await listByQuery({
@@ -309,7 +335,7 @@ const listEmployeesWithPagination = async ({ role, userId, queryParams, deptAdmi
   }
 
   const skip = (page - 1) * limit;
-  const [employees, total] = await Promise.all([
+  const [employees, total, activeTotal, inactiveTotal] = await Promise.all([
     listByQuery({
       query,
       select: "-documents",
@@ -318,6 +344,8 @@ const listEmployeesWithPagination = async ({ role, userId, queryParams, deptAdmi
       skip,
     }),
     countByQuery(query),
+    countByQuery({ ...query, isActive: true }),
+    countByQuery({ ...query, isActive: false }),
   ]);
 
   // Enrich employees with user role information
@@ -346,7 +374,9 @@ const listEmployeesWithPagination = async ({ role, userId, queryParams, deptAdmi
       page,
       limit,
       total,
-      pages: Math.ceil(total / limit),
+      pages: Math.ceil(total / limit) || 0,
+      active: activeTotal,
+      inactive: inactiveTotal,
     },
   };
 };

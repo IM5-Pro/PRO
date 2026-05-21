@@ -36,6 +36,7 @@ const HRSidebar = ({
   pageConfigs = [],
   portalLabel = 'HR Operations',
   contextSubtitle = '',
+  sidebarRole = '',
 }) => {
   // ============================================================================
   // STATE MANAGEMENT
@@ -47,7 +48,10 @@ const HRSidebar = ({
   // ============================================================================
 
   /** Sections in enterprise order with labels (pages pre-sorted in config). */
-  const navSections = useMemo(() => groupSidebarPages(pageConfigs), [pageConfigs]);
+  const navSections = useMemo(
+    () => groupSidebarPages(pageConfigs, { role: sidebarRole || undefined }),
+    [pageConfigs, sidebarRole],
+  );
 
   // ============================================================================
   // EVENT HANDLERS

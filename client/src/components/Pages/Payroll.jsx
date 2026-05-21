@@ -14,9 +14,11 @@ import { canAccessPayrollRuns, normalizeRole } from '../../utils/roles';
 import { formatINR } from '../../utils/currency';
 import { downloadPayslipPdf } from '../../utils/downloadPayslip';
 import {
+  filterPayrollDetailsByEmploymentStart,
   formatPayrollMonthLabel,
   pickPayrollDetailForDisplay,
   sortPayrollDetailsByPeriodDesc,
+  sortPayrollRunsByPeriodDesc,
 } from '../../utils/payrollPeriod';
 
 const toPayload = (response) => response?.data || {};
@@ -76,7 +78,7 @@ const Payroll = () => {
 
       if (canAccessPayrollRuns(userRole)) {
         const allResponse = await API.get(PAYROLL_ENDPOINTS.all);
-        runs = extractRows(toPayload(allResponse), 'runs');
+        runs = sortPayrollRunsByPeriodDesc(extractRows(toPayload(allResponse), 'runs'));
       }
 
       setPayrollDetails(details);
@@ -95,10 +97,10 @@ const Payroll = () => {
     loadPayrollData();
   }, [loadPayrollData]);
 
-  const sortedDetails = useMemo(
-    () => sortPayrollDetailsByPeriodDesc(payrollDetails),
-    [payrollDetails],
-  );
+  const sortedDetails = useMemo(() => {
+    const eligible = filterPayrollDetailsByEmploymentStart(payrollDetails, employeeProfile);
+    return sortPayrollDetailsByPeriodDesc(eligible);
+  }, [payrollDetails, employeeProfile]);
 
   const { detail: latestDetail, isProjected: isProjectedCompensation } = useMemo(
     () => pickPayrollDetailForDisplay(sortedDetails, employeeProfile),

@@ -5,7 +5,10 @@ import {
   createNotification,
   createNotificationForRoles,
 } from "../controllers/NotificationController.js";
-import { EMPLOYEE_SELF_SERVICE_FIELDS } from "../utils/employeeProfileFields.js";
+import {
+  EMPLOYEE_SELF_SERVICE_FIELDS,
+  toEmployeeMongoUpdate,
+} from "../utils/employeeProfileFields.js";
 
 const trim = (v) => (typeof v === "string" ? v.trim() : v);
 
@@ -35,11 +38,10 @@ export const buildEmployeeProfilePatch = (body, employee) => {
     }
   }
   if (body.panNumber !== undefined) {
-    const pan = trim(body.panNumber)?.toUpperCase() || "";
-    updateData.panNumber = pan || null;
+    updateData.panNumber = trim(body.panNumber)?.toUpperCase() || "";
   }
   if (body.aadhaarNumber !== undefined) {
-    updateData.aadhaarNumber = trim(body.aadhaarNumber)?.replace(/\s/g, "") || null;
+    updateData.aadhaarNumber = trim(body.aadhaarNumber)?.replace(/\s/g, "") || "";
   }
   if (body.gender !== undefined) {
     updateData.gender = trim(body.gender) || "";
@@ -130,13 +132,14 @@ export const notifyHrProfileChangeSubmitted = async ({ employee, request, actor 
     title: "Profile pending HR approval",
     message: `${name || "An employee"} submitted profile updates for your review.`,
     priority: "high",
-    category: "action",
-    referenceType: "EmployeeProfileChangeRequest",
+    category: "approval",
+    referenceType: "document",
     referenceId: request._id,
     actionUrl: "/?page=profile-approvals",
     metadata: {
       employeeId: String(employee._id),
       requestType: request.requestType,
+      entity: "employee_profile_change_request",
     },
     triggeredBy: actor?.id,
   };
@@ -164,10 +167,10 @@ export const notifyEmployeeProfileDecision = async ({
         : `HR rejected your profile changes.${remarks ? ` Reason: ${remarks}` : ""}`,
       priority: "medium",
       category: "update",
-      referenceType: "EmployeeProfileChangeRequest",
+      referenceType: "document",
       referenceId: request._id,
       actionUrl: "/?page=employee-profile",
-      metadata: { approved, remarks: remarks || "" },
+      metadata: { approved, remarks: remarks || "", entity: "employee_profile_change_request" },
       triggeredBy: actor?.id,
     },
     actor,
@@ -175,8 +178,8 @@ export const notifyEmployeeProfileDecision = async ({
 };
 
 const applyPatchToEmployee = async (employeeId, patch, updatedBy) => {
-  const updateData = { ...patch, updatedBy };
-  const updated = await Employee.findByIdAndUpdate(employeeId, updateData, { new: true });
+  const mongoUpdate = toEmployeeMongoUpdate({ ...patch, updatedBy });
+  const updated = await Employee.findByIdAndUpdate(employeeId, mongoUpdate, { new: true });
 
   await User.updateMany(
     { employeeId: updated._id },
@@ -255,11 +258,15 @@ export const saveEmployeeProfileChangeRequest = async ({
     await Employee.findByIdAndUpdate(employeeId, {
       profileCompletionStatus: "pending_hr",
     });
-    await notifyHrProfileChangeSubmitted({
-      employee,
-      request,
-      actor: { id: userId },
-    });
+    try {
+      await notifyHrProfileChangeSubmitted({
+        employee,
+        request,
+        actor: { id: userId },
+      });
+    } catch (notifyErr) {
+      console.error("Profile change HR notification failed (submission saved):", notifyErr);
+    }
   }
 
   return { request, employee };
@@ -294,13 +301,17 @@ export const approveProfileChangeRequest = async ({ requestId, reviewerId, remar
     profileCompletionStatus: "complete",
   });
 
-  await notifyEmployeeProfileDecision({
-    employee,
-    request,
-    approved: true,
-    actor: { id: reviewerId },
-    remarks,
-  });
+  try {
+    await notifyEmployeeProfileDecision({
+      employee,
+      request,
+      approved: true,
+      actor: { id: reviewerId },
+      remarks,
+    });
+  } catch (notifyErr) {
+    console.error("Profile approval notification failed:", notifyErr);
+  }
 
   return { request, employee };
 };
@@ -331,13 +342,17 @@ export const rejectProfileChangeRequest = async ({ requestId, reviewerId, remark
     });
   }
 
-  await notifyEmployeeProfileDecision({
-    employee,
-    request,
-    approved: false,
-    actor: { id: reviewerId },
-    remarks,
-  });
+  try {
+    await notifyEmployeeProfileDecision({
+      employee,
+      request,
+      approved: false,
+      actor: { id: reviewerId },
+      remarks,
+    });
+  } catch (notifyErr) {
+    console.error("Profile rejection notification failed:", notifyErr);
+  }
 
   return { request, employee };
 };

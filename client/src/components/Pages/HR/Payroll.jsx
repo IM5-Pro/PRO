@@ -12,6 +12,11 @@ import {
 } from '../../../services/adminOperationsApi';
 import { downloadPayslipPdf } from '../../../utils/downloadPayslip';
 import { formatINR } from '../../../utils/currency';
+import {
+  formatSalarySnapshotSummary,
+  getSalaryBasis,
+  getSalarySnapshotLines,
+} from '../../../utils/salarySnapshotDisplay';
 
 const HRPayroll = () => {
   const [runs, setRuns] = useState([]);
@@ -49,9 +54,10 @@ const HRPayroll = () => {
       setRuns(rows);
 
       if (!selectedRunId && rows.length > 0) {
-        const firstId = rows[0]?._id || rows[0]?.id;
-        if (firstId) {
-          setSelectedRunId(firstId);
+        const latestRun = rows[0];
+        const latestId = latestRun?._id || latestRun?.id;
+        if (latestId) {
+          setSelectedRunId(latestId);
         }
       }
     } catch (error) {
@@ -332,7 +338,12 @@ const HRPayroll = () => {
       </div>
 
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-800 mb-4">Payslip Details</h2>
+        <h2 className="text-xl font-semibold text-slate-800 mb-1">Payslip Details</h2>
+        <p className="mb-4 text-xs text-slate-500">
+          <span className="font-medium text-slate-600">Compensation snapshot</span> shows salary values
+          frozen when this run was processed. If amounts differ across months, compare profile vs template
+          basis here — not the employee&apos;s current profile.
+        </p>
         {slipsLoading ? (
           <p className="text-slate-500">Loading payslips...</p>
         ) : slips.length === 0 ? (
@@ -343,6 +354,7 @@ const HRPayroll = () => {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="text-left py-3 px-3 text-slate-600">Employee</th>
+                  <th className="min-w-[220px] text-left py-3 px-3 text-slate-600">Compensation snapshot</th>
                   <th className="text-left py-3 px-3 text-slate-600">Gross</th>
                   <th className="text-left py-3 px-3 text-slate-600">Deductions</th>
                   <th className="text-left py-3 px-3 text-slate-600">Net</th>
@@ -355,10 +367,41 @@ const HRPayroll = () => {
                     .filter(Boolean)
                     .join(' ')
                     .trim() || slip?.employeeId?.email || 'Employee';
+                  const basis = getSalaryBasis(slip);
+                  const snapshotLines = getSalarySnapshotLines(slip);
+                  const snapshotSummary = formatSalarySnapshotSummary(slip);
 
                   return (
-                    <tr key={slip?._id || slip?.id} className="border-b border-slate-100">
+                    <tr key={slip?._id || slip?.id} className="border-b border-slate-100 align-top">
                       <td className="py-3 px-3 text-slate-800 font-medium">{employeeName}</td>
+                      <td className="py-3 px-3 text-slate-700">
+                        <div className="space-y-1.5">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                              basis.key === 'profile'
+                                ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
+                                : basis.key === 'template'
+                                  ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-200'
+                                  : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
+                            }`}
+                          >
+                            {basis.label}
+                          </span>
+                          <p className="text-xs font-medium text-slate-800" title={snapshotSummary}>
+                            {snapshotSummary}
+                          </p>
+                          <ul className="space-y-0.5 text-[11px] leading-snug text-slate-500">
+                            {snapshotLines.slice(1).map((line) => (
+                              <li key={`${slip?._id || slip?.id}-${line.label}`}>
+                                <span className="text-slate-400">{line.label}: </span>
+                                <span className={line.muted ? 'text-slate-400' : 'text-slate-600'}>
+                                  {line.value}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </td>
                       <td className="py-3 px-3 text-slate-700">{formatINR(slip?.grossSalary || 0)}</td>
                       <td className="py-3 px-3 text-slate-700">{formatINR(slip?.totalDeductions || 0)}</td>
                       <td className="py-3 px-3 text-slate-700">{formatINR(slip?.netSalary || 0)}</td>

@@ -34,6 +34,7 @@ import assetRoutes from "./src/routes/AssetRouter.js";
 import systemAccessRoutes from "./src/routes/SystemAccessRouter.js";
 import projectRoutes from "./src/routes/ProjectRouter.js";
 import toolProvisioningRoutes from "./src/routes/ToolProvisioningRouter.js";
+import insuranceRoutes from "./src/routes/InsuranceRouter.js";
 import securityHeaders from "./src/middleware/securityHeaders.js";
 
 dotenv.config();
@@ -117,6 +118,7 @@ app.use("/api/assets", assetRoutes);
 app.use("/api/system-access", systemAccessRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tool-provisioning-tickets", toolProvisioningRoutes);
+app.use("/api/insurance", insuranceRoutes);
 
 // start server only when not running tests
 if (process.env.NODE_ENV !== "test") {

@@ -25,6 +25,8 @@ import {
   resolveCurrentEmployee,
   resolveCurrentEmployeeId,
 } from "../services/employeeContextService.js";
+import { maybeProvisionToolsAfterHire } from "../services/toolProvisioningService.js";
+import { toEmployeeMongoUpdate } from "../utils/employeeProfileFields.js";
 
 /**
  * Create new employee (HR_ADMIN, SUPER_ADMIN only)
@@ -564,6 +566,24 @@ const updateEmployee = async (req, res) => {
       changes,
     });
 
+    if (req.body.assignedProjectId !== undefined) {
+      const newProjectId = req.body.assignedProjectId
+        ? String(req.body.assignedProjectId).trim()
+        : "";
+      const oldProjectId = oldData.assignedProjectId
+        ? String(oldData.assignedProjectId)
+        : "";
+
+      if (newProjectId && newProjectId !== oldProjectId) {
+        await maybeProvisionToolsAfterHire({
+          employeeId,
+          assignedProjectId: newProjectId,
+          triggeredByUserId: req.user.id,
+          context: "assignment",
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: "Employee updated successfully",
@@ -808,11 +828,10 @@ const updateProfile = async (req, res) => {
     }
 
     if (body.panNumber !== undefined) {
-      const pan = trim(body.panNumber)?.toUpperCase() || "";
-      updateData.panNumber = pan || null;
+      updateData.panNumber = trim(body.panNumber)?.toUpperCase() || "";
     }
     if (body.aadhaarNumber !== undefined) {
-      updateData.aadhaarNumber = trim(body.aadhaarNumber)?.replace(/\s/g, "") || null;
+      updateData.aadhaarNumber = trim(body.aadhaarNumber)?.replace(/\s/g, "") || "";
     }
     if (body.gender !== undefined) {
       updateData.gender = trim(body.gender) || "";
@@ -877,7 +896,8 @@ const updateProfile = async (req, res) => {
 
     updateData.updatedBy = req.user.id;
 
-    const updatedEmployee = await Employee.findByIdAndUpdate(employeeId, updateData, { new: true });
+    const mongoUpdate = toEmployeeMongoUpdate(updateData);
+    const updatedEmployee = await Employee.findByIdAndUpdate(employeeId, mongoUpdate, { new: true });
 
     await User.updateMany(
       { employeeId: updatedEmployee._id },

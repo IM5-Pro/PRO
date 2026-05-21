@@ -55,6 +55,7 @@ export const maybeProvisionToolsAfterHire = async ({
   employeeId,
   assignedProjectId,
   triggeredByUserId,
+  context = "hire",
 }) => {
   if (!assignedProjectId || !mongoose.Types.ObjectId.isValid(String(assignedProjectId))) {
     return null;
@@ -73,6 +74,18 @@ export const maybeProvisionToolsAfterHire = async ({
   if (!employee) {
     return null;
   }
+
+  const existingTicket = await ToolProvisioningTicket.findOne({
+    employeeId: employee._id,
+    projectId: project._id,
+    status: { $nin: ["CANCELLED", "COMPLETED"] },
+  }).lean();
+
+  if (existingTicket) {
+    return existingTicket;
+  }
+
+  const isAssignment = context === "assignment";
 
   const reportingManagerEmployeeId = employee.managerID || employee.managerId || null;
   const toolsSnapshot = project.requiredTools.map((t) => ({
@@ -113,8 +126,12 @@ export const maybeProvisionToolsAfterHire = async ({
         {
           userId: managerUserId,
           type: "tool_provisioning_manager_review",
-          title: "Approve project tools for new hire",
-          message: `${empName} was assigned to "${projectName}". Please approve the IT tooling ticket so required tools can be installed (${toolList}).`,
+          title: isAssignment
+            ? "Approve project tools after reassignment"
+            : "Approve project tools for new hire",
+          message: isAssignment
+            ? `${empName} was reassigned to "${projectName}". Please approve the IT tooling ticket so required tools can be installed (${toolList}).`
+            : `${empName} was assigned to "${projectName}". Please approve the IT tooling ticket so required tools can be installed (${toolList}).`,
           priority: "high",
           category: "approval",
           referenceType: "provisioning_ticket",
@@ -134,7 +151,9 @@ export const maybeProvisionToolsAfterHire = async ({
     await notifyItUsers(
       {
         type: "tool_provisioning_it_awareness",
-        title: "New hire tooling ticket (awaiting manager)",
+        title: isAssignment
+          ? "Employee reassignment tooling ticket (awaiting manager)"
+          : "New hire tooling ticket (awaiting manager)",
         message: `${empName} — project "${projectName}". Tools: ${toolList}. Awaiting reporting manager approval before installation.`,
         priority: "medium",
         category: "administrative",
@@ -154,7 +173,9 @@ export const maybeProvisionToolsAfterHire = async ({
     await notifyItUsers(
       {
         type: "tool_provisioning_it_install",
-        title: "Install approved tools for new hire",
+        title: isAssignment
+          ? "Install approved tools after reassignment"
+          : "Install approved tools for new hire",
         message: `${empName} has no reporting manager on file; ticket auto-approved. Project "${projectName}". Install: ${toolList}.`,
         priority: "high",
         category: "administrative",

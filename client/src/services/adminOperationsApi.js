@@ -13,6 +13,7 @@ import {
   USER_ENDPOINTS,
 } from '../api/endpoints';
 import { createEmployeeRecord } from './unifiedDashboardApi';
+import { sortPayrollRunsByPeriodDesc } from '../utils/payrollPeriod';
 
 const MASTERS_PAGE_LIMIT = 200;
 
@@ -63,6 +64,44 @@ export const fetchAdminEmployees = async (limit = 100) => {
   const response = await API.get(EMPLOYEE_ENDPOINTS.list(limit));
   const payload = toPayload(response);
   return extractRows(payload, ['data']);
+};
+
+export const fetchAdminEmployeesPage = async ({
+  page = 1,
+  limit = 12,
+  department = '',
+  search = '',
+} = {}) => {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('limit', String(limit));
+
+  const normalizedDepartment = String(department || '').trim();
+  if (normalizedDepartment && normalizedDepartment !== 'all') {
+    params.set('department', normalizedDepartment);
+  }
+
+  const normalizedSearch = String(search || '').trim();
+  if (normalizedSearch) {
+    params.set('search', normalizedSearch);
+  }
+
+  const baseUrl = EMPLOYEE_ENDPOINTS.list(limit);
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  const response = await API.get(`${baseUrl}${separator}${params.toString()}`);
+  const payload = toPayload(response);
+
+  return {
+    employees: extractRows(payload, ['data']),
+    pagination: payload?.pagination || {
+      page,
+      limit,
+      total: 0,
+      pages: 0,
+      active: 0,
+      inactive: 0,
+    },
+  };
 };
 
 export const fetchAllAdminEmployees = async (limit = 200) => {
@@ -261,7 +300,7 @@ export const deleteLeavePolicy = async (policyId) => {
 export const fetchPayrollRuns = async () => {
   const response = await API.get(PAYROLL_ENDPOINTS.all);
   const payload = toPayload(response);
-  return extractRows(payload, ['runs', 'data']);
+  return sortPayrollRunsByPeriodDesc(extractRows(payload, ['runs', 'data']));
 };
 
 export const createPayrollRun = async (month) => {

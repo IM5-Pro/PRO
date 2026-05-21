@@ -41,6 +41,9 @@ import EmployeeBulkOpsPage from '../Pages/operations/EmployeeBulkOps';
 import PerformanceManagementPage from '../Pages/operations/PerformanceManagement';
 import AttendanceApprovalsPage from '../Pages/operations/AttendanceApprovals';
 import ProfileChangeApprovalsPage from '../Pages/HR/ProfileChangeApprovals';
+import InsuranceDetailsPage from '../Pages/InsuranceDetails';
+import InsuranceApprovalsPage from '../Pages/HR/InsuranceApprovals';
+import InsuranceCyclesPage from '../Pages/HR/InsuranceCycles';
 
 export const OPERATIONS_PAGE_COMPONENTS = {
   recruitment: RecruitmentManagementPage,
@@ -52,6 +55,8 @@ export const OPERATIONS_PAGE_COMPONENTS = {
   'performance-management': PerformanceManagementPage,
   'attendance-approvals': AttendanceApprovalsPage,
   'profile-approvals': ProfileChangeApprovalsPage,
+  'insurance-approvals': InsuranceApprovalsPage,
+  'insurance-cycles': InsuranceCyclesPage,
 };
 
 export const STANDARD_PAGE_COMPONENTS = {
@@ -60,6 +65,7 @@ export const STANDARD_PAGE_COMPONENTS = {
   announcements: AnnouncementsPage,
   analytics: AnalyticsPage,
   'employee-profile': EmployeeProfilePage,
+  'insurance-details': InsuranceDetailsPage,
   employees: EmployeesPage,
   'leave-management': LeaveManagementPage,
   leaves: LeavesPage,
@@ -106,6 +112,7 @@ export const HR_PAGE_COMPONENTS = {
   'resignation': ResignationManagementPage,
   settings: SettingsPortalPage,
   'employee-profile': EmployeeProfilePage,
+  'insurance-details': InsuranceDetailsPage,
   ...OPERATIONS_PAGE_COMPONENTS,
 };
 
@@ -115,6 +122,7 @@ export const DEPT_ADMIN_PAGE_COMPONENTS = {
   leaves: LeavesPage,
   settings: SettingsPortalPage,
   'employee-profile': EmployeeProfilePage,
+  'insurance-details': InsuranceDetailsPage,
   'attendance-approvals': AttendanceApprovalsPage,
   'tool-provisioning': ToolProvisioningPage,
   'org-structure': OrgStructurePage,

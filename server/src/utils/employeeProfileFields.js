@@ -47,6 +47,45 @@ export const HR_ONLY_FIELDS = [
   "assignedProjectId",
 ];
 
+/** Sparse unique fields must be omitted or $unset — never stored as null. */
+export const SPARSE_UNIQUE_EMPLOYEE_FIELDS = ["panNumber", "aadhaarNumber"];
+
+const isEmptySparseField = (value) =>
+  value === null || value === undefined || value === "";
+
+/**
+ * Build a Mongoose update for Employee: clears sparse-unique fields via $unset
+ * instead of setting null (which violates unique index).
+ */
+export const toEmployeeMongoUpdate = (patch) => {
+  if (!patch || typeof patch !== "object") return {};
+
+  const set = {};
+  const unset = {};
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (SPARSE_UNIQUE_EMPLOYEE_FIELDS.includes(key)) {
+      if (isEmptySparseField(value)) {
+        unset[key] = "";
+      } else {
+        set[key] = value;
+      }
+    } else {
+      set[key] = value;
+    }
+  }
+
+  if (Object.keys(unset).length === 0) {
+    return set;
+  }
+
+  const update = { $unset: unset };
+  if (Object.keys(set).length > 0) {
+    update.$set = set;
+  }
+  return update;
+};
+
 export const PROFILE_DISPLAY_SECTIONS = {
   personal: [
     "firstName",

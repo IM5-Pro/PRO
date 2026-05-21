@@ -25,6 +25,19 @@ import {
   getTimeAgo,
 } from '../services/notificationApi';
 
+const EMPTY_NOTIFICATION_SUMMARY = {
+  total: 0,
+  unread: 0,
+  byType: {
+    approvals: 0,
+    leaves: 0,
+    attendance: 0,
+    payroll: 0,
+    announcements: 0,
+    system: 0,
+  },
+};
+
 /**
  * Create NotificationContext
  */
@@ -235,26 +248,13 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
   /**
    * Delete all notifications
    */
-  const emptySummary = {
-    total: 0,
-    unread: 0,
-    byType: {
-      approvals: 0,
-      leaves: 0,
-      attendance: 0,
-      payroll: 0,
-      announcements: 0,
-      system: 0,
-    },
-  };
-
   const clearAllNotifications = useCallback(async () => {
     if (!isMountedRef.current) return;
 
     suppressSyntheticRef.current = true;
     setNotifications([]);
     setUnreadCount(0);
-    setSummary(emptySummary);
+    setSummary(EMPTY_NOTIFICATION_SUMMARY);
     setError(null);
 
     try {
@@ -270,7 +270,7 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
       if (isMountedRef.current) {
         setNotifications([]);
         setUnreadCount(0);
-        setSummary(emptySummary);
+        setSummary(EMPTY_NOTIFICATION_SUMMARY);
       }
     } catch (err) {
       console.error('Error clearing all notifications:', err);

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiBriefcase,
   FiCalendar,
@@ -26,7 +26,7 @@ import {
   fetchDesignationsByDepartment,
   fetchManagersByDepartment,
   fetchProjects,
-  fetchAdminEmployees,
+  fetchAdminEmployeesPage,
   fetchEmployeeProfile,
   resetEmployeePassword,
   toErrorMessage,
@@ -67,6 +67,7 @@ const EMPTY_EDIT_FORM = {
   emergencyContactName: '',
   emergencyContactRelation: '',
   emergencyContactPhone: '',
+  assignedProjectId: '',
 };
 
 const toOptionId = (value) => String(value || '').trim();
@@ -173,10 +174,22 @@ const toEmployeeCard = (employee, index) => {
   };
 };
 
+const EMPLOYEES_PAGE_SIZE = 12;
+
 const HRUserManagement = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [employeePage, setEmployeePage] = useState(1);
+  const [employeePagination, setEmployeePagination] = useState({
+    page: 1,
+    limit: EMPLOYEES_PAGE_SIZE,
+    total: 0,
+    pages: 0,
+    active: 0,
+    inactive: 0,
+  });
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [banner, setBanner] = useState({ type: '', text: '' });
   const [actionLoading, setActionLoading] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -186,6 +199,7 @@ const HRUserManagement = () => {
   const [editProfileLoading, setEditProfileLoading] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState('');
   const [editOriginalDesignationId, setEditOriginalDesignationId] = useState('');
+  const editOriginalAssignedProjectIdRef = useRef('');
   const [referenceLoading, setReferenceLoading] = useState(true);
   const [designationLookupLoading, setDesignationLookupLoading] = useState(false);
   const [createDesignationDraft, setCreateDesignationDraft] = useState('');
@@ -221,24 +235,59 @@ const HRUserManagement = () => {
     setEditForm(EMPTY_EDIT_FORM);
     setEditingEmployeeId('');
     setEditOriginalDesignationId('');
+    editOriginalAssignedProjectIdRef.current = '';
     setEditingEmployeeMeta({ employeeCode: '', managerName: '', status: '' });
     setEditDesignationDraft('');
     setManagerSearchQuery('');
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setEmployeePage(1);
+  }, [departmentFilter, debouncedSearch]);
+
   const loadEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await fetchAdminEmployees(200);
+      const { employees: rows, pagination } = await fetchAdminEmployeesPage({
+        page: employeePage,
+        limit: EMPLOYEES_PAGE_SIZE,
+        department: departmentFilter,
+        search: debouncedSearch,
+      });
+
       setEmployees(rows.map((employee, index) => toEmployeeCard(employee, index)));
+      setEmployeePagination({
+        page: Number(pagination?.page) || employeePage,
+        limit: Number(pagination?.limit) || EMPLOYEES_PAGE_SIZE,
+        total: Number(pagination?.total) || 0,
+        pages: Number(pagination?.pages) || 0,
+        active: Number(pagination?.active) || 0,
+        inactive: Number(pagination?.inactive) || 0,
+      });
       setBanner({ type: '', text: '' });
     } catch (error) {
       setBanner({ type: 'error', text: toErrorMessage(error, 'Failed to load employees') });
       setEmployees([]);
+      setEmployeePagination({
+        page: 1,
+        limit: EMPLOYEES_PAGE_SIZE,
+        total: 0,
+        pages: 0,
+        active: 0,
+        inactive: 0,
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [departmentFilter, debouncedSearch, employeePage]);
 
   useEffect(() => {
     loadEmployees();
@@ -528,42 +577,30 @@ const HRUserManagement = () => {
     }));
   }, [designationNameById, employees]);
 
-  const filteredEmployees = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) {
-      return employeesWithResolvedLabels.filter((employee) => {
-        return departmentFilter === 'all' || employee.department === departmentFilter;
-      });
+  const availableDepartmentFilters = useMemo(() => {
+    const names = departmentOptions
+      .map((department) => String(department.name || '').trim())
+      .filter(Boolean)
+      .sort((left, right) => left.localeCompare(right));
+
+    return ['all', ...names];
+  }, [departmentOptions]);
+
+  const paginationRange = useMemo(() => {
+    const total = employeePagination.total || 0;
+    if (total === 0) {
+      return { start: 0, end: 0 };
     }
 
-    return employeesWithResolvedLabels.filter((employee) => {
-      const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
-
-      const matchesSearch = (
-        employee.name.toLowerCase().includes(query) ||
-        employee.email.toLowerCase().includes(query) ||
-        employee.department.toLowerCase().includes(query) ||
-        employee.designationLabel.toLowerCase().includes(query)
-      );
-
-      return matchesDepartment && matchesSearch;
-    });
-  }, [departmentFilter, employeesWithResolvedLabels, searchQuery]);
-
-  const availableDepartmentFilters = useMemo(() => {
-    const uniqueDepartments = [...new Set(
-      employeesWithResolvedLabels
-        .map((employee) => String(employee.department || '').trim())
-        .filter(Boolean),
-    )].sort((left, right) => left.localeCompare(right));
-
-    return ['all', ...uniqueDepartments];
-  }, [employeesWithResolvedLabels]);
+    const start = (employeePage - 1) * EMPLOYEES_PAGE_SIZE + 1;
+    const end = Math.min(employeePage * EMPLOYEES_PAGE_SIZE, total);
+    return { start, end };
+  }, [employeePage, employeePagination.total]);
 
   const summaryCards = useMemo(() => {
-    const total = employeesWithResolvedLabels.length;
-    const active = employeesWithResolvedLabels.filter((employee) => employee.status === 'active').length;
-    const inactive = total - active;
+    const total = employeePagination.total || 0;
+    const active = employeePagination.active || 0;
+    const inactive = employeePagination.inactive || 0;
     const adminAccounts = employeesWithResolvedLabels.filter((employee) => employee.role !== 'EMPLOYEE').length;
 
     return [
@@ -571,7 +608,7 @@ const HRUserManagement = () => {
         id: 'total',
         label: 'Total Accounts',
         value: total,
-        note: 'Visible user records',
+        note: 'Matching current filters',
         icon: FiUsers,
         tone: 'bg-slate-100 text-slate-700 border-slate-200',
       },
@@ -595,12 +632,12 @@ const HRUserManagement = () => {
         id: 'privileged',
         label: 'Privileged Roles',
         value: adminAccounts,
-        note: 'Manager and HR admin accounts',
+        note: 'On this page only',
         icon: FiShield,
         tone: 'bg-indigo-50 text-indigo-700 border-indigo-100',
       },
     ];
-  }, [employeesWithResolvedLabels]);
+  }, [employeePagination.active, employeePagination.inactive, employeePagination.total, employeesWithResolvedLabels]);
 
   const selectedCreateDepartmentRecord = useMemo(() => {
     const selectedDepartment = normalizeText(createForm.department);
@@ -941,6 +978,13 @@ const HRUserManagement = () => {
       });
 
       setEditOriginalDesignationId(resolvedDesignationId);
+      const resolvedProjectId = toOptionId(
+        profile?.assignedProjectId?._id ||
+          profile?.assignedProjectId ||
+          profile?.assignedProject?.id ||
+          profile?.assignedProject?._id,
+      );
+      editOriginalAssignedProjectIdRef.current = resolvedProjectId;
       setEditForm({
         firstName: profile?.firstName || employee.firstName || '',
         lastName: profile?.lastName || employee.lastName || '',
@@ -949,6 +993,7 @@ const HRUserManagement = () => {
         managerId: toOptionId(manager?._id || manager?.id || profile?.managerId || profile?.managerID || ''),
         department: profile?.department || employee.department || '',
         designation: resolvedDesignationId,
+        assignedProjectId: resolvedProjectId,
         salary: profile?.salary === undefined || profile?.salary === null ? '' : String(profile.salary),
         joinDate: profile?.joinDate ? String(profile.joinDate).slice(0, 10) : employee.joinDate ? String(employee.joinDate).slice(0, 10) : '',
         dateOfBirth: profile?.dateOfBirth ? String(profile.dateOfBirth).slice(0, 10) : '',
@@ -1019,6 +1064,11 @@ const HRUserManagement = () => {
           relation: emergencyContactRelation,
           phone: emergencyContactPhone,
         };
+      }
+
+      const normalizedProjectId = toOptionId(editForm.assignedProjectId);
+      if (normalizedProjectId !== editOriginalAssignedProjectIdRef.current) {
+        payload.assignedProjectId = normalizedProjectId || null;
       }
 
       await updateAdminEmployee(editingEmployeeId, payload);
@@ -1250,7 +1300,7 @@ const HRUserManagement = () => {
         <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center text-sm text-slate-500 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
           Loading user accounts...
         </div>
-      ) : filteredEmployees.length === 0 ? (
+      ) : employeesWithResolvedLabels.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
             <FiUsers size={22} />
@@ -1261,8 +1311,9 @@ const HRUserManagement = () => {
           </p>
         </div>
       ) : (
+        <>
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredEmployees.map((employee) => (
+          {employeesWithResolvedLabels.map((employee) => (
             <div
               key={employee.id}
               className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-colors hover:border-slate-300"
@@ -1340,6 +1391,47 @@ const HRUserManagement = () => {
             </div>
           ))}
         </div>
+
+        <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-600">
+            {employeePagination.total > 0 ? (
+              <>
+                Showing <span className="font-semibold text-slate-800">{paginationRange.start}</span>
+                –<span className="font-semibold text-slate-800">{paginationRange.end}</span> of{' '}
+                <span className="font-semibold text-slate-800">{employeePagination.total}</span> accounts
+              </>
+            ) : (
+              'No accounts on this page'
+            )}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEmployeePage((previous) => Math.max(1, previous - 1))}
+              disabled={employeePage <= 1 || loading}
+              className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="px-2 text-xs font-medium text-slate-600">
+              Page {employeePage} of {Math.max(employeePagination.pages, 1)}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setEmployeePage((previous) =>
+                  Math.min(Math.max(employeePagination.pages, 1), previous + 1),
+                )
+              }
+              disabled={employeePage >= employeePagination.pages || loading}
+              className="h-8 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+        </>
       )}
 
       {createOpen && (
@@ -1722,6 +1814,25 @@ const HRUserManagement = () => {
                               </option>
                             ))}
                           </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Assigned project (optional)</label>
+                          <select
+                            value={editForm.assignedProjectId}
+                            onChange={setEditValue('assignedProjectId')}
+                            disabled={referenceLoading}
+                            className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
+                          >
+                            <option value="">None — no tooling ticket</option>
+                            {projects.map((project) => (
+                              <option key={String(project._id || project.id)} value={String(project._id || project.id)}>
+                                {project.name}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            Changing the project opens a new tooling ticket when required tools differ.
+                          </p>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1">Salary</label>

@@ -2,6 +2,8 @@
  * Sidebar navigation ordering and section labels (enterprise-style grouping).
  */
 
+import { getSectionOrderForRole } from './sidebarUsageOrder';
+
 export const SIDEBAR_SECTIONS = {
   overview: { label: 'Overview', order: 0 },
   communications: { label: 'Communications', order: 10 },
@@ -23,20 +25,31 @@ export const SIDEBAR_SECTIONS = {
 
 const DEFAULT_SECTION = { label: 'More', order: 500 };
 
+const getSectionMeta = (category, role) => {
+  const base = SIDEBAR_SECTIONS[category] || DEFAULT_SECTION;
+  const roleOrder = role ? getSectionOrderForRole(category, role) : null;
+  return {
+    label: base.label,
+    order: roleOrder !== null ? roleOrder : base.order,
+  };
+};
+
 /**
  * Sort pages for sidebar: section order, then item order, then label.
  * @param {Array<{ id: string, label: string, category?: string, order?: number }>} pages
+ * @param {{ role?: string }} [options]
  */
-export const sortPagesForSidebar = (pages = []) => {
+export const sortPagesForSidebar = (pages = [], options = {}) => {
+  const { role } = options;
   const withMeta = pages.map((page, index) => ({
     ...page,
     category: page.category || 'overview',
-    order: typeof page.order === 'number' ? page.order : index * 10,
+    order: typeof page.order === 'number' ? page.order : index * 10 + 100,
   }));
 
   return [...withMeta].sort((a, b) => {
-    const secA = SIDEBAR_SECTIONS[a.category] || DEFAULT_SECTION;
-    const secB = SIDEBAR_SECTIONS[b.category] || DEFAULT_SECTION;
+    const secA = getSectionMeta(a.category, role);
+    const secB = getSectionMeta(b.category, role);
     if (secA.order !== secB.order) return secA.order - secB.order;
     if (a.order !== b.order) return a.order - b.order;
     return String(a.label || '').localeCompare(String(b.label || ''));
@@ -45,16 +58,19 @@ export const sortPagesForSidebar = (pages = []) => {
 
 /**
  * Group sorted pages by category for sidebar rendering.
+ * @param {Array} pages
+ * @param {{ role?: string }} [options]
  */
-export const groupSidebarPages = (pages = []) => {
-  const sorted = sortPagesForSidebar(pages);
+export const groupSidebarPages = (pages = [], options = {}) => {
+  const { role } = options;
+  const sorted = sortPagesForSidebar(pages, { role });
   const groups = [];
 
   sorted.forEach((page) => {
     const cat = page.category || 'overview';
     let group = groups.find((g) => g.category === cat);
     if (!group) {
-      const meta = SIDEBAR_SECTIONS[cat] || DEFAULT_SECTION;
+      const meta = getSectionMeta(cat, role);
       group = { category: cat, label: meta.label, order: meta.order, items: [] };
       groups.push(group);
     }

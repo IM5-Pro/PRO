@@ -17,6 +17,7 @@ import {
 } from 'react-icons/fi';
 import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getPageIdForNotificationType } from '../../utils/notificationNavigation';
 
 const NotificationBadge = ({ count, highlight = false }) => {
   if (count === 0) return null;
@@ -33,59 +34,8 @@ const NotificationBadge = ({ count, highlight = false }) => {
 };
 
 const getNavigationPath = (notification) => {
-  const { type } = notification;
-
-  if (type && String(type).startsWith('tool_provisioning')) {
-    return '/';
-  }
-
-  const LEAVE_TYPES = ['leave_request', 'leave_approval', 'leave_rejection', 'leave_cancelled'];
-  const ATTENDANCE_TYPES = [
-    'attendance_alert',
-    'attendance_late_arrival',
-    'attendance_absent',
-    'attendance_correction',
-    'attendance_overtime',
-    'attendance_shift_change',
-  ];
-  const PAYROLL_TYPES = [
-    'payroll_ready',
-    'payroll_processed',
-    'salary_slip_generated',
-    'reimbursement_request',
-    'reimbursement_approval',
-    'reimbursement_rejection',
-    'bonus_notification',
-    'incentive_notification',
-  ];
-  const PERFORMANCE_TYPES = [
-    'performance_review_request',
-    'performance_feedback_request',
-    'performance_review_complete',
-    'performance_rating',
-    'goal_setting',
-    'okr_update',
-  ];
-
-  if (LEAVE_TYPES.includes(type)) return '/?page=leaves';
-  if (ATTENDANCE_TYPES.includes(type)) return '/?page=attendance';
-  if (PAYROLL_TYPES.includes(type)) return '/?page=payroll';
-  if (PERFORMANCE_TYPES.includes(type)) return '/?page=performance';
-  if (type.includes('meeting') || type.includes('one_on_one')) return '/?page=team-collaboration';
-  if (type.includes('asset') || type.includes('system_access')) return '/?page=team-collaboration';
-  if (type.includes('document')) return '/?page=team-collaboration';
-  if (type.includes('training') || type.includes('certification')) return '/?page=team-collaboration';
-  if (type === 'announcement') return '/?page=announcements';
-  if (
-    type.includes('role') ||
-    type.includes('designation') ||
-    type.includes('department') ||
-    type.includes('team_membership')
-  ) {
-    return '/?page=employee-profile';
-  }
-
-  return '/';
+  const pageId = getPageIdForNotificationType(notification?.type);
+  return pageId === 'dashboard' ? '/' : `/?page=${pageId}`;
 };
 
 const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose, isNavigatingRef, colors }) => {
@@ -270,7 +220,11 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
       filtered = filtered.filter((notif) => {
         switch (filterType) {
           case 'approvals':
-            return notif.type === 'leave_approval';
+            return (
+              notif.type === 'leave_approval' ||
+              notif.category === 'approval' ||
+              String(notif.type || '').startsWith('tool_provisioning')
+            );
           case 'leaves':
             return notif.type.includes('leave');
           case 'attendance':

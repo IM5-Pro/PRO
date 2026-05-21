@@ -34,12 +34,6 @@ const RecruitmentManagement = () => {
   const [busy, setBusy] = useState('');
   const [banner, setBanner] = useState({ type: '', text: '' });
 
-  const loadJobs = useCallback(async () => {
-    const rows = await fetchRecruitmentJobs();
-    setJobs(rows);
-    if (!selectedJobId && rows[0]?._id) setSelectedJobId(rows[0]._id);
-  }, [selectedJobId]);
-
   const loadAll = useCallback(async () => {
     setLoading(true);
     setBanner({ type: '', text: '' });
