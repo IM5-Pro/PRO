@@ -194,7 +194,7 @@ const ResignationAdminView = ({ user = {}, pageConfig = {}, onUserUpdate = () =>
   const getStatusLabel = (status) => resignationApi.getStatusLabel(status);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-im5-page p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">

@@ -560,7 +560,7 @@ const UnifiedDashboard = () => {
   };
 
   return (
-    <div className="app-shell flex min-h-0 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="app-shell flex min-h-0 overflow-hidden bg-im5-canvas">
       <HRSidebar
         currentPage={currentPage}
         onNavigate={handleNavigate}
@@ -584,8 +584,7 @@ const UnifiedDashboard = () => {
         <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col p-3 md:p-5">
             <div
-              className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/70 ring-1 ring-white/60"
-              style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
+              className="bg-im5-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring-1 ring-white/50"
             >
               <div
                 ref={contentScrollRef}

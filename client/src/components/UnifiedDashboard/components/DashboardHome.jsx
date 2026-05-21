@@ -22,9 +22,9 @@ const DashboardHome = ({ heading, subtitle, workContextLine, widgets, pages, onN
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-8">
+    <div className="min-h-screen bg-im5-page p-6 md:p-8">
       {/* Banner section */}
-      <div className="mb-8 rounded-2xl bg-gradient-to-r from-blue-50 via-white to-amber-50 p-6 md:p-8 shadow-sm flex flex-col gap-1">
+      <div className="mb-8 flex flex-col gap-1 rounded-2xl bg-im5-banner border border-im5-border-soft p-6 shadow-sm md:p-8">
         <h1 className="text-3xl font-extrabold text-slate-800 mb-1 tracking-tight" style={{ fontFamily: 'Inter, Roboto, sans-serif' }}>{heading}</h1>
         <p className="text-base text-slate-500 font-medium">{subtitle}</p>
         {workContextLine ? (
@@ -43,8 +43,7 @@ const DashboardHome = ({ heading, subtitle, workContextLine, widgets, pages, onN
           return (
             <div
               key={widget.title}
-              className="bg-white rounded-2xl shadow-xl px-7 py-6 flex flex-col items-start relative group transition-all hover:-translate-y-1 hover:shadow-2xl"
-              style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+              className="relative flex flex-col items-start rounded-2xl border border-im5-border-soft bg-im5-surface px-7 py-6 shadow-sm transition-all group hover:-translate-y-1 hover:shadow-md"
             >
               {/* Icon circle */}
               <div className={`w-11 h-11 flex items-center justify-center rounded-full mb-3 shadow-sm ${accent} text-xl`}>
@@ -74,8 +73,7 @@ const DashboardHome = ({ heading, subtitle, workContextLine, widgets, pages, onN
             <button
               key={page.id}
               onClick={() => onNavigate(page.id)}
-              className="text-left p-5 bg-white rounded-2xl shadow-xl flex flex-col items-start border border-transparent hover:shadow-2xl hover:-translate-y-1 hover:bg-blue-50/40 transition-all group focus:outline-none"
-              style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+              className="group flex flex-col items-start rounded-2xl border border-im5-border-soft bg-im5-surface p-5 text-left shadow-sm transition-all hover:-translate-y-1 hover:border-im5-border hover:bg-im5-accent-tint/40 hover:shadow-md focus:outline-none"
             >
               <span className={`w-9 h-9 flex items-center justify-center rounded-full mb-2 ${accent} text-lg`}>
                 <PageIcon size={20} />

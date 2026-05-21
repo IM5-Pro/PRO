@@ -372,7 +372,7 @@ export const NOTIFICATION_ENDPOINTS = {
   mark: (notificationId) => `/notifications/${notificationId}/read`,
   markAll: '/notifications/mark-all-read',
   delete: (notificationId) => `/notifications/${notificationId}`,
-  deleteAll: '/notifications/delete-all',
+  deleteAll: '/notifications',
   summary: '/notifications/summary',
   pendingApprovals: '/notifications/pending-approvals',
   leavePending: '/notifications/leaves/pending',

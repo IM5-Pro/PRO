@@ -38,7 +38,7 @@ const AuthLayout = ({
       {/* Login Card */}
       <div className="w-full max-w-md mx-auto md:mr-8 lg:mr-16 xl:mr-24">
         {/* Content Card */}
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-4 sm:p-6 md:p-10 border border-white/20">
+        <div className="rounded-3xl border border-im5-border-soft bg-im5-surface/90 p-4 shadow-2xl backdrop-blur-md sm:p-6 md:p-10">
           {/* Logo Header Inside Card */}
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold text-blue-600 tracking-tight">

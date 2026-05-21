@@ -26,6 +26,11 @@ import PayrollTab from '../EmployeeProfile/layout/tabs/PayrollTab';
 import DocumentsTab from '../EmployeeProfile/layout/tabs/DocumentsTab';
 import PerformanceTab from '../EmployeeProfile/layout/tabs/PerformanceTab';
 import { formatINR } from '../../utils/currency';
+import {
+  formatPayrollMonthLabel,
+  pickPayrollDetailForDisplay,
+  sortPayrollDetailsByPeriodDesc,
+} from '../../utils/payrollPeriod';
 import RupeeIcon from '../icons/RupeeIcon';
 import {
   mergeProfileWithPending,
@@ -305,42 +310,52 @@ const EmployeeProfile = () => {
 
     const fetchPayroll = async () => {
       try {
-        const res = await API.get(PAYROLL_ENDPOINTS.own);
-        const body = res?.data || {};
+        const [payrollRes, profileRes] = await Promise.all([
+          API.get(PAYROLL_ENDPOINTS.own),
+          API.get(EMPLOYEE_ENDPOINTS.myProfile).catch(() => null),
+        ]);
+        const body = payrollRes?.data || {};
         const details = Array.isArray(body.details) ? body.details : [];
-        const sorted = [...details].sort(
-          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+        const employee = profileRes?.data?.data || null;
+        const sorted = sortPayrollDetailsByPeriodDesc(details);
+        const { detail: compensation, isProjected } = pickPayrollDetailForDisplay(
+          sorted,
+          employee,
         );
-        const latest = sorted[0];
+
         const payslips = sorted.slice(0, 12).map((d) => {
           const run = d.payrollRunId;
-          const monthLabel =
-            run && (run.month || run.label)
-              ? `${run.month || ''} ${run.year || ''}`.trim()
-              : formatDate(d.createdAt);
-          const path = d._id ? PAYROLL_ENDPOINTS.download(d._id) : '';
-          const baseURL = String(API.defaults?.baseURL || '').replace(/\/$/, '');
-          const url =
-            path && baseURL ? `${baseURL}${path.startsWith('/') ? path : `/${path}`}` : '#';
           return {
-            month: monthLabel || 'Period',
+            id: d._id,
+            month: formatPayrollMonthLabel(d) || formatDate(d.createdAt) || 'Period',
             year: run?.year || '',
-            url,
           };
         });
+
         setPayrollView({
-          salary: latest?.netSalary != null ? formatINR(latest.netSalary) : '—',
+          salary:
+            compensation?.netSalary != null ? formatINR(compensation.netSalary) : '—',
+          grossSalary:
+            compensation?.grossSalary != null ? formatINR(compensation.grossSalary) : '—',
+          deductionsTotal:
+            compensation?.totalDeductions != null
+              ? formatINR(compensation.totalDeductions)
+              : '—',
+          isProjected,
           bankName: '—',
           accountNumber: '—',
           ifsc: '—',
           pan: '—',
-          pfNumber: latest?.pf != null ? String(latest.pf) : '—',
-          esiNumber: latest?.esi != null ? String(latest.esi) : '—',
+          pfNumber: compensation?.pf != null ? formatINR(compensation.pf) : '—',
+          esiNumber: compensation?.esi != null ? formatINR(compensation.esi) : '—',
           payslips,
         });
       } catch {
         setPayrollView({
           salary: '—',
+          grossSalary: '—',
+          deductionsTotal: '—',
+          isProjected: false,
           bankName: '—',
           accountNumber: '—',
           ifsc: '—',
@@ -476,7 +491,7 @@ const EmployeeProfile = () => {
     profileCompletionStatus === 'pending_employee' && pendingProfileChange?.status !== 'PENDING';
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-im5-page">
       <TopHeader
         name={profile.name}
         role={profile.designation || profile.role}

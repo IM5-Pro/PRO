@@ -4,14 +4,20 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiDownload } from 'react-icons/fi';
+import { FiDownload, FiMinusCircle, FiPlusCircle, FiFileText } from 'react-icons/fi';
 import RupeeIcon from '../icons/RupeeIcon';
 import API from '../../api/client';
-import { PAYROLL_ENDPOINTS } from '../../api/endpoints';
+import { EMPLOYEE_ENDPOINTS, PAYROLL_ENDPOINTS } from '../../api/endpoints';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { canAccessPayrollRuns, normalizeRole } from '../../utils/roles';
 import { formatINR } from '../../utils/currency';
+import { downloadPayslipPdf } from '../../utils/downloadPayslip';
+import {
+  formatPayrollMonthLabel,
+  pickPayrollDetailForDisplay,
+  sortPayrollDetailsByPeriodDesc,
+} from '../../utils/payrollPeriod';
 
 const toPayload = (response) => response?.data || {};
 
@@ -40,6 +46,7 @@ const Payroll = () => {
   const [error, setError] = useState('');
   const [payrollDetails, setPayrollDetails] = useState([]);
   const [payrollRuns, setPayrollRuns] = useState([]);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
   const [downloadingSlipId, setDownloadingSlipId] = useState('');
 
   const loadPayrollData = useCallback(async () => {
@@ -51,9 +58,14 @@ const Payroll = () => {
       let runs = [];
 
       try {
-        const ownResponse = await API.get(PAYROLL_ENDPOINTS.own);
+        const [ownResponse, profileResponse] = await Promise.all([
+          API.get(PAYROLL_ENDPOINTS.own),
+          API.get(EMPLOYEE_ENDPOINTS.myProfile).catch(() => null),
+        ]);
         details = extractRows(toPayload(ownResponse), 'details');
+        setEmployeeProfile(profileResponse?.data?.data || null);
       } catch (ownError) {
+        setEmployeeProfile(null);
         const isRoleAllowedToViewRuns = canAccessPayrollRuns(userRole);
         const isForbidden = ownError?.response?.status === 403;
 
@@ -73,6 +85,7 @@ const Payroll = () => {
       setError(err?.response?.data?.message || err?.message || 'Failed to load payroll data');
       setPayrollDetails([]);
       setPayrollRuns([]);
+      setEmployeeProfile(null);
     } finally {
       setLoading(false);
     }
@@ -82,15 +95,15 @@ const Payroll = () => {
     loadPayrollData();
   }, [loadPayrollData]);
 
-  const sortedDetails = useMemo(() => {
-    return [...payrollDetails].sort((left, right) => {
-      const leftDate = new Date(left?.createdAt || left?.updatedAt || 0).getTime();
-      const rightDate = new Date(right?.createdAt || right?.updatedAt || 0).getTime();
-      return rightDate - leftDate;
-    });
-  }, [payrollDetails]);
+  const sortedDetails = useMemo(
+    () => sortPayrollDetailsByPeriodDesc(payrollDetails),
+    [payrollDetails],
+  );
 
-  const latestDetail = sortedDetails[0] || null;
+  const { detail: latestDetail, isProjected: isProjectedCompensation } = useMemo(
+    () => pickPayrollDetailForDisplay(sortedDetails, employeeProfile),
+    [sortedDetails, employeeProfile],
+  );
 
   const salary = useMemo(() => {
     return {
@@ -161,7 +174,7 @@ const Payroll = () => {
   const payslips = useMemo(() => {
     return sortedDetails.map((detail) => ({
       id: detail?._id,
-      month: detail?.payrollRunId?.month || 'Payroll',
+      month: formatPayrollMonthLabel(detail),
       amount: Number(detail?.netSalary || 0),
       date:
         detail?.payrollRunId?.approvedAt ||
@@ -180,158 +193,200 @@ const Payroll = () => {
     setError('');
 
     try {
-      const response = await API.get(PAYROLL_ENDPOINTS.download(slipId), {
-        responseType: 'blob',
-      });
-
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      const safeMonth = String(monthLabel || 'payslip').replace(/[^a-zA-Z0-9_-]/g, '_');
-
-      link.href = blobUrl;
-      link.download = `${safeMonth}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
+      await downloadPayslipPdf(slipId, monthLabel);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to download payslip');
+      setError(err?.message || 'Failed to download payslip');
     } finally {
       setDownloadingSlipId('');
     }
   };
 
+  const summaryCards = [
+    {
+      title: 'Gross Salary',
+      value: formatINR(salary.gross),
+      icon: FiPlusCircle,
+      color: 'from-emerald-500 to-green-600',
+      valueClass: 'text-emerald-700',
+    },
+    {
+      title: 'Deductions',
+      value: formatINR(salary.deductions),
+      icon: FiMinusCircle,
+      color: 'from-rose-500 to-red-600',
+      valueClass: 'text-rose-700',
+    },
+    {
+      title: 'Net Salary',
+      value: formatINR(salary.net),
+      icon: RupeeIcon,
+      color: 'from-blue-500 to-indigo-600',
+      valueClass: 'text-blue-700',
+    },
+  ];
+
+  const renderLineItems = (rows, tone) =>
+    rows.length > 0 ? (
+      rows.map((row, idx) => (
+        <div
+          key={`${row.item}-${idx}`}
+          className="flex items-center justify-between gap-3 rounded-xl border border-im5-border-soft bg-slate-50/80 px-4 py-3 transition-colors hover:bg-white"
+        >
+          <span className={`text-sm font-medium ${colors.text.secondary}`}>{row.item}</span>
+          <span className={`text-sm font-semibold tabular-nums ${tone}`}>{formatINR(row.amount)}</span>
+        </div>
+      ))
+    ) : (
+      <p className={`rounded-xl border border-dashed border-im5-border-soft bg-slate-50 px-4 py-6 text-center text-sm ${colors.text.tertiary}`}>
+        No items to display.
+      </p>
+    );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8">
-      {/* Header */}
-      <div>
-        <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
-          <RupeeIcon className="w-10 h-10" /> Payroll
+    <div className="min-h-screen bg-im5-page p-6 md:p-8">
+      <div className="glass mb-8 animate-slideInDown backdrop-blur-xl">
+        <h1 className={`mb-2 flex items-center gap-3 text-4xl font-bold ${colors.text.primary}`}>
+          <RupeeIcon className="h-10 w-10 text-blue-600" /> Payroll
         </h1>
-        <p className={`${colors.text.tertiary} mb-8`}>View your salary information and payslips</p>
+        <p className={colors.text.tertiary}>View your salary breakdown and download payslips</p>
       </div>
 
       {error && (
-        <div className="glass rounded-2xl p-4 mb-6 border border-red-500/30 bg-red-500/10 text-red-300">
-          {error}
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span className="font-medium">{error}</span>
         </div>
       )}
 
       {loading && (
-        <div className="glass rounded-2xl p-8 mb-8 text-center text-slate-300">
-          Loading payroll data...
+        <div className={`card mb-8 flex items-center justify-center gap-3 py-12 ${colors.text.tertiary}`}>
+          <span className="spinner" aria-hidden />
+          <span>Loading payroll data...</span>
         </div>
       )}
 
       {!loading && latestDetail && (
         <>
-          {/* Salary Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 border border-green-700/50 rounded-2xl p-6 hover:border-green-600/70 transition-all">
-              <p className="text-green-400 text-sm font-medium mb-2">Gross Salary</p>
-              <p className="text-3xl font-bold text-white">{formatINR(salary.gross)}</p>
+          {isProjectedCompensation && (
+            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Showing this month&apos;s <span className="font-semibold">estimated</span> salary from your
+              compensation settings. Official payslips appear in history after HR processes payroll.
+            </div>
+          )}
+
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+            {summaryCards.map((card, idx) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.title}
+                  style={{ animationDelay: `${idx * 0.08}s` }}
+                  className="group stat-card animate-fadeInUp hover-lift"
+                >
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className={`icon-box bg-gradient-to-br ${card.color} text-white`}>
+                      <Icon size={22} />
+                    </div>
+                    {isProjectedCompensation && card.title === 'Net Salary' && (
+                      <span className="badge badge-warning">Estimated</span>
+                    )}
+                  </div>
+                  <p className={`mb-2 text-sm font-medium ${colors.text.tertiary}`}>{card.title}</p>
+                  <p className={`text-3xl font-bold tabular-nums ${card.valueClass}`}>{card.value}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="card animate-fadeInUp">
+              <h2 className={`mb-5 flex items-center gap-2 text-xl font-bold ${colors.text.primary}`}>
+                <FiPlusCircle className="text-emerald-600" size={20} />
+                Earnings Breakdown
+              </h2>
+              <div className="space-y-3">{renderLineItems(earnings, 'text-emerald-700')}</div>
             </div>
 
-            <div className="bg-gradient-to-br from-red-900/30 to-pink-900/30 border border-red-700/50 rounded-2xl p-6 hover:border-red-600/70 transition-all">
-              <p className="text-red-400 text-sm font-medium mb-2">Deductions</p>
-              <p className="text-3xl font-bold text-white">{formatINR(salary.deductions)}</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border border-blue-700/50 rounded-2xl p-6 hover:border-blue-600/70 transition-all">
-              <p className="text-blue-400 text-sm font-medium mb-2">Net Salary</p>
-              <p className="text-3xl font-bold text-white">{formatINR(salary.net)}</p>
+            <div className="card animate-fadeInUp" style={{ animationDelay: '0.08s' }}>
+              <h2 className={`mb-5 flex items-center gap-2 text-xl font-bold ${colors.text.primary}`}>
+                <FiMinusCircle className="text-rose-600" size={20} />
+                Deductions
+              </h2>
+              <div className="space-y-3">{renderLineItems(deductions, 'text-rose-700')}</div>
             </div>
           </div>
 
-          {/* Earnings & Deductions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Earnings */}
-            <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all`}>
-              <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Earnings Breakdown</h2>
+          {payslips.length > 0 && (
+            <div className="glass animate-fadeInUp">
+              <h2 className={`mb-6 flex items-center gap-2 text-xl font-bold ${colors.text.primary}`}>
+                <FiFileText className="text-blue-600" size={20} />
+                Recent Payslips
+              </h2>
 
-              <div className="space-y-3">
-                {earnings.map((earning, idx) => (
-                  <div key={`${earning.item}-${idx}`} className="flex items-center justify-between p-3 bg-slate-700/30 border border-slate-700/50 rounded-lg">
-                    <span className={colors.text.secondary}>{earning.item}</span>
-                    <span className="text-green-400 font-semibold">{formatINR(earning.amount)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Deductions */}
-            <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all`}>
-              <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Deductions</h2>
-
-              <div className="space-y-3">
-                {deductions.map((deduction, idx) => (
-                  <div key={`${deduction.item}-${idx}`} className="flex items-center justify-between p-3 bg-slate-700/30 border border-slate-700/50 rounded-lg">
-                    <span className={colors.text.secondary}>{deduction.item}</span>
-                    <span className="text-red-400 font-semibold">{formatINR(deduction.amount)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Payslips */}
-          <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all`}>
-            <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Recent Payslips</h2>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className={`border-b ${colors.border.primary} ${colors.text.tertiary} font-semibold`}>
-                    <th className="text-left px-4 py-3">Month</th>
-                    <th className="text-left px-4 py-3">Amount</th>
-                    <th className="text-left px-4 py-3">Date</th>
-                    <th className="text-center px-4 py-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payslips.map((payslip) => (
-                    <tr key={payslip.id} className={`border-b ${colors.border.primary} hover:bg-slate-700/30 transition-colors`}>
-                      <td className={`px-4 py-3 ${colors.text.primary} font-medium`}>{payslip.month}</td>
-                      <td className="px-4 py-3 text-green-400 font-semibold">{formatINR(payslip.amount)}</td>
-                      <td className={`px-4 py-3 ${colors.text.tertiary}`}>{new Date(payslip.date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => handleDownloadSlip(payslip.id, payslip.month)}
-                          disabled={downloadingSlipId === payslip.id}
-                          className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-all duration-300 transform hover:scale-110 active:scale-95 inline-flex"
-                        >
-                          <FiDownload size={18} />
-                        </button>
-                      </td>
+              <div className="overflow-x-auto rounded-xl border border-im5-border-soft">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-im5-border bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <th className="px-4 py-3">Month</th>
+                      <th className="px-4 py-3">Net amount</th>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3 text-center">Download</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-im5-border-soft bg-white">
+                    {payslips.map((payslip) => (
+                      <tr key={payslip.id} className="transition-colors hover:bg-slate-50">
+                        <td className={`px-4 py-3 font-medium ${colors.text.primary}`}>{payslip.month}</td>
+                        <td className="px-4 py-3 font-semibold tabular-nums text-emerald-700">
+                          {formatINR(payslip.amount)}
+                        </td>
+                        <td className={`px-4 py-3 ${colors.text.tertiary}`}>
+                          {new Date(payslip.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadSlip(payslip.id, payslip.month)}
+                            disabled={!payslip.id || downloadingSlipId === payslip.id}
+                            className="btn-primary inline-flex items-center gap-2 px-3 py-2 text-sm disabled:opacity-60"
+                            aria-label={`Download payslip for ${payslip.month}`}
+                          >
+                            <FiDownload size={16} />
+                            {downloadingSlipId === payslip.id ? 'Downloading…' : 'PDF'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
 
       {!loading && !latestDetail && payrollRuns.length > 0 && (
-        <div className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border ${colors.border.primary} p-6 hover:border-slate-600 transition-all`}>
-          <h2 className={`text-2xl font-bold ${colors.text.primary} mb-6`}>Payroll Runs</h2>
+        <div className="glass animate-fadeInUp">
+          <h2 className={`mb-6 text-xl font-bold ${colors.text.primary}`}>Payroll Runs</h2>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-xl border border-im5-border-soft">
+            <table className="w-full text-sm">
               <thead>
-                <tr className={`border-b ${colors.border.primary} ${colors.text.tertiary} font-semibold`}>
-                  <th className="text-left px-4 py-3">Month</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-left px-4 py-3">Total Payout</th>
+                <tr className="border-b border-im5-border bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3">Month</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Total payout</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-im5-border-soft bg-white">
                 {payrollRuns.map((run) => (
-                  <tr key={run?._id || run?.id} className={`border-b ${colors.border.primary} hover:bg-slate-700/30 transition-colors`}>
-                    <td className={`px-4 py-3 ${colors.text.primary} font-medium`}>{run?.month || 'N/A'}</td>
-                    <td className={`px-4 py-3 ${colors.text.secondary}`}>{run?.status || 'N/A'}</td>
-                    <td className="px-4 py-3 text-green-400 font-semibold">{formatINR(run?.totalPayout || 0)}</td>
+                  <tr key={run?._id || run?.id} className="transition-colors hover:bg-slate-50">
+                    <td className={`px-4 py-3 font-medium ${colors.text.primary}`}>{run?.month || 'N/A'}</td>
+                    <td className="px-4 py-3">
+                      <span className="badge badge-info">{run?.status || 'N/A'}</span>
+                    </td>
+                    <td className="px-4 py-3 font-semibold tabular-nums text-emerald-700">
+                      {formatINR(run?.totalPayout || 0)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -341,8 +396,10 @@ const Payroll = () => {
       )}
 
       {!loading && !latestDetail && payrollRuns.length === 0 && !error && (
-        <div className="glass rounded-2xl p-8 text-center text-slate-300">
-          No payroll records found.
+        <div className={`card py-12 text-center ${colors.text.tertiary}`}>
+          <RupeeIcon className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+          <p className="font-medium text-slate-600">No payroll records found</p>
+          <p className="mt-1 text-sm">Payslips will appear here after HR processes payroll.</p>
         </div>
       )}
     </div>

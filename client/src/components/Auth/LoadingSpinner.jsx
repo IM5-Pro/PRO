@@ -40,7 +40,7 @@ const LoadingSpinner = ({
   if (variant === 'fullpage') {
     return (
       <div
-        className={`app-loading-bg flex h-screen items-center justify-center bg-gray-100 ${className}`}
+        className={`app-loading-bg flex h-screen items-center justify-center ${className}`}
         role="status"
         aria-live="polite"
         aria-busy="true"

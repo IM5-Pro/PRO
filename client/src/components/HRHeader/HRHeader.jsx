@@ -308,7 +308,7 @@ const HRHeader = ({
 
   const portalSwitcher = showPortalSwitcher && portalModeOptions.length > 0 && (
     <div
-      className="inline-flex w-full max-w-full shrink-0 items-stretch rounded-xl border border-slate-200 bg-slate-50 p-0.5 sm:w-auto"
+      className="inline-flex w-full max-w-full shrink-0 items-stretch rounded-xl border border-im5-border-soft bg-im5-subtle p-0.5 sm:w-auto"
       role="tablist"
       aria-label="Portal mode"
     >
@@ -543,7 +543,7 @@ const HRHeader = ({
   );
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 border-b border-slate-200/80 shadow-sm">
+    <header className="sticky top-0 z-40 border-b border-im5-border-soft bg-im5-header shadow-sm backdrop-blur-sm">
       <div
         className={`px-4 md:px-8 ${
           portalSwitcher
@@ -557,7 +557,7 @@ const HRHeader = ({
               {headerLeft}
               {headerActions}
             </div>
-            <div className="w-full min-w-0 border-t border-slate-100 pt-3 md:pt-2.5">
+            <div className="w-full min-w-0 border-t border-im5-border-soft pt-3 md:pt-2.5">
               {portalSwitcher}
             </div>
           </>

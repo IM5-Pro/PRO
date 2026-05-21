@@ -238,7 +238,7 @@ const MyResignation = ({ user = {}, pageConfig = {}, onUserUpdate = () => {} }) 
   const canSubmitNew = !activeResignation && mode === 'list';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-im5-page p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">

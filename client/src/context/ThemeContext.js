@@ -32,9 +32,9 @@ const themeColors = {
   },
   light: {
     bg: {
-      primary: 'bg-slate-50',
-      secondary: 'bg-white',
-      tertiary: 'bg-slate-100',
+      primary: 'bg-im5-canvas',
+      secondary: 'bg-im5-surface',
+      tertiary: 'bg-im5-subtle',
       overlay: 'bg-black/30',
     },
     text: {
@@ -44,14 +44,14 @@ const themeColors = {
       muted: 'text-slate-500',
     },
     border: {
-      primary: 'border-slate-300',
-      secondary: 'border-slate-200',
-      light: 'border-slate-200/50',
+      primary: 'border-im5-border',
+      secondary: 'border-im5-border-soft',
+      light: 'border-im5-border-soft',
     },
     gradient: {
-      primary: 'from-slate-50 via-white to-slate-50',
-      card: 'from-white to-slate-50',
-      accent: 'from-blue-500 to-purple-500',
+      primary: 'from-im5-subtle via-im5-surface to-im5-subtle',
+      card: 'from-im5-surface to-im5-subtle',
+      accent: 'from-blue-500 to-indigo-500',
     },
     shadow: 'shadow-blue-500/5',
   },

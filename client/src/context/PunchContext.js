@@ -210,17 +210,19 @@ export const PunchProvider = ({ children }) => {
     }
   }, [canPunch, userIdentity, clearPunchState, syncPunchStorage]);
 
-  // Load today's attendance from backend
-  const loadTodayStatus = useCallback(async () => {
+  // Load today's attendance from backend (silent = background refresh; no button flicker)
+  const loadTodayStatus = useCallback(async ({ silent = false } = {}) => {
     if (!canPunch) {
       clearPunchState();
       syncPunchStorage(null, false);
       return;
     }
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
+
     try {
-      clearPunchState();
       const res = await API.get(ATTENDANCE_ENDPOINTS.own(5));
       const records = extractAttendanceList(res);
       const todayKey = getCurrentDayKey();
@@ -257,17 +259,21 @@ export const PunchProvider = ({ children }) => {
         syncPunchStorage(null, false);
       }
     } catch {
-      setTodayAttendance(null);
-      clearPunchState();
+      if (!silent) {
+        setTodayAttendance(null);
+        clearPunchState();
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [canPunch, clearPunchState, syncPunchStorage]);
 
   useEffect(() => {
     if (!loadedRef.current && canPunch) {
       loadedRef.current = true;
-      loadTodayStatus();
+      loadTodayStatus({ silent: true });
     }
   }, [canPunch, loadTodayStatus]);
 
@@ -277,7 +283,7 @@ export const PunchProvider = ({ children }) => {
     }
 
     const intervalId = window.setInterval(() => {
-      loadTodayStatus();
+      loadTodayStatus({ silent: true });
     }, 60 * 1000);
 
     return () => {
@@ -326,7 +332,7 @@ export const PunchProvider = ({ children }) => {
       return { status: 'in', conflict: false };
     } catch (error) {
       if (error?.response?.status === 409) {
-        await loadTodayStatus();
+        await loadTodayStatus({ silent: true });
         return {
           status: 'in',
           conflict: true,
@@ -367,7 +373,7 @@ export const PunchProvider = ({ children }) => {
       return { status: 'out', conflict: false };
     } catch (error) {
       if (error?.response?.status === 409) {
-        await loadTodayStatus();
+        await loadTodayStatus({ silent: true });
         return {
           status: 'out',
           conflict: true,

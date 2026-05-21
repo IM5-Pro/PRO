@@ -84,7 +84,7 @@ const Dashboard = () => {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
+      className="min-h-screen bg-im5-page p-6 md:p-8"
     >
       {/* Header */}
       <div className="glass rounded-2xl p-6 mb-8 backdrop-blur-xl animate-slideInDown">

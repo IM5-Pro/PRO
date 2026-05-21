@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --im5-bg-canvas: #eef2f7;
+  --im5-bg-subtle: #f4f7fb;
+  --im5-bg-surface: #ffffff;
+  --im5-bg-surface-soft: rgba(255, 255, 255, 0.9);
+  --im5-bg-inset: #f8fafb;
+  --im5-bg-hover: #f1f5f9;
+  --im5-border: #e2e8f0;
+  --im5-border-soft: #e8edf3;
+  --im5-accent-tint: #eff6ff;
+  --im5-shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.05);
+  --im5-shadow-card: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -20,8 +34,9 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  background: linear-gradient(145deg, #eef2f7 0%, #f8fafc 52%, #eef4f9 100%);
   min-height: 100dvh;
+  color: #0f172a;
 }
 
 #root {
@@ -149,26 +164,37 @@ code {
 
   /* Glass and Card Styles */
   .glass {
-    @apply bg-white/65 rounded-2xl border border-white/40;
-    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(255, 255, 255, 0.4);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply rounded-2xl border border-im5-border-soft p-6 transition-all duration-300;
+    background-color: var(--im5-bg-surface-soft);
+    box-shadow: var(--im5-shadow-soft);
   }
 
   .glass:hover {
-    @apply border-white/50;
-    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    @apply border-im5-border;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
     transform: translateY(-2px);
   }
 
   .card {
-    @apply bg-white rounded-2xl border border-gray-200 p-6 transition-all duration-300;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    @apply rounded-2xl border border-im5-border-soft p-6 transition-all duration-300;
+    background-color: var(--im5-bg-surface);
+    box-shadow: var(--im5-shadow-card);
   }
 
   .card:hover {
-    @apply border-gray-300;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    @apply border-im5-border;
+    box-shadow: var(--im5-shadow-soft);
     transform: translateY(-2px);
+  }
+
+  .bg-im5-page {
+    background-color: transparent;
+  }
+
+  .bg-im5-panel {
+    background-color: var(--im5-bg-surface-soft);
+    border: 1px solid var(--im5-border-soft);
+    box-shadow: var(--im5-shadow-soft);
   }
 
   /* Buttons */
@@ -205,7 +231,12 @@ code {
   }
 
   .btn-secondary {
-    @apply btn-base bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400;
+    @apply btn-base text-slate-700 border border-im5-border hover:border-im5-border-soft;
+    background-color: var(--im5-bg-surface);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--im5-bg-hover);
   }
 
   /* Badge Styles */
@@ -247,18 +278,24 @@ code {
 
   /* Input Modern */
   .input-modern {
-    @apply w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white focus:shadow-md;
+    @apply w-full px-4 py-3 backdrop-blur-sm border border-im5-border rounded-xl text-slate-900 placeholder-slate-500 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:shadow-md;
+    background-color: var(--im5-bg-surface-soft);
+  }
+
+  .input-modern:focus {
+    background-color: var(--im5-bg-surface);
   }
 
   /* Stat Card */
   .stat-card {
-    @apply rounded-2xl border border-gray-200 p-6 bg-white transition-all duration-300;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    @apply rounded-2xl border border-im5-border-soft p-6 transition-all duration-300;
+    background-color: var(--im5-bg-surface);
+    box-shadow: var(--im5-shadow-card);
   }
 
   .stat-card:hover {
-    @apply border-gray-300 -translate-y-1;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    @apply border-im5-border -translate-y-1;
+    box-shadow: var(--im5-shadow-soft);
   }
 
   /* Icon Box */
@@ -317,17 +354,62 @@ code {
 
 /* Enterprise visual consistency for app pages (excludes login/auth screens). */
 .app-shell,
-.app-shell .bg-gradient-to-br.from-slate-50.to-slate-100,
 .app-loading-bg,
 .app-punch-bg {
-  background: linear-gradient(
-    rgba(255, 255, 255, 0.92),
-    rgba(255, 255, 255, 0.92)
-  ),
-  url('./assets/Background.png') !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(238, 242, 247, 0.97) 0%,
+      rgba(248, 250, 252, 0.94) 50%,
+      rgba(239, 246, 255, 0.92) 100%
+    ),
+    url('./assets/Background.png') !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
+}
+
+/* Let the shell canvas show through page wrappers */
+.app-shell .bg-gradient-to-br.from-slate-50.to-slate-100,
+.app-shell .bg-gradient-to-br.from-slate-50,
+.app-shell .bg-gradient-to-br.from-white,
+.app-shell .min-h-screen.bg-gradient-to-br,
+.app-shell .min-h-screen.bg-\[\#F8FAFC\],
+.app-shell .min-h-screen.bg-slate-50,
+.app-shell .flex-1.bg-gradient-to-br {
+  background: transparent !important;
+}
+
+.app-shell thead.bg-slate-50,
+.app-shell .bg-slate-50.rounded-xl,
+.app-shell .rounded-lg.border.bg-slate-50 {
+  background-color: var(--im5-bg-subtle) !important;
+}
+
+.app-shell .hover\:bg-slate-50:hover {
+  background-color: var(--im5-bg-hover) !important;
+}
+
+.app-shell .bg-slate-100,
+.app-shell .bg-gray-50,
+.app-shell .bg-gray-100 {
+  background-color: var(--im5-bg-subtle) !important;
+}
+
+.app-shell .bg-blue-50,
+.app-shell .hover\:bg-blue-50:hover,
+.app-shell .bg-blue-50\/40,
+.app-shell .hover\:bg-blue-50\/40:hover {
+  background-color: var(--im5-accent-tint) !important;
+}
+
+.app-shell .bg-white {
+  background-color: var(--im5-bg-surface) !important;
+}
+
+.app-shell .border-slate-200,
+.app-shell .border-slate-200\/80 {
+  border-color: var(--im5-border-soft) !important;
 }
 
 .app-shell .shadow-lg,

@@ -5,12 +5,12 @@ import {
   createPayrollRun,
   fetchPayrollRuns,
   fetchPayrollSlips,
-  getPayrollDownloadUrl,
   lockPayrollRun,
   processPayrollRun,
   toErrorMessage,
   unlockPayrollRun,
 } from '../../../services/adminOperationsApi';
+import { downloadPayslipPdf } from '../../../utils/downloadPayslip';
 import { formatINR } from '../../../utils/currency';
 
 const HRPayroll = () => {
@@ -22,6 +22,25 @@ const HRPayroll = () => {
   const [actionLoading, setActionLoading] = useState('');
   const [banner, setBanner] = useState({ type: '', text: '' });
   const [newRunMonth, setNewRunMonth] = useState('');
+  const [downloadingSlipId, setDownloadingSlipId] = useState('');
+
+  const handleDownloadSlip = async (slipId, monthLabel) => {
+    if (!slipId) {
+      return;
+    }
+
+    setDownloadingSlipId(slipId);
+    try {
+      await downloadPayslipPdf(slipId, monthLabel);
+    } catch (error) {
+      setBanner({
+        type: 'error',
+        text: toErrorMessage(error, 'Failed to download payslip'),
+      });
+    } finally {
+      setDownloadingSlipId('');
+    }
+  };
 
   const loadRuns = useCallback(async () => {
     setLoading(true);
@@ -344,14 +363,19 @@ const HRPayroll = () => {
                       <td className="py-3 px-3 text-slate-700">{formatINR(slip?.totalDeductions || 0)}</td>
                       <td className="py-3 px-3 text-slate-700">{formatINR(slip?.netSalary || 0)}</td>
                       <td className="py-3 px-3">
-                        <a
-                          href={getPayrollDownloadUrl(slip?._id || slip?.id)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDownloadSlip(
+                              slip?._id || slip?.id,
+                              slip?.payrollRunId?.month || 'payslip',
+                            )
+                          }
+                          disabled={downloadingSlipId === (slip?._id || slip?.id)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                         >
                           <FiDownload size={13} /> PDF
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   );

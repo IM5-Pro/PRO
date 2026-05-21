@@ -365,6 +365,10 @@ export const disableMfa = async () => {
 };
 
 export const getPayrollDownloadUrl = (detailId) => {
-  const baseUrl = process.env.REACT_APP_API_BASE_URL || 'https://zgf2pvkx-7888.inc1.devtunnels.ms/api';
-  return `${baseUrl}${PAYROLL_ENDPOINTS.download(detailId)}`;
+  const baseUrl = String(process.env.REACT_APP_API_URL || 'http://localhost:7888/api').replace(
+    /\/$/,
+    '',
+  );
+  const path = PAYROLL_ENDPOINTS.download(detailId);
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 };

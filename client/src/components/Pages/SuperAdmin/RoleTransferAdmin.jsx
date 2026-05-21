@@ -25,7 +25,7 @@ const RoleTransferAdmin = () => {
   const [showTransferModal, setShowTransferModal] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-im5-page p-6">
       <div className="max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="mb-8">

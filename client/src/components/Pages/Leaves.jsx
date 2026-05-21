@@ -423,7 +423,7 @@ const Leaves = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 p-4 md:p-6 lg:p-8 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-im5-page p-4 md:p-6 lg:p-8 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div>

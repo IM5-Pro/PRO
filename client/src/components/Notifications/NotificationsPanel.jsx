@@ -1,34 +1,30 @@
 /**
  * NotificationsPanel Component
  * Displays comprehensive notifications with filtering, sorting, and actions
- * Shows all notification types: leaves, attendance, payroll, announcements, system alerts
- * 
- * @component
- * @author HR Team
- * @version 1.0.0
  */
 
-import React, { useMemo, useState, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
+  FiBell,
   FiX,
   FiTrash2,
   FiCheck,
   FiRefreshCw,
   FiFilter,
+  FiInbox,
 } from 'react-icons/fi';
 import { useNotifications } from '../../context/NotificationContext';
+import { useTheme } from '../../context/ThemeContext';
 
-/**
- * Notification badge component
- */
 const NotificationBadge = ({ count, highlight = false }) => {
   if (count === 0) return null;
 
   return (
     <span
-      className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white ${
-        highlight ? 'bg-red-600 animate-pulse' : 'bg-blue-600'
+      className={`inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full px-1.5 text-xs font-bold text-white ${
+        highlight ? 'animate-pulse-soft bg-red-600' : 'bg-indigo-600'
       }`}
     >
       {count > 99 ? '99+' : count}
@@ -36,9 +32,6 @@ const NotificationBadge = ({ count, highlight = false }) => {
   );
 };
 
-/**
- * Helper function to determine navigation path based on notification type
- */
 const getNavigationPath = (notification) => {
   const { type } = notification;
 
@@ -46,63 +39,56 @@ const getNavigationPath = (notification) => {
     return '/';
   }
 
-  // Exact type matches (more precise than includes)
   const LEAVE_TYPES = ['leave_request', 'leave_approval', 'leave_rejection', 'leave_cancelled'];
-  const ATTENDANCE_TYPES = ['attendance_alert', 'attendance_late_arrival', 'attendance_absent', 'attendance_correction', 'attendance_overtime', 'attendance_shift_change'];
-  const PAYROLL_TYPES = ['payroll_ready', 'payroll_processed', 'salary_slip_generated', 'reimbursement_request', 'reimbursement_approval', 'reimbursement_rejection', 'bonus_notification', 'incentive_notification'];
-  const PERFORMANCE_TYPES = ['performance_review_request', 'performance_feedback_request', 'performance_review_complete', 'performance_rating', 'goal_setting', 'okr_update'];
-  
-  // Check exact type matches first (highest priority)
-  if (LEAVE_TYPES.includes(type)) {
-    return `/?page=leaves`;
+  const ATTENDANCE_TYPES = [
+    'attendance_alert',
+    'attendance_late_arrival',
+    'attendance_absent',
+    'attendance_correction',
+    'attendance_overtime',
+    'attendance_shift_change',
+  ];
+  const PAYROLL_TYPES = [
+    'payroll_ready',
+    'payroll_processed',
+    'salary_slip_generated',
+    'reimbursement_request',
+    'reimbursement_approval',
+    'reimbursement_rejection',
+    'bonus_notification',
+    'incentive_notification',
+  ];
+  const PERFORMANCE_TYPES = [
+    'performance_review_request',
+    'performance_feedback_request',
+    'performance_review_complete',
+    'performance_rating',
+    'goal_setting',
+    'okr_update',
+  ];
+
+  if (LEAVE_TYPES.includes(type)) return '/?page=leaves';
+  if (ATTENDANCE_TYPES.includes(type)) return '/?page=attendance';
+  if (PAYROLL_TYPES.includes(type)) return '/?page=payroll';
+  if (PERFORMANCE_TYPES.includes(type)) return '/?page=performance';
+  if (type.includes('meeting') || type.includes('one_on_one')) return '/?page=team-collaboration';
+  if (type.includes('asset') || type.includes('system_access')) return '/?page=team-collaboration';
+  if (type.includes('document')) return '/?page=team-collaboration';
+  if (type.includes('training') || type.includes('certification')) return '/?page=team-collaboration';
+  if (type === 'announcement') return '/?page=announcements';
+  if (
+    type.includes('role') ||
+    type.includes('designation') ||
+    type.includes('department') ||
+    type.includes('team_membership')
+  ) {
+    return '/?page=employee-profile';
   }
-  
-  if (ATTENDANCE_TYPES.includes(type)) {
-    return `/?page=attendance`;
-  }
-  
-  if (PAYROLL_TYPES.includes(type)) {
-    return `/?page=payroll`;
-  }
-  
-  if (PERFORMANCE_TYPES.includes(type)) {
-    return `/?page=performance`;
-  }
-  
-  // Fall back to includes for other types
-  if (type.includes('meeting') || type.includes('one_on_one')) {
-    return `/?page=team-collaboration`;
-  }
-  
-  if (type.includes('asset') || type.includes('system_access')) {
-    return `/?page=team-collaboration`;
-  }
-  
-  if (type.includes('document')) {
-    return `/?page=team-collaboration`;
-  }
-  
-  if (type.includes('training') || type.includes('certification')) {
-    return `/?page=team-collaboration`;
-  }
-  
-  if (type === 'announcement') {
-    return `/?page=announcements`;
-  }
-  
-  if (type.includes('role') || type.includes('designation') || type.includes('department') || type.includes('team_membership')) {
-    return `/?page=employee-profile`;
-  }
-  
-  // Default fallback to dashboard
-  console.warn('[getNavigationPath] Unknown notification type, defaulting to dashboard:', type);
-  return `/`;
+
+  return '/';
 };
 
-/**
- * Individual notification item
- */
-const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose, isNavigatingRef }) => {
+const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose, isNavigatingRef, colors }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [hovering, setHovering] = useState(false);
@@ -120,130 +106,101 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose, isNav
   };
 
   const handleNotificationClick = () => {
-    // Prevent multiple navigations using ref
-    if (isNavigatingRef.current) {
-      console.log('[NotificationItem] Navigation already in progress, ignoring click');
-      return;
-    }
-    
+    if (isNavigatingRef.current) return;
+
     isNavigatingRef.current = true;
 
-    // Get the target path
     const targetPath = getNavigationPath(notification);
-    
-    // Get current page from URL
     const currentPage = searchParams.get('page') || 'dashboard';
     const targetPage = new URLSearchParams(targetPath.split('?')[1]).get('page') || 'dashboard';
-    
-    console.log('[NotificationItem] Click detected', {
-      type: notification.type,
-      targetPath,
-      currentPage,
-      targetPage,
-    });
 
-    // Mark as read if not already
     if (!notification.read) {
       onMarkAsRead(notification.id);
     }
 
-    // Close panel immediately
-    if (onClose) {
-      onClose();
-    }
-    
-    // Only navigate if not already on the target page
+    if (onClose) onClose();
+
     if (currentPage !== targetPage) {
       setTimeout(() => {
-        console.log('[NotificationItem] Navigating to:', targetPath);
         navigate(targetPath);
         isNavigatingRef.current = false;
       }, 100);
     } else {
-      console.log('[NotificationItem] Already on target page, skipping navigation');
       isNavigatingRef.current = false;
     }
   };
+
+  const itemClass = notification.read
+    ? 'border-im5-border-soft bg-slate-50/90 hover:border-im5-border hover:bg-white'
+    : 'border-indigo-200 bg-indigo-50/60 hover:border-indigo-300 hover:bg-indigo-50';
+
+  const priorityClass =
+    notification.priority === 'urgent'
+      ? 'border-red-200 bg-red-50/80 hover:bg-red-50'
+      : notification.priority === 'high'
+        ? 'border-amber-200 bg-amber-50/80 hover:bg-amber-50'
+        : '';
 
   return (
     <div
       onClick={handleNotificationClick}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      className={`group p-4 rounded-lg border transition-all duration-200 cursor-pointer ${
-        notification.read
-          ? 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-          : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-      } ${
-        notification.priority === 'urgent'
-          ? 'border-red-300 bg-red-50 hover:bg-red-100'
-          : notification.priority === 'high'
-          ? 'border-orange-300 bg-orange-50 hover:bg-orange-100'
-          : ''
-      }`}
+      className={`group cursor-pointer rounded-xl border p-4 transition-all duration-200 ${priorityClass || itemClass}`}
     >
       <div className="flex items-start gap-3">
-        {/* Notification Icon */}
-        <div className="text-2xl flex-shrink-0 mt-1">{notification.icon}</div>
+        <div className="icon-box mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center bg-gradient-to-br from-indigo-500 to-blue-600 p-0 text-lg text-white">
+          {notification.icon}
+        </div>
 
-        {/* Notification Content */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-slate-900 truncate">
-                {notification.title}
-              </h4>
-              <p className="text-xs text-slate-600 mt-1 line-clamp-2">
-                {notification.message}
-              </p>
+            <div className="min-w-0 flex-1">
+              <h4 className={`truncate text-sm font-semibold ${colors.text.primary}`}>{notification.title}</h4>
+              <p className={`mt-1 line-clamp-2 text-xs ${colors.text.secondary}`}>{notification.message}</p>
             </div>
-
-            {/* Status Indicator */}
             {!notification.read && (
-              <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-600 mt-1" />
+              <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-600" aria-hidden />
             )}
           </div>
 
-          {/* Metadata */}
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-slate-500">{notification.timeAgo}</span>
-            
-            {/* Priority Badge */}
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className={`text-xs ${colors.text.tertiary}`}>{notification.timeAgo}</span>
             {notification.priority && notification.priority !== 'medium' && (
               <span
-                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                className={`badge shrink-0 ${
                   notification.priority === 'urgent'
-                    ? 'bg-red-200 text-red-800'
+                    ? 'badge-danger'
                     : notification.priority === 'high'
-                    ? 'bg-orange-200 text-orange-800'
-                    : 'bg-gray-200 text-gray-800'
+                      ? 'badge-warning'
+                      : 'badge-info'
                 }`}
               >
-                {notification.priority.charAt(0).toUpperCase() +
-                  notification.priority.slice(1)}
+                {notification.priority.charAt(0).toUpperCase() + notification.priority.slice(1)}
               </span>
             )}
           </div>
         </div>
 
-        {/* Actions */}
         {hovering && (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
             {!notification.read && (
               <button
+                type="button"
                 onClick={handleMarkAsRead}
-                className="p-1 hover:bg-blue-200 rounded transition-colors"
+                className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-100"
                 title="Mark as read"
               >
-                <FiCheck size={16} className="text-blue-600" />
+                <FiCheck size={16} />
               </button>
             )}
             <button
+              type="button"
               onClick={handleDelete}
-              className="p-1 hover:bg-red-200 rounded transition-colors"
+              className="rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-100"
               title="Delete notification"
             >
-              <FiTrash2 size={16} className="text-red-600" />
+              <FiTrash2 size={16} />
             </button>
           </div>
         )}
@@ -252,10 +209,7 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete, onClose, isNav
   );
 };
 
-/**
- * Notification type filter
- */
-const NotificationTypeFilter = ({ filters, onFilterChange, summary }) => {
+const NotificationTypeFilter = ({ filterType, onFilterChange, summary, colors }) => {
   const filterOptions = [
     { key: 'approvals', label: 'Approvals', count: summary?.byType?.approvals || 0 },
     { key: 'leaves', label: 'Leaves', count: summary?.byType?.leaves || 0 },
@@ -266,38 +220,38 @@ const NotificationTypeFilter = ({ filters, onFilterChange, summary }) => {
   ];
 
   return (
-    <div className="flex items-center gap-2 flex-wrap mb-4">
-      <FiFilter size={16} className="text-slate-600" />
-      {filterOptions.map((option) => (
-        <button
-          key={option.key}
-          onClick={() => onFilterChange(option.key)}
-          className={`px-3 py-1 text-xs rounded-full font-medium transition-all ${
-            filters[option.key]
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-          }`}
-        >
-          {option.label}
-          {option.count > 0 && (
-            <span className="ml-1">({option.count})</span>
-          )}
-        </button>
-      ))}
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <FiFilter size={16} className={`shrink-0 ${colors.text.tertiary}`} aria-hidden />
+      {filterOptions.map((option) => {
+        const active = filterType === option.key;
+        return (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => onFilterChange(option.key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+              active
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'border border-im5-border-soft bg-white text-slate-700 hover:border-im5-border hover:bg-slate-50'
+            }`}
+          >
+            {option.label}
+            {option.count > 0 && <span className="ml-1 opacity-80">({option.count})</span>}
+          </button>
+        );
+      })}
     </div>
   );
 };
 
-/**
- * NotificationsPanel Component
- * Main component for displaying all notifications
- */
 const NotificationsPanel = ({ isOpen, onClose }) => {
+  const { colors } = useTheme();
   const {
     notifications,
     unreadCount,
     summary,
     loading,
+    error,
     markAsRead,
     removeNotification,
     clearAllNotifications,
@@ -307,25 +261,7 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
 
   const [filterType, setFilterType] = useState(null);
   const [sortBy, setSortBy] = useState('latest');
-  
-  // Use ref to track navigation state across re-renders
   const isNavigatingRef = useRef(false);
-
-  // ============================================================================
-  // FILTER & SORT
-  // ============================================================================
-
-  const filters = useMemo(
-    () => ({
-      approvals: filterType === 'approvals',
-      leaves: filterType === 'leaves',
-      attendance: filterType === 'attendance',
-      payroll: filterType === 'payroll',
-      announcements: filterType === 'announcements',
-      system: filterType === 'system',
-    }),
-    [filterType]
-  );
 
   const filteredNotifications = useMemo(() => {
     let filtered = [...notifications];
@@ -351,16 +287,13 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
       });
     }
 
-    // Sort
     if (sortBy === 'latest') {
       filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     } else if (sortBy === 'oldest') {
       filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     } else if (sortBy === 'unread') {
       filtered.sort((a, b) => {
-        if (a.read === b.read) {
-          return new Date(b.timestamp) - new Date(a.timestamp);
-        }
+        if (a.read === b.read) return new Date(b.timestamp) - new Date(a.timestamp);
         return a.read ? 1 : -1;
       });
     }
@@ -369,74 +302,105 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
   }, [notifications, filterType, sortBy]);
 
   const handleFilterChange = useCallback((key) => {
-    setFilterType(filterType === key ? null : key);
-  }, [filterType]);
+    setFilterType((prev) => (prev === key ? null : key));
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+  const summaryStats = [
+    { label: 'Total', value: summary?.total || 0, badgeClass: 'badge-info' },
+    { label: 'Unread', value: unreadCount, badgeClass: 'badge-warning' },
+    {
+      label: 'Pending approvals',
+      value: summary?.byType?.approvals || 0,
+      badgeClass: 'badge-danger',
+    },
+  ];
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notifications-panel-title"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[min(85vh,calc(100vh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-im5-border-soft bg-white shadow-2xl animate-fadeInUp"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 border-b border-blue-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Notifications</h2>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-blue-500 rounded transition-colors"
+        <div className="glass shrink-0 rounded-none border-0 border-b border-im5-border-soft px-6 py-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2
+              id="notifications-panel-title"
+              className={`flex items-center gap-2 text-xl font-bold ${colors.text.primary}`}
             >
-              <FiX size={24} />
+              <FiBell className="text-indigo-600" size={22} aria-hidden />
+              Notifications
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-im5-border-soft p-2 text-slate-600 transition-colors hover:border-im5-border hover:bg-slate-50"
+              aria-label="Close notifications"
+            >
+              <FiX size={20} />
             </button>
           </div>
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-blue-200">Total</p>
-              <p className="text-2xl font-bold">{summary?.total || 0}</p>
-            </div>
-            <div>
-              <p className="text-blue-200">Unread</p>
-              <p className="text-2xl font-bold text-yellow-300">{unreadCount}</p>
-            </div>
-            <div>
-              <p className="text-blue-200">Pending Approvals</p>
-              <p className="text-2xl font-bold text-orange-300">
-                {summary?.byType?.approvals || 0}
-              </p>
-            </div>
+          <div className="grid grid-cols-3 gap-3">
+            {summaryStats.map((stat) => (
+              <div key={stat.label} className="stat-card !p-4">
+                <p className={`mb-1 text-xs font-medium ${colors.text.tertiary}`}>{stat.label}</p>
+                <p className={`text-2xl font-bold tabular-nums ${colors.text.primary}`}>{stat.value}</p>
+                {stat.label === 'Unread' && stat.value > 0 && (
+                  <span className={`badge mt-2 ${stat.badgeClass}`}>Needs attention</span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
+        {error && (
+          <div className="mx-6 mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-im5-border-soft px-6 py-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => fetchNotifications()}
+              type="button"
+              onClick={() => fetchNotifications({ forceFull: true })}
               disabled={loading}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+              className="btn-secondary !px-3 !py-2"
               title="Refresh notifications"
             >
-              <FiRefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+              <FiRefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
-            
             {unreadCount > 0 && (
-              <>
-                <button
-                  onClick={markAllAsRead}
-                  className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors font-medium"
-                >
-                  <FiCheck size={16} />
-                  Mark all as read
-                </button>
-              </>
+              <button type="button" onClick={markAllAsRead} className="btn-primary !px-3 !py-2 text-sm">
+                <FiCheck size={16} />
+                Mark all read
+              </button>
             )}
           </div>
-
           <button
+            type="button"
             onClick={clearAllNotifications}
             disabled={notifications.length === 0}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors font-medium disabled:opacity-50"
+            className="btn-danger !px-3 !py-2 text-sm disabled:opacity-50"
           >
             <FiTrash2 size={16} />
             Clear all
@@ -444,38 +408,42 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
         </div>
 
         {/* Filters */}
-        <div className="px-6 py-3 border-b border-slate-200">
+        <div className="border-b border-im5-border-soft px-6 py-3">
           <NotificationTypeFilter
-            filters={filters}
+            filterType={filterType}
             onFilterChange={handleFilterChange}
             summary={summary}
+            colors={colors}
           />
-
           <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-700 font-medium">Sort:</label>
+            <label className={`text-sm font-medium ${colors.text.secondary}`}>Sort</label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-1 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="input-modern !py-2 text-sm"
             >
-              <option value="latest">Latest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="unread">Unread First</option>
+              <option value="latest">Latest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="unread">Unread first</option>
             </select>
           </div>
         </div>
 
-        {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto">
+        {/* List */}
+        <div className="min-h-[200px] flex-1 overflow-y-auto bg-im5-page/30">
           {loading && filteredNotifications.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-slate-500">
-              <p>Loading notifications...</p>
+            <div className={`flex h-48 flex-col items-center justify-center gap-3 ${colors.text.tertiary}`}>
+              <span className="spinner" aria-hidden />
+              <p className="text-sm">Loading notifications...</p>
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500 p-6">
-              <p className="text-lg font-medium mb-2">No notifications</p>
-              <p className="text-sm">
-                {filterType ? 'No notifications found for this filter' : 'You\'re all caught up!'}
+            <div className="flex h-48 flex-col items-center justify-center p-6 text-center">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                <FiInbox size={28} aria-hidden />
+              </div>
+              <p className={`mb-1 text-lg font-semibold ${colors.text.primary}`}>No notifications</p>
+              <p className={`text-sm ${colors.text.tertiary}`}>
+                {filterType ? 'No notifications match this filter.' : "You're all caught up!"}
               </p>
             </div>
           ) : (
@@ -488,6 +456,7 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
                   onDelete={removeNotification}
                   onClose={onClose}
                   isNavigatingRef={isNavigatingRef}
+                  colors={colors}
                 />
               ))}
             </div>
@@ -495,11 +464,14 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 px-6 py-3 bg-slate-50 text-center text-xs text-slate-600">
+        <div
+          className={`shrink-0 border-t border-im5-border-soft bg-im5-panel px-6 py-3 text-center text-xs ${colors.text.tertiary}`}
+        >
           Showing {filteredNotifications.length} of {notifications.length} notifications
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

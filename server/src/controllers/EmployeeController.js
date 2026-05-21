@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Employee from "../models/Employee.js";
 import Department from "../models/Department.js";
+import Designation from "../models/Designation.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
 import EmployeeDesignationHistory from "../models/EmployeeDesignationHistory.js";
@@ -92,6 +93,9 @@ const listEmployees = async (req, res) => {
   }
 };
 
+const MANAGER_ROLE_PATTERN = /^(MANAGER|DEPT_ADMIN|HR_ADMIN)$/i;
+const MANAGER_DESIGNATION_PATTERN = /manager/i;
+
 const buildManagerDepartmentFilter = async (normalizedDepartment) => {
   const departmentLabels = new Set([normalizedDepartment]);
 
@@ -115,36 +119,182 @@ const buildManagerDepartmentFilter = async (normalizedDepartment) => {
       department: { $regex: `^${escapeRegex(label)}$`, $options: "i" },
     }));
 
-  return { deptDoc, departmentOr };
-};
-
-const buildManagerEmployeeFilters = async ({ normalizedDepartment, normalizedSearch }) => {
-  const filters = [{ isActive: true }];
-
-  if (normalizedDepartment) {
-    const { departmentOr } = await buildManagerDepartmentFilter(normalizedDepartment);
-    if (departmentOr.length > 0) {
-      filters.push({ $or: departmentOr });
-    }
+  if (deptDoc?._id) {
+    departmentOr.push({ departmentId: deptDoc._id });
   }
 
-  if (normalizedSearch) {
-    const searchRegex = new RegExp(escapeRegex(normalizedSearch), "i");
-    filters.push({
-      $or: [
-        { firstName: searchRegex },
-        { lastName: searchRegex },
-        { email: searchRegex },
-        { designation: searchRegex },
-      ],
+  return { deptDoc, departmentOr, departmentLabels: [...departmentLabels] };
+};
+
+const normalizeManagerEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
+
+const resolveManagerDesignationRefs = async () => {
+  const managerDesignations = await Designation.find({
+    $or: [
+      { name: { $regex: MANAGER_DESIGNATION_PATTERN } },
+      { code: { $regex: MANAGER_DESIGNATION_PATTERN } },
+    ],
+    isActive: { $ne: false },
+  })
+    .select("_id name")
+    .lean();
+
+  const refs = new Set();
+  managerDesignations.forEach((designation) => {
+    if (designation?._id) {
+      refs.add(String(designation._id));
+    }
+    if (designation?.name) {
+      refs.add(String(designation.name).trim());
+    }
+  });
+
+  return [...refs];
+};
+
+const resolveManagerEmployeeIds = async () => {
+  const managerEmployeeIds = new Set();
+
+  const managerUsers = await User.find({
+    role: { $regex: MANAGER_ROLE_PATTERN },
+    isActive: { $ne: false },
+  })
+    .select("employeeId email")
+    .lean();
+
+  const orphanEmails = [];
+  managerUsers.forEach((user) => {
+    if (user?.employeeId) {
+      managerEmployeeIds.add(String(user.employeeId));
+      return;
+    }
+
+    const normalizedEmail = normalizeManagerEmail(user?.email);
+    if (normalizedEmail) {
+      orphanEmails.push(normalizedEmail);
+    }
+  });
+
+  if (orphanEmails.length > 0) {
+    const linkedEmployees = await Employee.find({
+      email: { $in: orphanEmails },
+      isActive: true,
+    })
+      .select("_id")
+      .lean();
+
+    linkedEmployees.forEach((employee) => {
+      if (employee?._id) {
+        managerEmployeeIds.add(String(employee._id));
+      }
     });
   }
 
-  if (filters.length === 1) {
-    return filters[0];
+  const [managerIdRefs, managerIDRefs] = await Promise.all([
+    Employee.distinct("managerId", { managerId: { $ne: null }, isActive: true }),
+    Employee.distinct("managerID", { managerID: { $ne: null }, isActive: true }),
+  ]);
+
+  [...managerIdRefs, ...managerIDRefs].forEach((id) => {
+    if (id) {
+      managerEmployeeIds.add(String(id));
+    }
+  });
+
+  return [...managerEmployeeIds];
+};
+
+const sortManagersByName = (rows) =>
+  [...rows].sort((left, right) => {
+    const leftName = `${left.firstName || ""} ${left.lastName || ""}`.trim();
+    const rightName = `${right.firstName || ""} ${right.lastName || ""}`.trim();
+    return leftName.localeCompare(rightName);
+  });
+
+const mergeManagerRows = (rows = []) => {
+  const merged = new Map();
+  rows.forEach((manager) => {
+    if (manager?._id) {
+      merged.set(String(manager._id), manager);
+    }
+  });
+  return merged;
+};
+
+const employeeMatchesDepartment = (employee, departmentLabels, deptDoc) => {
+  const employeeDepartment = String(employee?.department || "").trim().toLowerCase();
+  const employeeDepartmentId = String(employee?.departmentId || "");
+
+  if (deptDoc?._id && employeeDepartmentId === String(deptDoc._id)) {
+    return true;
   }
 
-  return { $and: filters };
+  return [...departmentLabels].some((label) => {
+    const normalizedLabel = String(label || "").trim().toLowerCase();
+    return normalizedLabel && employeeDepartment === normalizedLabel;
+  });
+};
+
+const employeeMatchesSearch = (employee, normalizedSearch) => {
+  if (!normalizedSearch) {
+    return true;
+  }
+
+  const haystack = [
+    employee?.firstName,
+    employee?.lastName,
+    employee?.email,
+    employee?.designation,
+    employee?.department,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes(normalizedSearch.toLowerCase());
+};
+
+const collectAllManagerCandidates = async ({
+  designationRefs,
+  managerEmployeeIds,
+  deptDoc,
+  parsedLimit,
+}) => {
+  const designationClauses = [{ designation: { $regex: MANAGER_DESIGNATION_PATTERN, $options: "i" } }];
+  if (designationRefs.length > 0) {
+    designationClauses.unshift({ designation: { $in: designationRefs } });
+  }
+
+  const [roleManagers, designationManagers, departmentHead] = await Promise.all([
+    managerEmployeeIds.length > 0
+      ? Employee.find({ _id: { $in: managerEmployeeIds }, isActive: true })
+          .select("firstName lastName email designation department departmentId")
+          .sort({ firstName: 1 })
+          .limit(parsedLimit)
+          .lean()
+      : Promise.resolve([]),
+    Employee.find({
+      isActive: true,
+      $or: designationClauses,
+    })
+      .select("firstName lastName email designation department departmentId")
+      .sort({ firstName: 1 })
+      .limit(parsedLimit)
+      .lean(),
+    deptDoc?.managerId
+      ? Employee.findOne({ _id: deptDoc.managerId, isActive: true })
+          .select("firstName lastName email designation department departmentId")
+          .lean()
+      : Promise.resolve(null),
+  ]);
+
+  const merged = mergeManagerRows([...roleManagers, ...designationManagers]);
+  if (departmentHead?._id) {
+    merged.set(String(departmentHead._id), departmentHead);
+  }
+
+  return sortManagersByName([...merged.values()]);
 };
 
 /**
@@ -161,64 +311,32 @@ const listManagers = async (req, res) => {
       return sendSuccess(res, 200, "Managers retrieved successfully", { data: [] });
     }
 
-    const { deptDoc } = await buildManagerDepartmentFilter(normalizedDepartment);
-    const sharedFilters = await buildManagerEmployeeFilters({
-      normalizedDepartment,
-      normalizedSearch,
+    const { deptDoc, departmentLabels } = await buildManagerDepartmentFilter(normalizedDepartment);
+
+    const managerEmployeeIds = await resolveManagerEmployeeIds();
+    const designationRefs = await resolveManagerDesignationRefs();
+
+    const allCandidates = await collectAllManagerCandidates({
+      designationRefs,
+      managerEmployeeIds,
+      deptDoc,
+      parsedLimit,
     });
 
-    const managerUsers = await User.find({
-      role: { $in: ["MANAGER", "DEPT_ADMIN"] },
-      isActive: true,
-      employeeId: { $exists: true, $ne: null },
-    })
-      .select("employeeId")
-      .lean();
+    let managers = allCandidates.filter(
+      (employee) =>
+        employeeMatchesDepartment(employee, departmentLabels, deptDoc) &&
+        employeeMatchesSearch(employee, normalizedSearch),
+    );
 
-    const managerEmployeeIds = managerUsers
-      .map((user) => user.employeeId)
-      .filter(Boolean);
-
-    const [roleManagers, designationManagers, departmentHead] = await Promise.all([
-      managerEmployeeIds.length > 0
-        ? Employee.find({ _id: { $in: managerEmployeeIds }, ...sharedFilters })
-            .select("firstName lastName email designation department")
-            .sort({ firstName: 1 })
-            .limit(parsedLimit)
-            .lean()
-        : Promise.resolve([]),
-      Employee.find({
-        designation: { $regex: "manager", $options: "i" },
-        ...sharedFilters,
-      })
-        .select("firstName lastName email designation department")
-        .sort({ firstName: 1 })
-        .limit(parsedLimit)
-        .lean(),
-      deptDoc?.managerId
-        ? Employee.findOne({ _id: deptDoc.managerId, isActive: true })
-            .select("firstName lastName email designation department")
-            .lean()
-        : Promise.resolve(null),
-    ]);
-
-    const merged = new Map();
-    [...roleManagers, ...designationManagers].forEach((manager) => {
-      merged.set(String(manager._id), manager);
-    });
-
-    if (departmentHead?._id) {
-      merged.set(String(departmentHead._id), departmentHead);
+    if (managers.length === 0) {
+      managers = allCandidates.filter((employee) =>
+        employeeMatchesSearch(employee, normalizedSearch),
+      );
     }
 
-    const managers = [...merged.values()].sort((left, right) => {
-      const leftName = `${left.firstName || ""} ${left.lastName || ""}`.trim();
-      const rightName = `${right.firstName || ""} ${right.lastName || ""}`.trim();
-      return leftName.localeCompare(rightName);
-    });
-
     return sendSuccess(res, 200, "Managers retrieved successfully", {
-      data: managers,
+      data: managers.slice(0, parsedLimit),
     });
   } catch (err) {
     console.error("List managers error:", err);

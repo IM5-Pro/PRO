@@ -71,6 +71,7 @@ const EMPTY_EDIT_FORM = {
 
 const toOptionId = (value) => String(value || '').trim();
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
+const MANAGER_ACCOUNT_ROLES = new Set(['MANAGER', 'HR_ADMIN', 'DEPT_ADMIN']);
 const formatEmployeeEmail = (firstName, lastName) => {
   const normalize = (value) =>
     String(value || '')
@@ -207,6 +208,7 @@ const HRUserManagement = () => {
   const [managerOptions, setManagerOptions] = useState([]);
   const [managerSearchQuery, setManagerSearchQuery] = useState('');
   const [managerOptionsLoading, setManagerOptionsLoading] = useState(false);
+  const [managerOptionsScope, setManagerOptionsScope] = useState('department');
   const [projects, setProjects] = useState([]);
 
   const resetCreateForm = useCallback(() => {
@@ -288,6 +290,23 @@ const HRUserManagement = () => {
     loadReferenceData();
   }, [loadReferenceData]);
 
+  const designationNameById = useMemo(() => {
+    const map = new Map();
+    designations.forEach((designation) => {
+      if (designation.id && designation.name) {
+        map.set(toOptionId(designation.id), designation.name);
+      }
+    });
+    return map;
+  }, [designations]);
+
+  const departmentOptions = useMemo(() => {
+    return departments
+      .filter((department) => department.name && department.status !== 'inactive' && department.isActive)
+      .slice()
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [departments]);
+
   const mapManagerRows = useCallback((rows) => {
     return (Array.isArray(rows) ? rows : [])
       .map((manager, index) => {
@@ -295,46 +314,151 @@ const HRUserManagement = () => {
         const name = [manager?.firstName, manager?.lastName].filter(Boolean).join(' ').trim()
           || String(manager?.email || '').trim()
           || 'Manager';
+        const rawDesignation = toOptionId(manager?.designation);
+        const designationLabel =
+          designationNameById.get(rawDesignation)
+          || (rawDesignation && !/^[a-f0-9]{24}$/i.test(rawDesignation) ? manager.designation : '')
+          || 'Manager';
 
         return {
           id,
           name,
           email: manager?.email || '',
           department: manager?.department || '',
-          designation: manager?.designation || 'Manager',
+          designation: designationLabel,
         };
       })
       .filter((manager) => manager.id)
       .sort((left, right) => left.name.localeCompare(right.name));
-  }, []);
+  }, [designationNameById]);
+
+  const buildLocalManagerRows = useCallback(
+    (department, { restrictToDepartment = true } = {}) => {
+      const normalizedDepartment = String(department || '').trim();
+      const departmentRecord = departmentOptions.find(
+        (item) =>
+          normalizeText(item.name) === normalizeText(normalizedDepartment)
+          || normalizeText(item.code) === normalizeText(normalizedDepartment)
+          || toOptionId(item.id) === normalizeText(normalizedDepartment),
+      );
+
+      return employees
+        .filter((employee) => employee.status === 'active')
+        .filter((employee) => {
+          const accountRole = String(employee.role || '').toUpperCase();
+          if (MANAGER_ACCOUNT_ROLES.has(accountRole)) {
+            return true;
+          }
+
+          const rawDesignation = toOptionId(employee.designation);
+          const designationLabel =
+            designationNameById.get(rawDesignation)
+            || (rawDesignation && !/^[a-f0-9]{24}$/i.test(rawDesignation) ? employee.designation : '');
+
+          return /manager/i.test(String(designationLabel || ''));
+        })
+        .filter((employee) => {
+          if (!restrictToDepartment || !normalizedDepartment) {
+            return true;
+          }
+
+          const employeeDepartment = normalizeText(employee.department);
+          return (
+            employeeDepartment === normalizeText(normalizedDepartment)
+            || (departmentRecord?.name && employeeDepartment === normalizeText(departmentRecord.name))
+            || (departmentRecord?.code && employeeDepartment === normalizeText(departmentRecord.code))
+          );
+        })
+        .map((employee) => ({
+          _id: employee.id,
+          firstName: employee.firstName,
+          lastName: employee.lastName,
+          email: employee.email,
+          department: employee.department,
+          designation: employee.designation,
+        }));
+    },
+    [departmentOptions, designationNameById, employees],
+  );
+
+  const mergeManagerOptionLists = useCallback(
+    (...rowGroups) => {
+      const merged = new Map();
+      rowGroups.forEach((rows) => {
+        mapManagerRows(rows).forEach((manager) => {
+          if (manager.id) {
+            merged.set(manager.id, manager);
+          }
+        });
+      });
+      return [...merged.values()].sort((left, right) => left.name.localeCompare(right.name));
+    },
+    [mapManagerRows],
+  );
 
   const loadManagerOptions = useCallback(async (department, search = '') => {
     const normalizedDepartment = String(department || '').trim();
     if (!normalizedDepartment) {
       setManagerOptions([]);
+      setManagerOptionsScope('department');
       return;
     }
 
     setManagerOptionsLoading(true);
     try {
-      const rows = await fetchManagersByDepartment({
-        department: normalizedDepartment,
-        search,
-        limit: 200,
+      let apiRows = [];
+      try {
+        apiRows = await fetchManagersByDepartment({
+          department: normalizedDepartment,
+          search,
+          limit: 200,
+        });
+      } catch (apiError) {
+        console.warn('Manager API lookup failed, using employee list fallback', apiError);
+      }
+
+      const localScoped = buildLocalManagerRows(normalizedDepartment, { restrictToDepartment: true });
+      const localAll = buildLocalManagerRows(normalizedDepartment, { restrictToDepartment: false });
+
+      let combined = mergeManagerOptionLists(apiRows, localScoped);
+      if (combined.length === 0) {
+        combined = mergeManagerOptionLists(apiRows, localAll);
+      }
+
+      setManagerOptions(combined);
+
+      const departmentRecord = departmentOptions.find(
+        (item) =>
+          normalizeText(item.name) === normalizeText(normalizedDepartment)
+          || normalizeText(item.code) === normalizeText(normalizedDepartment),
+      );
+      const hasInDepartment = combined.some((manager) => {
+        const managerDepartment = normalizeText(manager.department);
+        return (
+          managerDepartment === normalizeText(normalizedDepartment)
+          || (departmentRecord?.name && managerDepartment === normalizeText(departmentRecord.name))
+          || (departmentRecord?.code && managerDepartment === normalizeText(departmentRecord.code))
+        );
       });
-      setManagerOptions(mapManagerRows(rows));
+      setManagerOptionsScope(combined.length > 0 && !hasInDepartment ? 'all' : 'department');
     } catch (error) {
-      setManagerOptions([]);
-      setBanner((previous) => {
-        if (previous.type === 'error' && previous.text) {
-          return previous;
-        }
-        return { type: 'error', text: toErrorMessage(error, 'Failed to load manager options') };
-      });
+      const fallback = mergeManagerOptionLists(
+        buildLocalManagerRows(normalizedDepartment, { restrictToDepartment: false }),
+      );
+      setManagerOptions(fallback);
+      setManagerOptionsScope('all');
+      if (fallback.length === 0) {
+        setBanner((previous) => {
+          if (previous.type === 'error' && previous.text) {
+            return previous;
+          }
+          return { type: 'error', text: toErrorMessage(error, 'Failed to load manager options') };
+        });
+      }
     } finally {
       setManagerOptionsLoading(false);
     }
-  }, [mapManagerRows]);
+  }, [buildLocalManagerRows, departmentOptions, mergeManagerOptionLists]);
 
   useEffect(() => {
     if (!editOpen) {
@@ -346,7 +470,7 @@ const HRUserManagement = () => {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [editOpen, editForm.department, loadManagerOptions, managerSearchQuery]);
+  }, [editOpen, editForm.department, employees.length, loadManagerOptions, managerSearchQuery]);
 
   useEffect(() => {
     if (!createOpen) {
@@ -358,7 +482,7 @@ const HRUserManagement = () => {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [createOpen, createForm.department, loadManagerOptions]);
+  }, [createOpen, createForm.department, employees.length, loadManagerOptions]);
 
   const filteredManagerOptions = useMemo(() => {
     const normalizedQuery = normalizeText(managerSearchQuery);
@@ -390,10 +514,6 @@ const HRUserManagement = () => {
       return [...merged.values()];
     });
   }, []);
-
-  const designationNameById = useMemo(() => {
-    return new Map(designations.map((designation) => [designation.id, designation.name]));
-  }, [designations]);
 
   const designationIdByName = useMemo(() => {
     return new Map(
@@ -481,13 +601,6 @@ const HRUserManagement = () => {
       },
     ];
   }, [employeesWithResolvedLabels]);
-
-  const departmentOptions = useMemo(() => {
-    return departments
-      .filter((department) => department.name && department.status !== 'inactive' && department.isActive)
-      .slice()
-      .sort((left, right) => left.name.localeCompare(right.name));
-  }, [departments]);
 
   const selectedCreateDepartmentRecord = useMemo(() => {
     const selectedDepartment = normalizeText(createForm.department);
@@ -1022,7 +1135,7 @@ const HRUserManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/70 p-5 md:p-6">
+    <div className="min-h-screen bg-im5-page p-5 md:p-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -1405,7 +1518,12 @@ const HRUserManagement = () => {
                       </select>
                       {createForm.department && !managerOptionsLoading && filteredManagerOptions.length === 0 && (
                         <p className="mt-1 text-[11px] text-slate-500">
-                          No managers found in {createForm.department}. Assign a department head or manager role in that department.
+                          No managers found. Create a user with the MANAGER account role or assign a designation that includes &quot;Manager&quot;.
+                        </p>
+                      )}
+                      {createForm.department && !managerOptionsLoading && filteredManagerOptions.length > 0 && managerOptionsScope === 'all' && (
+                        <p className="mt-1 text-[11px] text-amber-700">
+                          No managers matched {createForm.department}; showing managers from all departments.
                         </p>
                       )}
                     </div>
@@ -1562,10 +1680,20 @@ const HRUserManagement = () => {
                             </option>
                             {filteredManagerOptions.map((managerOption) => (
                               <option key={managerOption.id} value={managerOption.id}>
-                                {managerOption.name} - {managerOption.designation} ({managerOption.department})
+                                {managerOption.name} - {managerOption.designation} ({managerOption.department || 'No department'})
                               </option>
                             ))}
                           </select>
+                          {editForm.department && !managerOptionsLoading && filteredManagerOptions.length === 0 && (
+                            <p className="mt-1 text-[11px] text-slate-500">
+                              No managers found. Create a user with the MANAGER account role or assign a designation that includes &quot;Manager&quot;.
+                            </p>
+                          )}
+                          {editForm.department && !managerOptionsLoading && filteredManagerOptions.length > 0 && managerOptionsScope === 'all' && (
+                            <p className="mt-1 text-[11px] text-amber-700">
+                              No managers matched {editForm.department}; showing managers from all departments.
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1">Join Date</label>

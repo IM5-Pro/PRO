@@ -27,7 +27,7 @@ const LeaveManagement = () => {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8"
+      className="min-h-screen bg-im5-page p-6 md:p-8"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

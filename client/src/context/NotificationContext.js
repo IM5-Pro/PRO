@@ -69,6 +69,8 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
   const pollIntervalRef = useRef(null);
   const isMountedRef = useRef(true);
   const isFetchingRef = useRef(false);
+  /** After clear-all, skip pending-approval synthetic items until explicit refresh */
+  const suppressSyntheticRef = useRef(false);
 
   // ============================================================================
   // FETCH NOTIFICATIONS
@@ -84,9 +86,13 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
    * 
    * @param {boolean} silent - If true, don't update loading state
    */
-  const fetchNotificationsData = useCallback(async (silent = false) => {
+  const fetchNotificationsData = useCallback(async (silent = false, options = {}) => {
     if (!isMountedRef.current) return;
     if (isFetchingRef.current) return;
+
+    if (options.forceFull) {
+      suppressSyntheticRef.current = false;
+    }
 
     if (!silent) {
       setLoading(true);
@@ -95,8 +101,9 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
 
     try {
       isFetchingRef.current = true;
-      // Use fetchNotificationsByRole to get role-specific notifications
-      const data = await fetchNotificationsByRole(currentUserRole);
+      const data = await fetchNotificationsByRole(currentUserRole, {
+        includeSynthetic: !suppressSyntheticRef.current,
+      });
       
       if (isMountedRef.current) {
         const enrichedNotifications = data.notifications.map((notif) => ({
@@ -228,32 +235,52 @@ export const NotificationProvider = ({ children, userRole = 'employee' }) => {
   /**
    * Delete all notifications
    */
+  const emptySummary = {
+    total: 0,
+    unread: 0,
+    byType: {
+      approvals: 0,
+      leaves: 0,
+      attendance: 0,
+      payroll: 0,
+      announcements: 0,
+      system: 0,
+    },
+  };
+
   const clearAllNotifications = useCallback(async () => {
     if (!isMountedRef.current) return;
 
+    suppressSyntheticRef.current = true;
+    setNotifications([]);
+    setUnreadCount(0);
+    setSummary(emptySummary);
+    setError(null);
+
     try {
       const success = await deleteAllNotifications();
-      
-      if (success && isMountedRef.current) {
+
+      if (!success && isMountedRef.current) {
+        suppressSyntheticRef.current = false;
+        setError('Could not clear notifications. Please try again.');
+        await fetchNotificationsData(true);
+        return;
+      }
+
+      if (isMountedRef.current) {
         setNotifications([]);
         setUnreadCount(0);
-        setSummary({
-          total: 0,
-          unread: 0,
-          byType: {
-            approvals: 0,
-            leaves: 0,
-            attendance: 0,
-            payroll: 0,
-            announcements: 0,
-            system: 0,
-          },
-        });
+        setSummary(emptySummary);
       }
     } catch (err) {
       console.error('Error clearing all notifications:', err);
+      if (isMountedRef.current) {
+        suppressSyntheticRef.current = false;
+        setError(err.message || 'Failed to clear notifications');
+        await fetchNotificationsData(true);
+      }
     }
-  }, []);
+  }, [fetchNotificationsData]);
 
   /**
    * Toggle notification selection

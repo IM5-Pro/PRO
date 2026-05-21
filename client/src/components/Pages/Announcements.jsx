@@ -264,7 +264,7 @@ const Announcements = () => {
   const canCreate = permission.create;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8">
+    <div className="min-h-screen bg-im5-page p-6 md:p-8">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>

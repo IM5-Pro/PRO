@@ -4,7 +4,8 @@ import User from "../models/User.js";
 const populateEmployeeQuery = (query) =>
   query
     .populate("managerID", "firstName lastName email designation")
-    .populate("managerId", "firstName lastName email designation");
+    .populate("managerId", "firstName lastName email designation")
+    .populate("salaryTemplateId", "name basic hra allowance");
 
 export const resolveCurrentEmployee = async (userId, employeeIdHint = null) => {
   const normalizedHint =

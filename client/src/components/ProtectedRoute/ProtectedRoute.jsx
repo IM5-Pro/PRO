@@ -54,7 +54,7 @@ const ProtectedRoute = ({
       onUnauthorized();
     }
     return (
-      <div className="app-loading-bg flex items-center justify-center h-screen bg-gray-100">
+      <div className="app-loading-bg flex h-screen items-center justify-center">
         <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Unauthorized</h2>
           <p className="text-gray-600 mb-4">

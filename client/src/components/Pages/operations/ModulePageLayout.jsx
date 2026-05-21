@@ -1,7 +1,7 @@
 import React from 'react';
 
 const ModulePageLayout = ({ title, subtitle, icon: Icon, children, actions }) => (
-  <div className="min-h-full bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8">
+  <div className="min-h-full bg-im5-page p-6 md:p-8">
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">

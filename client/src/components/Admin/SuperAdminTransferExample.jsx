@@ -200,7 +200,7 @@ export function AdminDashboardExample() {
 
   return (
     <AdminRoute>
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-im5-canvas">
         <AdminHeaderExample />
 
         <div className="p-8">

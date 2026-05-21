@@ -4,8 +4,8 @@
 
 export const SIDEBAR_SECTIONS = {
   overview: { label: 'Overview', order: 0 },
-  workplace: { label: 'My Workplace', order: 10 },
-  communications: { label: 'Communications', order: 20 },
+  communications: { label: 'Communications', order: 10 },
+  workplace: { label: 'My Workplace', order: 20 },
   team: { label: 'Team', order: 30 },
   approvals: { label: 'Approvals', order: 40 },
   workforce: { label: 'Workforce', order: 50 },

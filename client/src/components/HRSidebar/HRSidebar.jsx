@@ -204,7 +204,7 @@ const HRSidebar = ({
       <aside
         className={`
           fixed md:static left-0 top-0 h-full max-h-[100dvh] md:max-h-none w-64
-          bg-white/90 text-slate-800 shadow-sm border-r border-slate-200/80
+          bg-im5-surface/95 text-slate-800 shadow-sm border-r border-im5-border-soft backdrop-blur-sm
           transform transition-transform duration-300 md:translate-x-0 z-40
           flex flex-col overflow-hidden
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -213,7 +213,7 @@ const HRSidebar = ({
         {/* ========================================
             LOGO SECTION
             ======================================== */}
-        <div className="p-6 border-b border-white/40">
+        <div className="p-6 border-b border-im5-border-soft">
           <h1 className="text-2xl font-bold">HRMS Suite</h1>
           <p className="text-slate-600 text-sm">{portalLabel}</p>
           {contextSubtitle ? (

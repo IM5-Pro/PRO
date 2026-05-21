@@ -162,8 +162,8 @@ const SettingsPage = () => {
   const cardClass = `rounded-2xl border ${colors.border.primary} bg-gradient-to-br ${colors.gradient.card} p-6 shadow-sm`;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 lg:flex-row">
-      <aside className="flex w-full flex-shrink-0 flex-col border-slate-200/80 bg-gradient-to-br from-white to-slate-50 px-5 py-6 lg:w-60 lg:border-r lg:px-4 lg:py-8 xl:w-64">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-im5-page lg:flex-row">
+      <aside className="flex w-full flex-shrink-0 flex-col border-im5-border-soft bg-im5-subtle/80 px-5 py-6 lg:w-60 lg:border-r lg:px-4 lg:py-8 xl:w-64">
         <div className="mb-6 flex items-center gap-3 lg:flex-col lg:items-start">
           <FiSettings className="h-8 w-8 shrink-0 text-slate-700" aria-hidden />
           <div>

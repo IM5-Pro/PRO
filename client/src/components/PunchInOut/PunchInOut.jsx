@@ -109,7 +109,7 @@ const PunchInOut = () => {
   }, [punchStatus]);
 
   return (
-    <div className="app-punch-bg min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+    <div className="app-punch-bg flex min-h-screen items-center justify-center p-4">
       <div
         className="max-w-md w-full bg-white rounded-2xl overflow-hidden"
         style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}

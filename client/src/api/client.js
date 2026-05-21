@@ -65,7 +65,10 @@ API.interceptors.response.use(
         return API(originalConfig);
       } catch (_refreshError) {
         clearPunchCookies();
-        if (!window.location.pathname.startsWith('/login')) {
+        if (
+          !originalConfig.skipAuthRedirect &&
+          !window.location.pathname.startsWith('/login')
+        ) {
           redirectToLoginWithCurrentPath();
         }
       }

@@ -515,32 +515,28 @@ export const fetchSystemAlerts = async () => {
  * @param {string} userRole - User's role (employee, manager, hr_admin, super_admin)
  * @returns {Promise<Object>} Role-specific notifications
  */
-export const fetchNotificationsByRole = async (userRole = 'employee') => {
+export const fetchNotificationsByRole = async (userRole = 'employee', options = {}) => {
   try {
     const normalizedRole = String(userRole).toLowerCase();
-    
+    const { includeSynthetic = true } = options;
+
     switch (normalizedRole) {
       case 'employee':
-        // Employees get: their own leave decisions, attendance issues, payroll
-        return await fetchEmployeeNotifications();
-      
+        return await fetchEmployeeNotifications(options);
+
       case 'manager':
-        // Managers get: team's pending leaves for approval, team announcements
-        return await fetchManagerNotifications();
-      
+        return await fetchManagerNotifications({ includeSynthetic });
+
       case 'hr_admin':
       case 'hr admin':
-        // HR gets: all pending approvals, system alerts, payroll status
-        return await fetchHRNotifications();
-      
+        return await fetchHRNotifications({ includeSynthetic });
+
       case 'super_admin':
       case 'super admin':
-        // Super admin gets: everything
-        return await fetchComprehensiveNotifications();
-      
+        return await fetchComprehensiveNotifications({ includeSynthetic });
+
       default:
-        // Default to employee notifications
-        return await fetchEmployeeNotifications();
+        return await fetchEmployeeNotifications(options);
     }
   } catch (error) {
     console.error('Error fetching role-specific notifications:', error);
@@ -588,10 +584,10 @@ export const fetchEmployeeNotifications = async () => {
  * Includes: team's pending leaves to approve, team announcements
  * @returns {Promise<Object>} Manager-specific notifications
  */
-export const fetchManagerNotifications = async () => {
+export const fetchManagerNotifications = async ({ includeSynthetic = true } = {}) => {
   try {
     const [approvals, notificationData] = await Promise.all([
-      fetchPendingApprovals().catch(() => []),
+      includeSynthetic ? fetchPendingApprovals().catch(() => []) : Promise.resolve([]),
       fetchNotifications(50).catch(() => ({ notifications: [] })),
     ]);
     const leavePending = notificationData.notifications.filter(isLeaveNotification);
@@ -622,10 +618,10 @@ export const fetchManagerNotifications = async () => {
  * Includes: all pending approvals, attendance issues, payroll, system alerts
  * @returns {Promise<Object>} HR admin-specific notifications
  */
-export const fetchHRNotifications = async () => {
+export const fetchHRNotifications = async ({ includeSynthetic = true } = {}) => {
   try {
     const [approvals, notificationData] = await Promise.all([
-      fetchPendingApprovals().catch(() => []),
+      includeSynthetic ? fetchPendingApprovals().catch(() => []) : Promise.resolve([]),
       fetchNotifications(50).catch(() => ({ notifications: [] })),
     ]);
     const attendance = notificationData.notifications.filter(isAttendanceNotification);
@@ -662,10 +658,10 @@ export const fetchHRNotifications = async () => {
  * Combines all notification types into a single unified list
  * @returns {Promise<Object>} Aggregated notifications with summary
  */
-export const fetchComprehensiveNotifications = async () => {
+export const fetchComprehensiveNotifications = async ({ includeSynthetic = true } = {}) => {
   try {
     const [approvals, notificationData, summary] = await Promise.all([
-      fetchPendingApprovals().catch(() => []),
+      includeSynthetic ? fetchPendingApprovals().catch(() => []) : Promise.resolve([]),
       fetchNotifications(50).catch(() => ({ notifications: [] })),
       fetchNotificationSummary().catch(() => ({})),
     ]);
@@ -755,8 +751,9 @@ export const deleteNotification = async (notificationId) => {
  */
 export const deleteAllNotifications = async () => {
   try {
-    await API.delete(NOTIFICATION_ENDPOINTS.deleteAll);
-    return true;
+    const response = await API.delete(NOTIFICATION_ENDPOINTS.deleteAll);
+    const payload = toPayload(response);
+    return payload?.success !== false;
   } catch (error) {
     console.error('Error deleting all notifications:', error);
     return false;

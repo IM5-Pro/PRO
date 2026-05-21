@@ -94,12 +94,12 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
     pages: [
       { id: 'dashboard', label: 'Dashboard', icon: FiHome, category: 'overview', order: 0, description: 'Personal HR summary and quick actions' },
+      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'communications', order: 10, description: 'Company updates and important notices' },
       { id: 'attendance', label: 'Attendance', icon: FiCalendar, category: 'workplace', order: 10, description: 'Daily punch history and attendance status' },
       { id: 'leaves', label: 'Leaves', icon: FiCalendar, category: 'workplace', order: 20, description: 'Apply leave and track request progress' },
       { id: 'payroll', label: 'Payroll', icon: RupeeIcon, category: 'workplace', order: 30, description: 'Payslips, deductions, and payroll details' },
       { id: 'performance', label: 'Performance', icon: FiTrendingUp, category: 'workplace', order: 40, description: 'Goals, ratings, and review insights' },
       { id: 'employee-profile', label: 'My Profile', icon: FiUser, category: 'workplace', order: 50, description: 'Personal information and employment details' },
-      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'communications', order: 10, description: 'Company updates and important notices' },
       { id: 'resignation', label: 'Resignation', icon: FiLogOut, category: 'separation', order: 10, description: 'Initiate and manage resignation processes' },
       { id: 'settings', label: 'Settings', icon: FiSettings, category: 'account', order: 10, description: 'Update profile preferences and account settings' },
     ],
