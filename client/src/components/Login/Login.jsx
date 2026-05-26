@@ -18,6 +18,7 @@ import FormInput from '../Auth/FormInput';
 import SubmitButton from '../Auth/SubmitButton';
 import AlertMessage from '../Auth/AlertMessage';
 import { createPortal } from 'react-dom';
+import { LOGOUT_REASON_IDLE, LOGOUT_REASON_KEY } from '../../constants/session';
 
 /**
  * Login Component
@@ -37,6 +38,7 @@ const Login = ({ onLoginSuccess = null }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState('');
   const [activeRecovery, setActiveRecovery] = useState(null);
 
   // Forgot username state
@@ -88,6 +90,18 @@ const Login = ({ onLoginSuccess = null }) => {
       setShowInitialPasswordSetup(true);
     }
   }, [currentUser?.mustChangePassword, isAuthenticated]);
+
+  useEffect(() => {
+    try {
+      const reason = sessionStorage.getItem(LOGOUT_REASON_KEY);
+      if (reason === LOGOUT_REASON_IDLE) {
+        setSessionInfo('You were signed out after 15 minutes of inactivity.');
+        sessionStorage.removeItem(LOGOUT_REASON_KEY);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   /**
    * Validate email format
@@ -371,6 +385,17 @@ const Login = ({ onLoginSuccess = null }) => {
           title="Login Successful!"
           message="Redirecting to dashboard..."
           closable={false}
+        />
+      )}
+
+      {/* Idle session alert */}
+      {sessionInfo && !success && (
+        <AlertMessage
+          type="info"
+          title="Session ended"
+          message={sessionInfo}
+          onClose={() => setSessionInfo('')}
+          closable={true}
         />
       )}
 

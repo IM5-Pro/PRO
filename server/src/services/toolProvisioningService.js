@@ -196,14 +196,39 @@ export const maybeProvisionToolsAfterHire = async ({
   return ticket;
 };
 
-const assertManagerCanActOnTicket = async (ticket, approverEmployeeId) => {
+const ELEVATED_APPROVER_ROLES = new Set(["SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN"]);
+
+const assertApproverCanActOnTicket = (ticket, { approverEmployeeId, approverRole }) => {
+  const role = String(approverRole || "").toUpperCase();
+
+  if (ELEVATED_APPROVER_ROLES.has(role)) {
+    return;
+  }
+
+  if (role !== "MANAGER") {
+    const error = new Error("You do not have permission to act on this ticket");
+    error.statusCode = 403;
+    throw error;
+  }
+
   if (!ticket.reportingManagerEmployeeId) {
     const error = new Error("This ticket has no reporting manager step");
     error.statusCode = 400;
     throw error;
   }
+
+  if (!approverEmployeeId) {
+    const error = new Error(
+      "Your account must be linked to an employee profile to approve as reporting manager",
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
   if (String(ticket.reportingManagerEmployeeId) !== String(approverEmployeeId)) {
-    const error = new Error("Only the reporting manager can act on this ticket");
+    const error = new Error(
+      "Only the employee's reporting manager can approve this ticket",
+    );
     error.statusCode = 403;
     throw error;
   }
@@ -213,6 +238,7 @@ export const approveToolProvisioningTicket = async ({
   ticketId,
   approverUserId,
   approverEmployeeId,
+  approverRole,
 }) => {
   const ticket = await ToolProvisioningTicket.findById(ticketId)
     .populate("employeeId", "firstName middleName lastName email")
@@ -231,12 +257,7 @@ export const approveToolProvisioningTicket = async ({
     throw error;
   }
 
-  if (!approverEmployeeId) {
-    const error = new Error("Only the reporting manager can approve this ticket");
-    error.statusCode = 403;
-    throw error;
-  }
-  await assertManagerCanActOnTicket(ticket, approverEmployeeId);
+  assertApproverCanActOnTicket(ticket, { approverEmployeeId, approverRole });
 
   await ToolProvisioningTicket.updateOne(
     { _id: ticketId },
@@ -280,6 +301,7 @@ export const rejectToolProvisioningTicket = async ({
   ticketId,
   approverUserId,
   approverEmployeeId,
+  approverRole,
   reason,
 }) => {
   const ticket = await ToolProvisioningTicket.findById(ticketId).lean();
@@ -296,12 +318,7 @@ export const rejectToolProvisioningTicket = async ({
     throw error;
   }
 
-  if (!approverEmployeeId) {
-    const error = new Error("Only the reporting manager can reject this ticket");
-    error.statusCode = 403;
-    throw error;
-  }
-  await assertManagerCanActOnTicket(ticket, approverEmployeeId);
+  assertApproverCanActOnTicket(ticket, { approverEmployeeId, approverRole });
 
   await ToolProvisioningTicket.updateOne(
     { _id: ticketId },

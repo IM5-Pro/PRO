@@ -17,6 +17,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { FiCircle, FiMenu, FiX } from 'react-icons/fi';
 import { groupSidebarPages } from '../../utils/sidebarNav';
+import logo from '../../assets/icon1.png';
 
 /**
  * HRSidebar Component
@@ -218,8 +219,15 @@ const HRSidebar = ({
             LOGO SECTION
             ======================================== */}
         <div className="p-6 border-b border-im5-border-soft">
-          <h1 className="text-2xl font-bold">HRMS Suite</h1>
-          <p className="text-slate-600 text-sm">{portalLabel}</p>
+          <div className="flex h-10 w-full items-center gap-3">
+            <img
+              src={logo}
+              alt="iSpace"
+              className="h-20 w-auto max-w-[140px] shrink-0 object-fit"
+            />
+            <h1 className="text-2xl font-bold leading-none text-slate-900">HRMS</h1>
+          </div>
+          <p className="mt-2 text-slate-600 text-sm">{portalLabel}</p>
           {contextSubtitle ? (
             <p className="mt-2 text-xs font-medium text-slate-500 leading-snug border-t border-slate-100/80 pt-2">
               {contextSubtitle}

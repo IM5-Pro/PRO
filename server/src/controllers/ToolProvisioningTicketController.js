@@ -101,6 +101,7 @@ export const approveTicket = async (req, res) => {
       ticketId: req.params.ticketId,
       approverUserId: req.user.id,
       approverEmployeeId,
+      approverRole: req.user.role,
     });
     return sendSuccess(res, 200, "Ticket approved", { data: updated });
   } catch (err) {
@@ -116,6 +117,7 @@ export const rejectTicket = async (req, res) => {
       ticketId: req.params.ticketId,
       approverUserId: req.user.id,
       approverEmployeeId,
+      approverRole: req.user.role,
       reason: req.body?.reason,
     });
     return sendSuccess(res, 200, "Ticket rejected", { data: updated });

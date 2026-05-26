@@ -1,17 +1,32 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiCheck, FiRefreshCw, FiTool, FiX } from 'react-icons/fi';
 import ModulePageLayout from './ModulePageLayout';
+import { useAuth } from '../../../context/AuthContext';
 import {
   approveToolProvisioningTicket,
   fetchToolProvisioningTickets,
   rejectToolProvisioningTicket,
   toErrorMessage,
 } from '../../../services/operationsModulesApi';
+import { normalizeRole, ROLES } from '../../../utils/roles';
 
 const formatName = (emp) =>
   emp ? [emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(' ') : '—';
 
+const APPROVER_ROLES = new Set([
+  ROLES.MANAGER,
+  ROLES.HR_ADMIN,
+  ROLES.DEPT_ADMIN,
+  ROLES.SUPER_ADMIN,
+]);
+
 const ToolProvisioningPage = () => {
+  const { user } = useAuth();
+  const canApprove = useMemo(
+    () => APPROVER_ROLES.has(normalizeRole(user?.role)),
+    [user?.role],
+  );
+
   const [tickets, setTickets] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -136,7 +151,7 @@ const ToolProvisioningPage = () => {
                   {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—'}
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
-                  {t.status === 'PENDING_MANAGER_APPROVAL' ? (
+                  {t.status === 'PENDING_MANAGER_APPROVAL' && canApprove ? (
                     <>
                       <button
                         type="button"
