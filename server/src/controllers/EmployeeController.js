@@ -4,6 +4,7 @@ import Department from "../models/Department.js";
 import Designation from "../models/Designation.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import EmployeeDesignationHistory from "../models/EmployeeDesignationHistory.js";
 import {
   validateEmployeeData,
@@ -557,8 +558,7 @@ const updateEmployee = async (req, res) => {
       }
     });
 
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.update",
       entityType: "Employee",
       entityId: employeeId,
@@ -628,8 +628,7 @@ const deactivateEmployee = async (req, res) => {
     );
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.deactivate",
       entityType: "Employee",
       entityId: employeeId,
@@ -680,8 +679,7 @@ const activateEmployee = async (req, res) => {
     );
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.activate",
       entityType: "Employee",
       entityId: employeeId,
@@ -910,8 +908,7 @@ const updateProfile = async (req, res) => {
       },
     );
 
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.update_profile",
       entityType: "Employee",
       entityId: employeeId,
@@ -972,8 +969,7 @@ const transferDepartment = async (req, res) => {
     );
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.transfer_dept",
       entityType: "Employee",
       entityId: employeeId,
@@ -1037,7 +1033,8 @@ const changeDesignation = async (req, res) => {
       });
     }
 
-    await AuditLog.create([
+    await recordAudit(
+      req,
       {
         userId: req.user.id,
         action: "employee.change_designation",
@@ -1053,7 +1050,8 @@ const changeDesignation = async (req, res) => {
           reason: assignment.reason,
         },
       },
-    ], { session });
+      session,
+    );
 
     await session.commitTransaction();
     await session.endSession();
@@ -1147,8 +1145,7 @@ const uploadDocument = async (req, res) => {
     await employee.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.upload_docs",
       entityType: "Employee",
       entityId: employeeId,
@@ -1207,8 +1204,7 @@ const downloadDocument = async (req, res) => {
     }
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.download_docs",
       entityType: "Employee",
       entityId: employeeId,
@@ -1272,8 +1268,7 @@ const viewSalary = async (req, res) => {
     }
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.view_salary",
       entityType: "Employee",
       entityId: employeeId,
@@ -1440,8 +1435,7 @@ const bulkUpdate = async (req, res) => {
         updated.push(employee);
 
         // Log action
-        await AuditLog.create({
-          userId: req.user.id,
+        await recordAudit(req, {
           action: "employee.bulk_update",
           entityType: "Employee",
           entityId: employeeId,
@@ -1486,8 +1480,7 @@ const exportEmployees = async (req, res) => {
     const employees = await Employee.find(query);
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "employee.export",
       entityType: "Employee",
       description: `Exported ${employees.length} employees in ${format} format`,

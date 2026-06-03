@@ -18,6 +18,7 @@ import Resignation from "../models/Resignation.js";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 import mongoose from "mongoose";
 import {
@@ -54,13 +55,13 @@ const validateLastDayOfWork = (lastDay, noticePeriod) => {
 
 const createAuditLog = async (action, entity, entityId, actorId, details) => {
   try {
-    await AuditLog.create({
+    await recordAudit(null, {
+      userId: actorId,
       action,
-      entity,
+      entityType: entity,
       entityId,
-      actorId,
-      details,
-      timestamp: new Date(),
+      description: details && typeof details === 'string' ? details : undefined,
+      changes: details && typeof details === 'object' ? details : undefined,
     });
   } catch (error) {
     console.error("Error creating audit log:", error);

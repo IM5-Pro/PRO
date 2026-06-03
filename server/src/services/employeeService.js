@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import crypto from "crypto";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import SalaryHistory from "../models/SalaryHistory.js";
 import User from "../models/User.js";
 import { assignDesignationToEmployee } from "./designationAssignmentService.js";
@@ -50,8 +51,21 @@ const generateTemporaryPassword = () => {
   return `Tmp!${token}Aa1`;
 };
 
-const createAuditLog = (payload, session = null) => {
-  return AuditLog.create([payload], { session }).then((docs) => docs[0]);
+const createAuditLog = async (payload, session = null) => {
+  const doc = {
+    entity: payload.entity || payload.entityType,
+    entityType: payload.entityType || payload.entity,
+    ...payload,
+    actorIp: payload.actorIp || null,
+    actorAgent: payload.actorAgent || null,
+  };
+
+  if (session) {
+    const docs = await recordAudit(null, doc, session);
+    return docs ? docs[0] : null;
+  }
+
+  return recordAudit(null, doc);
 };
 
 const getListQuery = ({ role, userId, filters }) => {
@@ -501,7 +515,7 @@ const bulkImportEmployees = async ({ employees, actorId }) => {
     }
   }
 
-  await AuditLog.create({
+  await recordAudit(null, {
     userId: actorId,
     action: "employee.import",
     entity: "Employee",
@@ -540,7 +554,7 @@ const changeEmployeeManager = async ({ employeeId, managerID, actorId }) => {
     managerId: managerID,
   });
 
-  await AuditLog.create({
+  await recordAudit(null, {
     userId: actorId,
     action: "employee.change_manager",
     entity: "Employee",

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Announcement from "../models/Announcement.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import Roles from "../constants/roles.js";
@@ -297,8 +298,7 @@ const createAnnouncement = async (req, res) => {
       publishedAt: new Date(),
     });
 
-    await AuditLog.create({
-      userId: context.userId,
+    await recordAudit(req, {
       action: "ANNOUNCEMENT_CREATE",
       entityType: "Announcement",
       entityId: announcement._id.toString(),
@@ -378,8 +378,7 @@ const updateAnnouncement = async (req, res) => {
 
     await announcement.save();
 
-    await AuditLog.create({
-      userId: context.userId,
+    await recordAudit(req, {
       action: "ANNOUNCEMENT_UPDATE",
       entityType: "Announcement",
       entityId: announcement._id.toString(),
@@ -410,8 +409,7 @@ const deleteAnnouncement = async (req, res) => {
     announcement.isActive = false;
     await announcement.save();
 
-    await AuditLog.create({
-      userId: context.userId,
+    await recordAudit(req, {
       action: "ANNOUNCEMENT_DELETE",
       entityType: "Announcement",
       entityId: announcement._id.toString(),

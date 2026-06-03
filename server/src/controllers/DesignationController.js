@@ -1,6 +1,7 @@
 import Designation from "../models/Designation.js";
 import Employee from "../models/Employee.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import Department from "../models/Department.js";
 import mongoose from "mongoose";
 import {
@@ -338,8 +339,7 @@ export const createDesignation = async (req, res) => {
     await designation.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "CREATE",
       entityType: "Designation",
       entityId: designation._id,
@@ -660,8 +660,7 @@ export const updateDesignation = async (req, res) => {
     await designation.save();
 
     // Log action with changes
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "UPDATE",
       entityType: "Designation",
       entityId: designation._id,
@@ -752,8 +751,7 @@ export const deleteDesignation = async (req, res) => {
     await designation.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "DEACTIVATE",
       entityType: "Designation",
       entityId: designationId,
@@ -832,8 +830,9 @@ export const assignToEmployee = async (req, res) => {
       reason: assignment.reason,
     };
 
-    // Log action
-    await AuditLog.create([
+    // Log action (include actor metadata inside transaction)
+    await recordAudit(
+      req,
       {
         userId: req.user.id,
         action: "ASSIGN",
@@ -842,8 +841,9 @@ export const assignToEmployee = async (req, res) => {
         entityId: designationId,
         description: `Assigned designation ${assignment.designation.name} to employee ${assignment.employee.firstName} ${assignment.employee.lastName}`,
         changes,
-      }
-    ], { session });
+      },
+      session,
+    );
 
     await session.commitTransaction();
     await session.endSession();

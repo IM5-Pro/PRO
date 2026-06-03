@@ -2,6 +2,7 @@ import LeaveRequest from "../models/LeaveRequest.js";
 import LeaveType from "../models/LeaveType.js";
 import EmployeeLeaveBalance from "../models/EmployeeLeaveBalance.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import Roles from "../constants/roles.js";
@@ -268,17 +269,16 @@ const applyLeave = async (req, res) => {
     balance.updatedBy = req.user.id;
     await balance.save({ session });
 
-    await AuditLog.create(
-      [
-        {
-          userId: req.user.id,
-          action: "LEAVE_APPLY",
-          entityType: "LeaveRequest",
-          entityId: request._id.toString(),
-          description: `Applied ${leaveWindow.totalDays} day(s) leave`,
-        },
-      ],
-      { session },
+    await recordAudit(
+      req,
+      {
+        userId: req.user.id,
+        action: "LEAVE_APPLY",
+        entityType: "LeaveRequest",
+        entityId: request._id.toString(),
+        description: `Applied ${leaveWindow.totalDays} day(s) leave`,
+      },
+      session,
     );
 
     await session.commitTransaction();
@@ -377,17 +377,16 @@ const cancelLeave = async (req, res) => {
 
     await releaseBalanceDays({ request, actorId: req.user.id, session });
 
-    await AuditLog.create(
-      [
-        {
-          userId: req.user.id,
-          action: "LEAVE_CANCEL",
-          entityType: "LeaveRequest",
-          entityId: request._id.toString(),
-          description: "Cancelled leave request",
-        },
-      ],
-      { session },
+    await recordAudit(
+      req,
+      {
+        userId: req.user.id,
+        action: "LEAVE_CANCEL",
+        entityType: "LeaveRequest",
+        entityId: request._id.toString(),
+        description: "Cancelled leave request",
+      },
+      session,
     );
 
     await session.commitTransaction();
@@ -533,17 +532,16 @@ const updateLeave = async (req, res) => {
     request.leaveTypeId = leaveType._id;
     await request.save({ session });
 
-    await AuditLog.create(
-      [
-        {
-          userId: req.user.id,
-          action: "LEAVE_UPDATE",
-          entityType: "LeaveRequest",
-          entityId: request._id.toString(),
-          description: "Updated leave request",
-        },
-      ],
-      { session },
+    await recordAudit(
+      req,
+      {
+        userId: req.user.id,
+        action: "LEAVE_UPDATE",
+        entityType: "LeaveRequest",
+        entityId: request._id.toString(),
+        description: "Updated leave request",
+      },
+      session,
     );
 
     await session.commitTransaction();
@@ -654,8 +652,7 @@ const approveLeave = async (req, res) => {
     request.approvalDate = new Date();
     await request.save();
 
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "LEAVE_APPROVE",
       entityType: "LeaveRequest",
       entityId: request._id.toString(),
@@ -720,17 +717,16 @@ const rejectLeave = async (req, res) => {
 
     await releaseBalanceDays({ request, actorId: req.user.id, session });
 
-    await AuditLog.create(
-      [
-        {
-          userId: req.user.id,
-          action: "LEAVE_REJECT",
-          entityType: "LeaveRequest",
-          entityId: request._id.toString(),
-          description: "Rejected leave request",
-        },
-      ],
-      { session },
+    await recordAudit(
+      req,
+      {
+        userId: req.user.id,
+        action: "LEAVE_REJECT",
+        entityType: "LeaveRequest",
+        entityId: request._id.toString(),
+        description: "Rejected leave request",
+      },
+      session,
     );
 
     await session.commitTransaction();
@@ -804,8 +800,7 @@ const bulkApprove = async (req, res) => {
       { $set: { status: "APPROVED", approvedBy: req.user.id, approvalDate: new Date() } },
     );
 
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "LEAVE_BULK_APPROVE",
       entityType: "LeaveRequest",
       entityId: "bulk",
@@ -1018,7 +1013,7 @@ const adjustBalance = async (req, res) => {
     balance.remainingDays = Math.max(0, balance.totalDays - balance.usedDays);
     await balance.save();
 
-    await AuditLog.create({
+    await recordAudit(req, {
       userId: req.user.id,
       action: "LEAVE_BALANCE_ADJUST",
       entityType: "EmployeeLeaveBalance",

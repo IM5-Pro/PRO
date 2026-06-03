@@ -2,6 +2,7 @@ import Attendance from "../models/Attendance.js";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import Shift from "../models/Shift.js";
 import EmployeeShift from "../models/EmployeeShift.js";
 import Roles from "../constants/roles.js";
@@ -165,8 +166,7 @@ export const checkIn = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "CHECK_IN",
       entityType: "Attendance",
       entityId: attendance._id,
@@ -315,8 +315,7 @@ export const syncAttendance = async (req, res) => {
       referenceTime: new Date(),
     });
 
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "SYNC_ATTENDANCE",
       entityType: "Attendance",
       entityId: syncedAttendance._id,
@@ -884,8 +883,7 @@ export const editAttendance = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "UPDATE",
       entityType: "Attendance",
       entityId: attendance._id,
@@ -923,8 +921,7 @@ export const deleteAttendance = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "DELETE",
       entityType: "Attendance",
       entityId: attendance._id,
@@ -1017,8 +1014,7 @@ export const bulkUpload = async (req, res) => {
     const uploadedCount = operations.length;
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "BULK_UPLOAD",
       entityType: "Attendance",
       description: `Bulk uploaded ${operations.length} attendance records via bulkWrite`,
@@ -1161,8 +1157,7 @@ export const exportAttendance = async (req, res) => {
       res.end();
     }
 
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "EXPORT",
       entityType: "Attendance",
       description: `Exported ${total} attendance records via streaming`,
@@ -1213,8 +1208,7 @@ export const approveAttendance = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: approvalStatus,
       entityType: "Attendance",
       entityId: attendance._id,
@@ -1267,8 +1261,7 @@ export const rejectAttendance = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "REJECT",
       entityType: "Attendance",
       entityId: attendance._id,
@@ -1376,8 +1369,7 @@ export const assignShift = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "ASSIGN_SHIFT",
       entityType: "Attendance",
       entityId: attendance._id,
@@ -1484,8 +1476,7 @@ export const updateShift = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "UPDATE_SHIFT",
       entityType: "Attendance",
       entityId: attendance._id,
@@ -1552,8 +1543,7 @@ export const deleteShift = async (req, res) => {
     await attendance.save();
 
     // Log action
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "DELETE_SHIFT",
       entityType: "Attendance",
       entityId: attendance._id,
@@ -1632,9 +1622,7 @@ export const createManualAttendance = async (req, res) => {
     await attendance.save();
 
     // Log action
-    const AuditLog = await import("../models/AuditLog.js").then(m => m.default);
-    await AuditLog.create({
-      userId: req.user.id,
+    await recordAudit(req, {
       action: "CREATE_MANUAL_ATTENDANCE",
       entityType: "Attendance",
       entityId: attendance._id,

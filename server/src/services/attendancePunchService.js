@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import Shift from "../models/Shift.js";
 import EmployeeShift from "../models/EmployeeShift.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 
 const DEFAULT_SHIFT_START = "10:00";
 const DEFAULT_SHIFT_END = "18:00";
@@ -425,7 +426,7 @@ const finalizeAttendanceCheckout = async ({
 
   await attendance.save();
 
-  await AuditLog.create({
+  await recordAudit(null, {
     userId: actorId,
     action,
     entityType: "Attendance",

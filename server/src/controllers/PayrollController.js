@@ -7,6 +7,7 @@ import PayrollDetail from "../models/PayrollDetail.js";
 import SalaryTemplate from "../models/SalaryTemplate.js";
 import Employee from "../models/Employee.js";
 import AuditLog from "../models/AuditLog.js";
+import { recordAudit } from "../utils/audit.js";
 import User from "../models/User.js";
 import Roles from "../constants/roles.js";
 import { sendError, sendSuccess } from "../utils/response.js";
@@ -86,14 +87,16 @@ const canViewPayrollDetail = (req, detailEmployeeId) => {
   return userEmployeeId && String(userEmployeeId) === String(detailEmployeeId);
 };
 
-const createAuditLog = async (payload, session) => {
-  await AuditLog.create([
-    {
-      entity: payload.entity || payload.entityType,
-      entityType: payload.entityType || payload.entity,
-      ...payload,
-    },
-  ], { session });
+const createAuditLog = async (payload, req = null, session = null) => {
+  const doc = {
+    entity: payload.entity || payload.entityType,
+    entityType: payload.entityType || payload.entity,
+    ...payload,
+    actorIp: payload.actorIp || null,
+    actorAgent: payload.actorAgent || null,
+  };
+
+  return recordAudit(req, doc, session);
 };
 
 const resolveEmployeeIdFromAuth = async (req, session = null) => {
@@ -255,6 +258,7 @@ const createPayroll = async (req, res) => {
         entityId: run._id.toString(),
         description: `Payroll run created for ${month}`,
       },
+      req,
       session,
     );
 
@@ -382,6 +386,7 @@ const processPayroll = async (req, res) => {
         entityId: refreshedRun._id.toString(),
         description: `Payroll processed for ${refreshedRun.month}`,
       },
+      req,
       session,
     );
 
@@ -434,6 +439,7 @@ const approvePayroll = async (req, res) => {
         entityId: run._id.toString(),
         description: `Payroll approved for ${run.month}`,
       },
+      req,
       session,
     );
 
@@ -489,6 +495,7 @@ const rejectPayroll = async (req, res) => {
         entityId: run._id.toString(),
         description: `Payroll reverted to draft for ${run.month}`,
       },
+      req,
       session,
     );
 
@@ -671,6 +678,7 @@ const updateSalary = async (req, res) => {
           detailId: detail._id,
         },
       },
+      req,
       session,
     );
 
@@ -790,6 +798,7 @@ const taxUpdate = async (req, res) => {
         entityId: detail._id.toString(),
         description: "Tax component updated",
       },
+      req,
       session,
     );
 
@@ -863,6 +872,7 @@ const bonusAdd = async (req, res) => {
           reason: reason || "",
         },
       },
+      req,
       session,
     );
 
@@ -935,6 +945,7 @@ const deductionAdd = async (req, res) => {
           reason: reason || "",
         },
       },
+      req,
       session,
     );
 
@@ -986,6 +997,7 @@ const lockPayroll = async (req, res) => {
         entityId: run._id.toString(),
         description: `Payroll run locked for ${run.month}`,
       },
+      req,
       session,
     );
 
@@ -1037,6 +1049,7 @@ const unlockPayroll = async (req, res) => {
         entityId: run._id.toString(),
         description: `Payroll run unlocked for ${run.month}`,
       },
+      req,
       session,
     );
 
