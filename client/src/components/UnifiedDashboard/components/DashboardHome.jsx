@@ -27,12 +27,6 @@ const DashboardHome = ({ heading, subtitle, workContextLine, widgets, pages, onN
       <div className="mb-8 flex flex-col gap-1 rounded-2xl bg-im5-banner border border-im5-border-soft p-6 shadow-sm md:p-8">
         <h1 className="text-3xl font-extrabold text-slate-800 mb-1 tracking-tight" style={{ fontFamily: 'Inter, Roboto, sans-serif' }}>{heading}</h1>
         <p className="text-base text-slate-500 font-medium">{subtitle}</p>
-        {workContextLine ? (
-          <p className="mt-2 text-sm font-medium text-slate-600">
-            <span className="text-slate-400 font-normal">Work context · </span>
-            {workContextLine}
-          </p>
-        ) : null}
       </div>
 
       {/* Stats cards */}
