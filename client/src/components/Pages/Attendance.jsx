@@ -10,7 +10,6 @@ import AttendanceSheet from '../AttendanceSheet/AttendanceSheet';
 import { usePunch } from '../../context/PunchContext';
 import { useAuth } from '../../context/AuthContext';
 import { normalizeRole, ROLES } from '../../utils/roles';
-import BreakTrackingPanel from '../Attendance/BreakTrackingPanel';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
 import { getMonthDateRangeParams } from '../../utils/monthDateRange';
@@ -218,18 +217,6 @@ const Attendance = () => {
           );
         })}
       </div>
-
-      {punchInTime && !punchOutTime ? (
-        <div className="mb-8">
-          <BreakTrackingPanel
-            currentAttendance={todayAttendance}
-            onSuccess={() => {
-              reload?.();
-              loadMonthlySummary();
-            }}
-          />
-        </div>
-      ) : null}
 
       {showApprovalsLink ? (
         <div className={`mb-8 rounded-2xl border ${colors.border.primary} bg-white/80 p-5`}>

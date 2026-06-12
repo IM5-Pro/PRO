@@ -16,7 +16,7 @@ export const getSalaryBasis = (slip) => {
   if (employeeSalary > 0) {
     return {
       key: 'profile',
-      label: 'Profile salary',
+      label: 'Salary profile',
       baseAmount: employeeSalary,
     };
   }
@@ -115,7 +115,7 @@ export const getSalarySnapshotLines = (slip) => {
       highlight: true,
     },
     {
-      label: 'Profile salary (snapshot)',
+      label: 'Salary (snapshot)',
       value: employeeSalary > 0 ? `${formatINR(employeeSalary)}/mo` : 'Not set (0)',
       muted: employeeSalary <= 0,
     },
@@ -137,7 +137,7 @@ export const getSalarySnapshotLines = (slip) => {
   if (basis.key === 'profile' && templateBasic > 0 && templateBasic !== employeeSalary) {
     lines.push({
       label: 'Note',
-      value: `Template basic (${formatINR(templateBasic)}/mo) was not used because profile salary was set.`,
+      value: `Template basic (${formatINR(templateBasic)}/mo) was not used because salary profile was set.`,
       muted: true,
     });
   }
@@ -145,7 +145,7 @@ export const getSalarySnapshotLines = (slip) => {
   if (basis.key === 'template' && employeeSalary <= 0) {
     lines.push({
       label: 'Note',
-      value: 'Profile salary was 0 at process time; payroll used template basic.',
+      value: 'Salary profile was 0 at process time; payroll used template basic.',
       muted: true,
     });
   }

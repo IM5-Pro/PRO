@@ -177,7 +177,6 @@ router.get(
 router.put(
   "/profile/update",
   authGuard,
-  roleGuard("EMPLOYEE"),
   employeeController.updateProfile
 );
 

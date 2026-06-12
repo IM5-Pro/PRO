@@ -553,7 +553,6 @@ const HRHeader = ({
         <p className="truncate text-sm font-semibold text-slate-800">
           {greeting}, {userDisplayName}!
         </p>
-        <p className="mt-0.5 text-xs text-slate-600">{formattedDate}</p>
       </div>
     </div>
   ) : (
