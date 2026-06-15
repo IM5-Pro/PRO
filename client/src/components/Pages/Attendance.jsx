@@ -25,8 +25,8 @@ const Attendance = () => {
   // Shared punch state from context
   const {
     punchInTime, punchOutTime, punchInLocation, punchOutLocation,
-    workingHours, attendanceStatus, todayAttendance, loading, locationLabel, locationLoading,
-    punchIn, punchOut, reload,
+    workingHours, attendanceStatus, loading, locationLabel, locationLoading,
+    punchIn, punchOut,
   } = usePunch();
 
   // Live clock

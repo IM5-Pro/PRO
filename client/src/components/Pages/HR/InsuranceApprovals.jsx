@@ -157,6 +157,13 @@ const InsuranceApprovals = () => {
     load();
   }, [load]);
 
+  const closeReviewModal = useCallback(() => {
+  if (busy) return;
+  setEditingSubmission(null);
+  setEditRows([]);
+  setEditAddons([]);
+}, [busy]);
+
   useEffect(() => {
     if (!editingSubmission) return undefined;
     const onKeyDown = (e) => {
@@ -168,14 +175,9 @@ const InsuranceApprovals = () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [editingSubmission, busy]);
+  }, [editingSubmission, closeReviewModal, busy]);
 
-  const closeReviewModal = () => {
-    if (busy) return;
-    setEditingSubmission(null);
-    setEditRows([]);
-    setEditAddons([]);
-  };
+
 
   const openReviewModal = (row) => {
     setEditingSubmission(row);

@@ -3,8 +3,6 @@ import {
   checkIn,
   checkOut,
   syncAttendance,
-  startBreak,
-  endBreak,
   viewOwn,
   viewTeam,
   viewAll,
@@ -36,12 +34,6 @@ router.post("/check-out", checkOut);
 router.post("/checkin", checkIn);
 router.post("/checkout", checkOut);
 router.post("/sync", syncAttendance);
-
-/**
- * Break tracking: Employee only
- */
-router.post("/break/start", startBreak);
-router.post("/break/end", endBreak);
 
 /**
  * Manual Attendance Creation: Employee can add for themselves
