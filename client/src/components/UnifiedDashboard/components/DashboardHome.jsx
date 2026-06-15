@@ -1,7 +1,7 @@
 import React from 'react';
 import { FiCircle } from 'react-icons/fi';
 
-const DashboardHome = ({ heading, subtitle, workContextLine, widgets, pages, onNavigate, loading }) => {
+const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading }) => {
   const quickPages = pages.filter((page) => page.id !== 'dashboard').slice(0, 6);
 
   // Accent color mapping for widgets and icons

@@ -12,7 +12,6 @@
 import React, { useState } from 'react';
 import AttendanceEditModal from './AttendanceEditModal';
 import AttendanceApprovalPanel from './AttendanceApprovalPanel';
-import BreakTrackingPanel from './BreakTrackingPanel';
 
 /**
  * EXAMPLE 1: Using AttendanceEditModal in a list
@@ -135,16 +134,7 @@ export const EmployeeDashboardExample = () => {
     _id: '789',
     checkInTime: new Date(),
     checkOutTime: null,
-    breakStartTime: null,
-    breakEndTime: null,
-    breakDurationMinutes: 0,
-    breakHistory: [],
   });
-
-  const handleBreakSuccess = () => {
-    // Refresh current attendance data
-    // fetchCurrentAttendance();
-  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -155,11 +145,6 @@ export const EmployeeDashboardExample = () => {
         <p>Check-out: {currentAttendance.checkOutTime?.toLocaleTimeString() || 'Not yet'}</p>
       </div>
 
-      {/* Break Tracking */}
-      <BreakTrackingPanel
-        currentAttendance={currentAttendance}
-        onSuccess={handleBreakSuccess}
-      />
     </div>
   );
 };
