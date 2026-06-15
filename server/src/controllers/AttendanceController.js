@@ -1,7 +1,7 @@
 import Attendance from "../models/Attendance.js";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
-import AuditLog from "../models/AuditLog.js";
+// import AuditLog from "../models/AuditLog.js";
 import { recordAudit } from "../utils/audit.js";
 import Shift from "../models/Shift.js";
 import EmployeeShift from "../models/EmployeeShift.js";
@@ -17,13 +17,13 @@ import {
 import { sendError, sendSuccess } from "../utils/response.js";
 
 import {
+  DEFAULT_SHIFT_START,
+  DEFAULT_SHIFT_END,
   MAX_PUNCH_WINDOW_HOURS,
-  MAX_PUNCH_WINDOW_MS,
   getDayStart,
   normalizeLocationPayload,
   getResolvedEmployeeIdFromAuth,
   resolveShiftConfigForAttendance,
-  computeBreakDuration,
   deriveStatus,
   findLatestOpenAttendance,
   syncAttendanceTotalsFromPunches,
@@ -334,107 +334,107 @@ export const syncAttendance = async (req, res) => {
 /**
  * Start Break: Employee starts a break during an active day
  */
-export const startBreak = async (req, res) => {
-  try {
-    const employee = await getResolvedEmployeeIdFromAuth(req);
-    if (!employee) {
-      return sendError(res, 403, "Employee mapping missing for authenticated user", {
-        employee: "No employee record is linked to this account",
-      });
-    }
+// export const startBreak = async (req, res) => {
+//   try {
+//     const employee = await getResolvedEmployeeIdFromAuth(req);
+//     if (!employee) {
+//       return sendError(res, 403, "Employee mapping missing for authenticated user", {
+//         employee: "No employee record is linked to this account",
+//       });
+//     }
 
-    const today = getDayStart(new Date());
-    const attendance = await Attendance.findOne({
-      employee,
-      attendanceDate: today,
-      isArchived: false,
-    });
+//     const today = getDayStart(new Date());
+//     const attendance = await Attendance.findOne({
+//       employee,
+//       attendanceDate: today,
+//       isArchived: false,
+//     });
 
-    if (!attendance || !attendance.checkInTime) {
-      return sendError(res, 400, "Check-in required before starting a break", {
-        break: "Please check in first",
-      });
-    }
+//     if (!attendance || !attendance.checkInTime) {
+//       return sendError(res, 400, "Check-in required before starting a break", {
+//         break: "Please check in first",
+//       });
+//     }
 
-    if (attendance.checkOutTime) {
-      return sendError(res, 409, "Cannot start break after checkout");
-    }
+//     if (attendance.checkOutTime) {
+//       return sendError(res, 409, "Cannot start break after checkout");
+//     }
 
-    const latestBreak = attendance.breaks?.[attendance.breaks.length - 1];
-    if (latestBreak && !latestBreak.end) {
-      return sendError(res, 409, "A break is already in progress");
-    }
+//     const latestBreak = attendance.breaks?.[attendance.breaks.length - 1];
+//     if (latestBreak && !latestBreak.end) {
+//       return sendError(res, 409, "A break is already in progress");
+//     }
 
-    attendance.breaks.push({ start: new Date() });
-    attendance.updatedBy = req.user.id;
-    await attendance.save();
+//     attendance.breaks.push({ start: new Date() });
+//     attendance.updatedBy = req.user.id;
+//     await attendance.save();
 
-    return sendSuccess(res, 200, "Break started successfully", attendance);
-  } catch (error) {
-    console.error("Start break error:", error);
-    return sendError(res, 500, "Failed to start break", {
-      error: error.message,
-    });
-  }
-};
+//     return sendSuccess(res, 200, "Break started successfully", attendance);
+//   } catch (error) {
+//     console.error("Start break error:", error);
+//     return sendError(res, 500, "Failed to start break", {
+//       error: error.message,
+//     });
+//   }
+// };
 
 /**
  * End Break: Employee ends an active break
  */
-export const endBreak = async (req, res) => {
-  try {
-    const employee = await getResolvedEmployeeIdFromAuth(req);
-    if (!employee) {
-      return sendError(res, 403, "Employee mapping missing for authenticated user", {
-        employee: "No employee record is linked to this account",
-      });
-    }
+// export const endBreak = async (req, res) => {
+//   try {
+//     const employee = await getResolvedEmployeeIdFromAuth(req);
+//     if (!employee) {
+//       return sendError(res, 403, "Employee mapping missing for authenticated user", {
+//         employee: "No employee record is linked to this account",
+//       });
+//     }
 
-    const today = getDayStart(new Date());
-    const attendance = await Attendance.findOne({
-      employee,
-      attendanceDate: today,
-      isArchived: false,
-    });
+//     const today = getDayStart(new Date());
+//     const attendance = await Attendance.findOne({
+//       employee,
+//       attendanceDate: today,
+//       isArchived: false,
+//     });
 
-    if (!attendance || !attendance.checkInTime) {
-      return sendError(res, 400, "Check-in required before ending a break", {
-        break: "Please check in first",
-      });
-    }
+//     if (!attendance || !attendance.checkInTime) {
+//       return sendError(res, 400, "Check-in required before ending a break", {
+//         break: "Please check in first",
+//       });
+//     }
 
-    if (attendance.checkOutTime) {
-      return sendError(res, 409, "Cannot end break after checkout");
-    }
+//     if (attendance.checkOutTime) {
+//       return sendError(res, 409, "Cannot end break after checkout");
+//     }
 
-    const latestBreakIndex = (attendance.breaks || []).length - 1;
-    if (latestBreakIndex < 0 || attendance.breaks[latestBreakIndex].end) {
-      return sendError(res, 409, "No active break found");
-    }
+//     // const latestBreakIndex = (attendance.breaks || []).length - 1;
+//     // if (latestBreakIndex < 0 || attendance.breaks[latestBreakIndex].end) {
+//     //   return sendError(res, 409, "No active break found");
+//     // }
 
-    const breakEntry = attendance.breaks[latestBreakIndex];
-    const breakEnd = new Date();
-    const durationMinutes = Math.max(
-      0,
-      Math.round((breakEnd - new Date(breakEntry.start)) / (1000 * 60)),
-    );
+//     // const breakEntry = attendance.breaks[latestBreakIndex];
+//     // const breakEnd = new Date();
+//     // const durationMinutes = Math.max(
+//     //   0,
+//     //   Math.round((breakEnd - new Date(breakEntry.start)) / (1000 * 60)),
+//     // );
 
-    attendance.breaks[latestBreakIndex].end = breakEnd;
-    attendance.breaks[latestBreakIndex].durationMinutes = durationMinutes;
+//     // attendance.breaks[latestBreakIndex].end = breakEnd;
+//     // attendance.breaks[latestBreakIndex].durationMinutes = durationMinutes;
 
-    const breakSummary = computeBreakDuration(attendance.breaks, null);
-    attendance.breakDurationMinutes = breakSummary.totalMinutes;
-    attendance.updatedBy = req.user.id;
-    await attendance.save();
+//     // const breakSummary = computeBreakDuration(attendance.breaks, null);
+//     // attendance.breakDurationMinutes = breakSummary.totalMinutes;
+//     // attendance.updatedBy = req.user.id;
+//     // await attendance.save();
 
-    return sendSuccess(res, 200, "Break ended successfully", attendance);
-  } catch (error) {
-    console.error("End break error:", error);
-    return sendError(res, 500, "Failed to end break", {
-      error: error.message,
-    });
-  }
-};
+//     return sendSuccess(res, 200, "Break ended successfully", attendance);
+//   } catch (error) {
+//     console.error("End break error:", error);
+//     return sendError(res, 500, "Failed to end break", {
+//       error: error.message,
+//     });
+//   }
+// };
 
 /**
  * View Own Attendance: Employee views their own attendance
@@ -746,7 +746,6 @@ export const monthlySummary = async (req, res) => {
           },
           totalWorkingHours: { $sum: "$workingHours" },
           averageWorkingHours: { $avg: "$workingHours" },
-          totalBreakMinutes: { $sum: "$breakDurationMinutes" },
         },
       },
     ]);
@@ -787,7 +786,6 @@ export const monthlySummary = async (req, res) => {
         leaveCount: 0,
         totalWorkingHours: 0,
         averageWorkingHours: 0,
-        totalBreakMinutes: 0,
       },
       dailyBreakdown,
     });
