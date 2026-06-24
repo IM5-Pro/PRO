@@ -5,4 +5,3 @@
 
 export { default as AttendanceEditModal } from './AttendanceEditModal';
 export { default as AttendanceApprovalPanel } from './AttendanceApprovalPanel';
-export { default as BreakTrackingPanel } from './BreakTrackingPanel';

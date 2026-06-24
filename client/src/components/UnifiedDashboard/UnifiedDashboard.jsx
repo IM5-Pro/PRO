@@ -12,7 +12,7 @@ import PayrollPage from '../Pages/Payroll';
 import HRHeader from '../HRHeader/HRHeader';
 import HRSidebar from '../HRSidebar/HRSidebar';
 import { ROLES } from '../../utils/roles';
-import { applyOrgScopedDashboard, formatWorkContextLine } from '../../utils/dashboardVisibility';
+import { applyOrgScopedDashboard} from '../../utils/dashboardVisibility';
 import { sortPagesForSidebar } from '../../utils/sidebarNav';
 import { prioritizePagesForRole } from '../../utils/sidebarUsageOrder';
 import { filterShippedPages } from '../../config/portalNavManifest';
@@ -68,10 +68,7 @@ const UnifiedDashboard = () => {
   const widgetFetchRole = isWorkPortal ? ROLES.EMPLOYEE : userRole;
   const portalModeOptions = useMemo(() => getPortalModeOptions(userRole), [userRole]);
 
-  const workContextLine = useMemo(
-    () => formatWorkContextLine(user?.designation, user?.department),
-    [user?.designation, user?.department],
-  );
+
 
   const roleConfig = useMemo(() => {
     const sidebarRole = isWorkPortal ? ROLES.EMPLOYEE : userRole;
@@ -347,7 +344,6 @@ const UnifiedDashboard = () => {
         <DashboardHome
           heading={roleConfig.heading}
           subtitle={roleConfig.subtitle}
-          workContextLine={workContextLine}
           widgets={dashboardWidgets}
           pages={roleConfig.pages}
           onNavigate={handleNavigate}
@@ -391,7 +387,6 @@ const UnifiedDashboard = () => {
           <DashboardHome
             heading={roleConfig.heading}
             subtitle={roleConfig.subtitle}
-            workContextLine={workContextLine}
             widgets={dashboardWidgets}
             pages={roleConfig.pages}
             onNavigate={handleNavigate}
@@ -443,7 +438,6 @@ const UnifiedDashboard = () => {
           <DashboardHome
             heading={roleConfig.heading}
             subtitle={roleConfig.subtitle}
-            workContextLine={workContextLine}
             widgets={dashboardWidgets}
             pages={roleConfig.pages}
             onNavigate={handleNavigate}
@@ -478,7 +472,6 @@ const UnifiedDashboard = () => {
           <DashboardHome
             heading={roleConfig.heading}
             subtitle={roleConfig.subtitle}
-            workContextLine={workContextLine}
             widgets={dashboardWidgets}
             pages={roleConfig.pages}
             onNavigate={handleNavigate}
@@ -520,7 +513,6 @@ const UnifiedDashboard = () => {
         <DashboardHome
           heading={roleConfig.heading}
           subtitle={roleConfig.subtitle}
-          workContextLine={workContextLine}
           widgets={dashboardWidgets}
           pages={roleConfig.pages}
           onNavigate={handleNavigate}
@@ -571,8 +563,6 @@ const UnifiedDashboard = () => {
         currentPage={currentPage}
         onNavigate={handleNavigate}
         pageConfigs={sidebarPageConfigs}
-        portalLabel={roleConfig.portalLabel}
-        contextSubtitle={workContextLine}
         sidebarRole={isWorkPortal ? ROLES.EMPLOYEE : userRole}
       />
 

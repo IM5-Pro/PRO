@@ -10,6 +10,51 @@ import {
   toErrorMessage,
 } from '../../../services/operationsModulesApi';
 import { fetchDepartments as fetchDeptList } from '../../../services/adminOperationsApi';
+const TreeNode = ({ node }) => {
+  if (!node) return null;
+
+  const label =
+    node.name ||
+    node.title ||
+    node.designation ||
+    node.employeeName ||
+    'Unknown';
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm px-4 py-3 min-w-[180px] text-center">
+        <div className="font-medium text-slate-800">{label}</div>
+
+        {node.department && (
+          <div className="text-xs text-slate-500 mt-1">
+            {node.department}
+          </div>
+        )}
+
+        {node.email && (
+          <div className="text-xs text-slate-400 mt-1">
+            {node.email}
+          </div>
+        )}
+      </div>
+
+      {node.children?.length > 0 && (
+        <>
+          <div className="w-px h-6 bg-slate-300" />
+
+          <div className="flex flex-wrap justify-center gap-8 relative">
+            {node.children.map((child, index) => (
+              <TreeNode
+                key={child._id || child.id || index}
+                node={child}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const OrgStructurePage = () => {
   const [hierarchy, setHierarchy] = useState(null);
@@ -42,6 +87,7 @@ const OrgStructurePage = () => {
       setLoading(false);
     }
   }, []);
+  console.log(orgChart);
 
   useEffect(() => {
     load();
@@ -150,24 +196,40 @@ const OrgStructurePage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-semibold mb-3">Designation hierarchy</h2>
-          <div className="max-h-80 overflow-y-auto">
-            {hierarchy?.tree ? renderNode(hierarchy.tree) : (
-              <pre className="text-xs text-slate-600 whitespace-pre-wrap overflow-auto max-h-72">
-                {JSON.stringify(hierarchy, null, 2) || 'No hierarchy data'}
-              </pre>
-            )}
-          </div>
+  <h2 className="font-semibold mb-4">Designation hierarchy</h2>
+
+  <div className="overflow-auto">
+    <div className="min-w-max flex justify-center p-4">
+      {hierarchy?.tree ? (
+        <TreeNode node={hierarchy.tree} />
+      ) : (
+        <div className="text-slate-500">
+          No hierarchy data available
         </div>
+      )}
+    </div>
+  </div>
+</div>
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-semibold mb-3">Org chart</h2>
-          <pre className="text-xs text-slate-600 whitespace-pre-wrap overflow-auto max-h-80">
-            {JSON.stringify(orgChart, null, 2) || 'No org chart data'}
-          </pre>
+  <h2 className="font-semibold mb-4">Org chart</h2>
+
+  <div className="overflow-auto">
+    <div className="min-w-max flex justify-center p-4">
+      {orgChart ? (
+        <TreeNode node={orgChart} />
+      ) : (
+        <div className="text-slate-500">
+          No org chart data available
         </div>
+      )}
+    </div>
+  </div>
+  
+</div>
       </div>
     </ModulePageLayout>
   );
 };
+
 
 export default OrgStructurePage;

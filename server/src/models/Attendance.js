@@ -30,24 +30,6 @@ const attendanceLocationSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const attendanceBreakSchema = new mongoose.Schema(
-  {
-    start: {
-      type: Date,
-      required: true,
-    },
-    end: {
-      type: Date,
-      default: null,
-    },
-    durationMinutes: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-  },
-  { _id: false },
-);
 
 const punchRecordSchema = new mongoose.Schema(
   {
@@ -128,17 +110,6 @@ const attendanceSchema = new mongoose.Schema(
     workingHours: {
       type: Number,
       default: 0,
-    },
-
-    // Break tracking
-    breaks: {
-      type: [attendanceBreakSchema],
-      default: [],
-    },
-    breakDurationMinutes: {
-      type: Number,
-      default: 0,
-      min: 0,
     },
 
     // Shift details

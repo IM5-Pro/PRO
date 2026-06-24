@@ -86,7 +86,6 @@ export const attachMonoIconsToPages = (pages = []) => {
 
 export const ROLE_DASHBOARD_CONFIG = {
   [ROLES.EMPLOYEE]: {
-    portalLabel: 'Employee Self-Service',
     heading: 'My Work Dashboard',
     subtitle: 'Manage attendance, leave, payroll, and documents in one place.',
     widgets: [
@@ -109,7 +108,6 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
   },
   [ROLES.MANAGER]: {
-    portalLabel: 'Team Operations Dashboard',
     heading: 'Team Operations Dashboard',
     subtitle: 'Monitor team performance, approve requests, and remove blockers.',
     widgets: [
@@ -138,7 +136,6 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
   },
   [ROLES.DEPT_ADMIN]: {
-    portalLabel: 'Department Admin Portal',
     heading: 'Department Operations',
     subtitle: 'Manage your department attendance, structure, and approvals.',
     widgets: [
@@ -160,7 +157,6 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
   },
   [ROLES.HR_ADMIN]: {
-    portalLabel: 'HR Operations Center',
     heading: 'Workforce Operations Dashboard',
     subtitle: 'Run employee lifecycle operations across attendance, leave, and payroll.',
     widgets: [
@@ -197,7 +193,6 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
   },
   [ROLES.SUPER_ADMIN]: {
-    portalLabel: 'Enterprise Admin Center',
     heading: 'Governance Dashboard',
     subtitle: 'Oversee system governance, access control, and organizational structure.',
     widgets: [

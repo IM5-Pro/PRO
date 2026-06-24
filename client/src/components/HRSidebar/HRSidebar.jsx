@@ -221,7 +221,7 @@ const HRSidebar = ({
             <img
               src={logo}
               alt="iSpace"
-              className="h-22 w-auto max-w-[100px] shrink-0 object-fit"
+              className="h-22 w-auto max-w-[100px] shrink-0 object-fill"
             />
             {/* <h1 className="text-2xl font-bold leading-none text-slate-900">
               HRMS

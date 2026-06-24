@@ -36,8 +36,6 @@ export const ATTENDANCE_ENDPOINTS = {
   approve: (attendanceId) => `/attendance/${attendanceId}/approve`,
   reject: (attendanceId) => `/attendance/${attendanceId}/reject`,
   pendingApprovals: '/attendance/pending/approvals',
-  breakStart: '/attendance/break/start',
-  breakEnd: '/attendance/break/end',
 };
 
 export const LEAVE_ENDPOINTS = {

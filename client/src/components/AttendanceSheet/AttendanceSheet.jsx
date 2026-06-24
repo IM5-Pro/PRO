@@ -158,7 +158,6 @@ const AttendanceSheet = () => {
           calendarObj[day] = {
             shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
             timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
-            breakTime: record.breakDurationMinutes ? `${record.breakDurationMinutes} min break` : null,
             offType: record.status === 'Absent' ? 'Absent' : null,
             status: record.status,
             isLossOfPay: record.isLossOfPay,
@@ -272,7 +271,6 @@ const AttendanceSheet = () => {
         calendarObj[day] = {
           shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
           timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
-          breakTime: record.breakDurationMinutes ? `${record.breakDurationMinutes} min break` : null,
           offType: record.status === 'Absent' ? 'Absent' : null,
           status: record.status,
           isLossOfPay: record.isLossOfPay,
@@ -386,7 +384,6 @@ const AttendanceSheet = () => {
         attendanceDate,
         checkInTime: checkInDateTime.toISOString(),
         checkOutTime: checkOutDateTime.toISOString(),
-        breakDurationMinutes: parseInt(formData.breakDuration) || 0,
         remarks: formData.notes || '',
       };
 
@@ -442,7 +439,6 @@ const AttendanceSheet = () => {
         calendarObj[dayNum] = {
           shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
           timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
-          breakTime: record.breakDurationMinutes ? `${record.breakDurationMinutes} min break` : null,
           offType: record.status === 'Absent' ? 'Absent' : null,
           status: record.status,
         };
@@ -534,9 +530,6 @@ const AttendanceSheet = () => {
           )}
           {data.timeEntry && (
             <div className="truncate rounded bg-gradient-to-r from-blue-500 to-blue-300 px-1 py-0.5 font-semibold text-white shadow-sm sm:px-2 sm:py-1">{data.timeEntry}</div>
-          )}
-          {data.breakTime && (
-            <div className="truncate rounded bg-gradient-to-r from-lime-400 to-green-200 px-1 py-0.5 text-gray-700 shadow-sm sm:px-2 sm:py-1">{data.breakTime}</div>
           )}
           {data.offType && !leaveRequest && !holiday && (
             <div className="truncate rounded bg-gradient-to-r from-red-500 to-pink-400 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">{data.offType}</div>
@@ -646,10 +639,6 @@ const AttendanceSheet = () => {
           <span className="text-sm text-gray-600">Weekly Off</span>
         </div>
         <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-lime-400 to-green-200 rounded shadow"></div>
-          <span className="text-sm text-gray-600">Break Time</span>
-        </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
           <div className="w-4 h-4 bg-purple-600 rounded shadow"></div>
           <span className="text-sm text-gray-600">Approved Leave</span>
         </div>
@@ -716,7 +705,6 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
   const [formData, setFormData] = useState({
     checkInTime: '09:00',
     checkOutTime: '18:00',
-    breakDuration: '30',
     notes: '',
   });
 
@@ -725,7 +713,6 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
       setFormData({
         checkInTime: '09:00',
         checkOutTime: '18:00',
-        breakDuration: '30',
         notes: '',
       });
     }
@@ -843,22 +830,6 @@ const AddAttendanceModal = ({ isOpen, selectedDate, onClose, onSubmit, isSubmitt
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-          </div>
-
-          {/* Break Duration */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Break Duration (minutes)
-            </label>
-            <input
-              type="number"
-              name="breakDuration"
-              value={formData.breakDuration}
-              onChange={handleChange}
-              min="0"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
 
           {/* Notes */}
