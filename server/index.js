@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/AuthRouter.js";
 import userRoutes from "./src/routes/UserRouter.js";
@@ -37,7 +39,8 @@ import toolProvisioningRoutes from "./src/routes/ToolProvisioningRouter.js";
 import insuranceRoutes from "./src/routes/InsuranceRouter.js";
 import securityHeaders from "./src/middleware/securityHeaders.js";
 
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 const app = express();
 const PORT = process.env.PORT || 5000;

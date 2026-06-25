@@ -4,18 +4,20 @@ import { hasPermission } from '../src/config/permissions.js';
 
 const manifestPath = path.resolve(process.cwd(), '../client/src/config/portalNavManifest.js');
 const manifestSource = readFileSync(manifestPath, 'utf8');
-const probeMatch = manifestSource.match(/PORTAL_NAV_API_PROBES\s*=\s*(\{[\s\S]*?\n\});/);
-
-if (!probeMatch) {
-  throw new Error('Could not parse PORTAL_NAV_API_PROBES from portalNavManifest.js');
+if (!manifestSource.includes('PORTAL_NAV_API_PROBES')) {
+  throw new Error('Could not find PORTAL_NAV_API_PROBES in portalNavManifest.js');
 }
 
-// eslint-disable-next-line no-eval
-const PORTAL_NAV_API_PROBES = eval(`(${probeMatch[1]})`);
+let PORTAL_NAV_API_PROBES = {};
 
 const unrestricted = new Set(['SUPER_ADMIN', 'HR_ADMIN']);
 
 describe('portal nav permission probes', () => {
+  beforeAll(async () => {
+    const manifestModule = await import(manifestPath);
+    PORTAL_NAV_API_PROBES = manifestModule.PORTAL_NAV_API_PROBES;
+  });
+
   test('scoped roles have matrix entries for each nav API probe', () => {
     const failures = [];
 

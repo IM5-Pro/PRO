@@ -1,7 +1,42 @@
 import Shift from "../models/Shift.js";
 import EmployeeShift from "../models/EmployeeShift.js";
 import Employee from "../models/Employee.js";
+import Roles from "../constants/roles.js";
 import { sendError, sendSuccess } from "../utils/response.js";
+
+const getManagerScopedFilter = (employeeId) => ({
+  $or: [
+    { manager: employeeId },
+    { managerId: employeeId },
+    { managerID: employeeId },
+  ],
+});
+
+const canReadEmployeeShiftData = async ({ requester, targetEmployeeId }) => {
+  const role = requester?.role;
+  const requesterEmployeeId = requester?.employeeId ? String(requester.employeeId) : "";
+  const targetId = String(targetEmployeeId);
+
+  if ([Roles.SUPER_ADMIN, Roles.HR_ADMIN].includes(role)) {
+    return true;
+  }
+
+  if (requesterEmployeeId && requesterEmployeeId === targetId) {
+    return true;
+  }
+
+  if ([Roles.MANAGER, Roles.DEPT_ADMIN].includes(role) && requesterEmployeeId) {
+    const managedEmployee = await Employee.findOne({
+      _id: targetEmployeeId,
+      ...getManagerScopedFilter(requesterEmployeeId),
+    })
+      .select("_id")
+      .lean();
+    return Boolean(managedEmployee);
+  }
+
+  return false;
+};
 
 /**
  * Create a new shift
@@ -267,6 +302,14 @@ export const getEmployeeCurrentShift = async (req, res) => {
       return sendError(res, 404, "Employee not found");
     }
 
+    const canRead = await canReadEmployeeShiftData({
+      requester: req.user,
+      targetEmployeeId: employee._id,
+    });
+    if (!canRead) {
+      return sendError(res, 403, "Access denied");
+    }
+
     // Get current active shift
     const employeeShift = await EmployeeShift.findOne({
       employee: employeeId,
@@ -300,6 +343,14 @@ export const getEmployeeShiftHistory = async (req, res) => {
     const employee = await Employee.findById(employeeId);
     if (!employee) {
       return sendError(res, 404, "Employee not found");
+    }
+
+    const canRead = await canReadEmployeeShiftData({
+      requester: req.user,
+      targetEmployeeId: employee._id,
+    });
+    if (!canRead) {
+      return sendError(res, 403, "Access denied");
     }
 
     const skip = (page - 1) * limit;

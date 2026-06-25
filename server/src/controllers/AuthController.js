@@ -1,4 +1,5 @@
 import Roles from "../constants/roles.js";
+import User from "../models/User.js";
 import {
   validateRegisterSuperAdmin,
   validateLogin,
@@ -20,8 +21,25 @@ import {
   buildUserResponse,
 } from "../services/authService.js";
 
+const matchesSuperAdminSetupKey = (req) => {
+  const configuredSetupKey = String(process.env.SUPER_ADMIN_SETUP_KEY || "").trim();
+  if (!configuredSetupKey) {
+    return true;
+  }
+
+  const providedSetupKey = String(
+    req.body?.setupKey || req.headers?.["x-setup-key"] || "",
+  ).trim();
+
+  return providedSetupKey && providedSetupKey === configuredSetupKey;
+};
+
 const registerSuperAdmin = async (req, res) => {
   try {
+    if (!matchesSuperAdminSetupKey(req)) {
+      return sendError(res, 403, "Invalid setup key");
+    }
+
     const { email, password } = req.body;
     const validation = validateRegisterSuperAdmin({ ...req.body, email });
     if (!validation.isValid) {
@@ -210,13 +228,85 @@ const completeInitialPassword = async (req, res) => {
   }
 };
 
-const mfaEnable = async (_req, res) => sendSuccess(res, 200, "MFA enabled (mock)");
-const mfaDisable = async (_req, res) => sendSuccess(res, 200, "MFA disabled (mock)");
-const sessionView = async (req, res) =>
-  sendSuccess(res, 200, "Sessions retrieved", {
-    data: { sessions: [{ id: "mock-session", user: req.user.id }] },
-  });
-const sessionTerminate = async (_req, res) => sendSuccess(res, 200, "Session terminated (mock)");
+const mfaEnable = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        $set: {
+          mfaEnabled: true,
+          mfaUpdatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).select("mfaEnabled");
+
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    return sendSuccess(res, 200, "MFA enabled", { data: { mfaEnabled: user.mfaEnabled } });
+  } catch (err) {
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+const mfaDisable = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        $set: {
+          mfaEnabled: false,
+          mfaUpdatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).select("mfaEnabled");
+
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    return sendSuccess(res, 200, "MFA disabled", { data: { mfaEnabled: user.mfaEnabled } });
+  } catch (err) {
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+const sessionView = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("lastLogin mfaEnabled").lean();
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    return sendSuccess(res, 200, "Sessions retrieved", {
+      data: {
+        sessions: [
+          {
+            id: "current",
+            user: req.user.id,
+            current: true,
+            lastLogin: user.lastLogin || null,
+            mfaEnabled: Boolean(user.mfaEnabled),
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
+
+const sessionTerminate = async (req, res) => {
+  try {
+    await invalidateSession(req.user.id, res);
+    return sendSuccess(res, 200, "Session terminated");
+  } catch (err) {
+    return sendError(res, 500, "Internal server error", { error: err.message });
+  }
+};
 
 export default {
   registerSuperAdmin,
