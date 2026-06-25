@@ -1,14 +1,9 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiGrid } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../api/client';
 import { ANNOUNCEMENT_ENDPOINTS } from '../../api/endpoints';
-import DashboardOverviewPage from '../Pages/HR/DashboardOverview';
-import LeavesAttendancePage from '../Pages/HR/LeavesAttendance';
-import EmployeesPage from '../Pages/Employees';
-import LeavesPage from '../Pages/Leaves';
-import PayrollPage from '../Pages/Payroll';
 import HRHeader from '../HRHeader/HRHeader';
 import HRSidebar from '../HRSidebar/HRSidebar';
 import { ROLES } from '../../utils/roles';
@@ -38,8 +33,14 @@ import {
 } from './UnifiedDashboardConfig';
 import DashboardHome from './components/DashboardHome';
 import RolePage from './components/RolePage';
-import UnifiedComponentsGallery from './components/UnifiedComponentsGallery';
 import LoadingSpinner from '../Auth/LoadingSpinner';
+
+const DashboardOverviewPage = lazy(() => import('../Pages/HR/DashboardOverview'));
+const LeavesAttendancePage = lazy(() => import('../Pages/HR/LeavesAttendance'));
+const EmployeesPage = lazy(() => import('../Pages/Employees'));
+const LeavesPage = lazy(() => import('../Pages/Leaves'));
+const PayrollPage = lazy(() => import('../Pages/Payroll'));
+const UnifiedComponentsGallery = lazy(() => import('./components/UnifiedComponentsGallery'));
 
 /** Available from header for every role; may be omitted from role sidebar lists. */
 const GLOBAL_PORTAL_PAGE_IDS = ['settings', 'employee-profile', 'insurance-details'];

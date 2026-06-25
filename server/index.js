@@ -42,6 +42,29 @@ import securityHeaders from "./src/middleware/securityHeaders.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
+const validateRequiredEnv = () => {
+  if (process.env.NODE_ENV === "test") {
+    return;
+  }
+
+  const required = ["MONGODB_URI", "JWT_SECRET", "JWT_REFRESH_SECRET"];
+  if (process.env.NODE_ENV === "production") {
+    required.push("SUPER_ADMIN_SETUP_KEY");
+  }
+
+  const missing = required.filter((key) => {
+    const value = process.env[key];
+    return typeof value !== "string" || !value.trim();
+  });
+
+  if (missing.length > 0) {
+    console.error(`Missing required environment variables: ${missing.join(", ")}`);
+    process.exit(1);
+  }
+};
+
+validateRequiredEnv();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 

@@ -24,7 +24,7 @@ import {
 const matchesSuperAdminSetupKey = (req) => {
   const configuredSetupKey = String(process.env.SUPER_ADMIN_SETUP_KEY || "").trim();
   if (!configuredSetupKey) {
-    return true;
+    return process.env.NODE_ENV !== "production";
   }
 
   const providedSetupKey = String(
