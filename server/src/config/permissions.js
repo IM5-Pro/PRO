@@ -890,11 +890,8 @@ const ROLE_PERMISSIONS = {
  * @returns {boolean} - True if permission exists, false otherwise
  */
 const hasPermission = (role, resource, action) => {
-  // SUPER_ADMIN and HR_ADMIN are considered unrestricted; they bypass the
-  // permission table and always return true for any resource/action. This
-  // simplifies controller logic since both roles should be able to do all
-  // operations in the API.
-  if (role === "SUPER_ADMIN" || role === "HR_ADMIN") {
+  // SUPER_ADMIN bypasses permission checks by design.
+  if (role === "SUPER_ADMIN") {
     return true;
   }
 
@@ -917,9 +914,8 @@ const hasPermission = (role, resource, action) => {
  * @returns {object} - All permissions for the role
  */
 const getPermissions = (role) => {
-  // Return a copy of the permissions object; super and hr admins receive the
-  // full SUPER_ADMIN permission set regardless of what is defined for them.
-  if (role === "SUPER_ADMIN" || role === "HR_ADMIN") {
+  // Return a copy of the SUPER_ADMIN permission set for super admins.
+  if (role === "SUPER_ADMIN") {
     return { ...ROLE_PERMISSIONS.SUPER_ADMIN };
   }
 
@@ -933,7 +929,7 @@ const getPermissions = (role) => {
  * @returns {object} - Permissions for the resource
  */
 const getResourcePermissions = (role, resource) => {
-  if (role === "SUPER_ADMIN" || role === "HR_ADMIN") {
+  if (role === "SUPER_ADMIN") {
     return ROLE_PERMISSIONS.SUPER_ADMIN[resource] || {};
   }
 

@@ -67,11 +67,11 @@ describe("Permission middleware integration", () => {
       role: "HR_ADMIN",
     });
 
-    test("is treated as unrestricted (same as SUPER_ADMIN in hasPermission)", async () => {
+    test("uses scoped permission matrix for unknown permissions", async () => {
       const res = await request(app)
         .get("/check/system.global_settings")
         .set("Authorization", `Bearer ${token}`);
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(403);
     });
   });
 

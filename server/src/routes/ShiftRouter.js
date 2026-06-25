@@ -73,6 +73,7 @@ router.post(
  */
 router.get(
   "/employee/:employeeId",
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER", "EMPLOYEE"),
   shiftController.getEmployeeCurrentShift
 );
 
@@ -83,6 +84,7 @@ router.get(
  */
 router.get(
   "/employee/:employeeId/history",
+  roleGuard("SUPER_ADMIN", "HR_ADMIN", "DEPT_ADMIN", "MANAGER", "EMPLOYEE"),
   shiftController.getEmployeeShiftHistory
 );
 

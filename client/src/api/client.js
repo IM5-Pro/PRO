@@ -11,7 +11,7 @@ const AUTH_EXEMPT_401_PATHS = [
   '/auth/refresh-token',
 ];
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:7888/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7888/api';
 
 const clearPunchCookies = () => {
   PUNCH_COOKIES.forEach((name) => {

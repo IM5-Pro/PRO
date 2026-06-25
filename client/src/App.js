@@ -4,21 +4,22 @@
  * Routes between Login, Employee Dashboard, and various dashboard pages
  */
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PunchProvider } from './context/PunchContext';
 import { NotificationProvider } from './context/NotificationContext';
-import Login from './components/Login/Login';
-import Register from './components/Register/Register';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
-import UnifiedDashboard from './components/UnifiedDashboard/UnifiedDashboard';
-import PunchInOut from './components/PunchInOut/PunchInOut';
 import LoadingSpinner from './components/Auth/LoadingSpinner';
 import { getCookie } from './utils/cookies';
 import { ROLES } from './utils/roles';
+
+const Login = lazy(() => import('./components/Login/Login'));
+const Register = lazy(() => import('./components/Register/Register'));
+const UnifiedDashboard = lazy(() => import('./components/UnifiedDashboard/UnifiedDashboard'));
+const PunchInOut = lazy(() => import('./components/PunchInOut/PunchInOut'));
 
 const getPunchDayKey = () => {
   const now = new Date();
@@ -98,20 +99,22 @@ const AppContent = () => {
   return (
     <ProtectedRoute requiredRole={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN, ROLES.SUPER_ADMIN]}>
       <NotificationProvider userRole={userRole}>
-        <Routes>
-          {/* ============================================================
-              PUNCH IN/OUT ROUTE - employee only
-              ============================================================ */}
-          <Route
-            path="/punch"
-            element={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN].includes(userRole) ? <PunchInOut /> : <Navigate to="/" replace />}
-          />
+        <Suspense fallback={<LoadingSpinner variant="fullpage" message="Loading..." size="lg" />}>
+          <Routes>
+            {/* ============================================================
+                PUNCH IN/OUT ROUTE - employee only
+                ============================================================ */}
+            <Route
+              path="/punch"
+              element={[ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN].includes(userRole) ? <PunchInOut /> : <Navigate to="/" replace />}
+            />
 
-          {/* ============================================================
-              COMMON DASHBOARD FOR ALL ROLES
-              ============================================================ */}
-          <Route path="/*" element={<UnifiedDashboard />} />
-        </Routes>
+            {/* ============================================================
+                COMMON DASHBOARD FOR ALL ROLES
+                ============================================================ */}
+            <Route path="/*" element={<UnifiedDashboard />} />
+          </Routes>
+        </Suspense>
       </NotificationProvider>
     </ProtectedRoute>
   );
@@ -132,8 +135,22 @@ function App() {
           <PunchProvider>
             <Routes>
               {/* LOGIN ROUTE - Always accessible */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route
+                path="/login"
+                element={(
+                  <Suspense fallback={<LoadingSpinner variant="fullpage" message="Loading..." size="lg" />}>
+                    <Login />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/register"
+                element={(
+                  <Suspense fallback={<LoadingSpinner variant="fullpage" message="Loading..." size="lg" />}>
+                    <Register />
+                  </Suspense>
+                )}
+              />
               
               {/* MAIN APP ROUTES - Protected by AppContent */}
               <Route path="/*" element={<AppContent />} />

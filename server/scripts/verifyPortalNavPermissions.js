@@ -4,21 +4,19 @@
  */
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
+import { pathToFileURL } from 'url';
 import path from 'path';
 import { hasPermission } from '../src/config/permissions.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const manifestPath = path.resolve(__dirname, '../../client/src/config/portalNavManifest.js');
 const manifestSource = readFileSync(manifestPath, 'utf8');
-
-const probeMatch = manifestSource.match(/PORTAL_NAV_API_PROBES\s*=\s*(\{[\s\S]*?\n\});/);
-if (!probeMatch) {
-  console.error('Could not parse PORTAL_NAV_API_PROBES from portalNavManifest.js');
+if (!manifestSource.includes('PORTAL_NAV_API_PROBES')) {
+  console.error('Could not find PORTAL_NAV_API_PROBES in portalNavManifest.js');
   process.exit(1);
 }
 
-// eslint-disable-next-line no-eval
-const PORTAL_NAV_API_PROBES = eval(`(${probeMatch[1]})`);
+const { PORTAL_NAV_API_PROBES } = await import(pathToFileURL(manifestPath).href);
 
 const unrestricted = new Set(['SUPER_ADMIN', 'HR_ADMIN']);
 let failures = 0;

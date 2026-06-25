@@ -404,7 +404,7 @@ export const disableMfa = async () => {
 };
 
 export const getPayrollDownloadUrl = (detailId) => {
-  const baseUrl = String(process.env.REACT_APP_API_URL || 'http://localhost:7888/api').replace(
+  const baseUrl = String(import.meta.env.VITE_API_URL || 'http://localhost:7888/api').replace(
     /\/$/,
     '',
   );
