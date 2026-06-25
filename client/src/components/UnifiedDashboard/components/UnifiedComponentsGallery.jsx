@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import ProfileCard from '../../ProfileCard/ProfileCard';
 import AttendanceCard from '../../AttendanceCard/AttendanceCard';
 import LeaveBalance from '../../LeaveBalance/LeaveBalance';
@@ -14,31 +14,33 @@ import AttendanceSheet from '../../AttendanceSheet/AttendanceSheet';
 import BookMeeting from '../../BookMeeting/BookMeeting';
 import ManagerActionCenter from '../../ManagerDashboard/ManagerActionCenter';
 import ManagerSidebarPageContent from '../../ManagerDashboard/ManagerSidebarPages';
-import DashboardPage from '../../Pages/Dashboard';
-import DashboardOverviewPage from '../../Pages/HR/DashboardOverview';
 import { ROLES } from '../../../utils/roles';
-import AttendancePage from '../../Pages/Attendance';
-import AnnouncementsPage from '../../Pages/Announcements';
-import AnalyticsPage from '../../Pages/Analytics';
-import EmployeeProfilePage from '../../Pages/EmployeeProfile';
-import EmployeesPage from '../../Pages/Employees';
-import LeaveManagementPage from '../../Pages/LeaveManagement';
-import LeavesPage from '../../Pages/Leaves';
-import PayrollPage from '../../Pages/Payroll';
-import PerformancePage from '../../Pages/Performance';
-import ReportsPage from '../../Pages/Reports';
-import SettingsPortalPage from '../../Pages/Settings';
-import TeamCollaborationPage from '../../Pages/TeamCollaboration';
-import LeavesAttendancePage from '../../Pages/HR/LeavesAttendance';
-import ManpowerPlanningPage from '../../Pages/HR/ManpowerPlanning';
-import HRPayrollPage from '../../Pages/HR/Payroll';
-import ExitClearancePage from '../../Pages/HR/ExitClearance';
-import MeetingRoomPage from '../../Pages/HR/MeetingRoom';
-import WorkflowsPage from '../../Pages/HR/Workflows';
-import LetterTemplatesPage from '../../Pages/HR/LetterTemplates';
-import UserManagementPage from '../../Pages/HR/UserManagement';
-import MastersPage from '../../Pages/HR/Masters';
-import AdminPanelConfigPage from '../../Pages/HR/AdminPanelConfig';
+import LoadingSpinner from '../../Auth/LoadingSpinner';
+
+const DashboardPage = lazy(() => import('../../Pages/Dashboard'));
+const DashboardOverviewPage = lazy(() => import('../../Pages/HR/DashboardOverview'));
+const AttendancePage = lazy(() => import('../../Pages/Attendance'));
+const AnnouncementsPage = lazy(() => import('../../Pages/Announcements'));
+const AnalyticsPage = lazy(() => import('../../Pages/Analytics'));
+const EmployeeProfilePage = lazy(() => import('../../Pages/EmployeeProfile'));
+const EmployeesPage = lazy(() => import('../../Pages/Employees'));
+const LeaveManagementPage = lazy(() => import('../../Pages/LeaveManagement'));
+const LeavesPage = lazy(() => import('../../Pages/Leaves'));
+const PayrollPage = lazy(() => import('../../Pages/Payroll'));
+const PerformancePage = lazy(() => import('../../Pages/Performance'));
+const ReportsPage = lazy(() => import('../../Pages/Reports'));
+const SettingsPortalPage = lazy(() => import('../../Pages/Settings'));
+const TeamCollaborationPage = lazy(() => import('../../Pages/TeamCollaboration'));
+const LeavesAttendancePage = lazy(() => import('../../Pages/HR/LeavesAttendance'));
+const ManpowerPlanningPage = lazy(() => import('../../Pages/HR/ManpowerPlanning'));
+const HRPayrollPage = lazy(() => import('../../Pages/HR/Payroll'));
+const ExitClearancePage = lazy(() => import('../../Pages/HR/ExitClearance'));
+const MeetingRoomPage = lazy(() => import('../../Pages/HR/MeetingRoom'));
+const WorkflowsPage = lazy(() => import('../../Pages/HR/Workflows'));
+const LetterTemplatesPage = lazy(() => import('../../Pages/HR/LetterTemplates'));
+const UserManagementPage = lazy(() => import('../../Pages/HR/UserManagement'));
+const MastersPage = lazy(() => import('../../Pages/HR/Masters'));
+const AdminPanelConfigPage = lazy(() => import('../../Pages/HR/AdminPanelConfig'));
 
 /** Local map avoids circular import with pageRegistry.js */
 const GALLERY_STANDARD_PAGE_COMPONENTS = {
@@ -372,7 +374,9 @@ const UnifiedComponentsGallery = ({ user }) => {
         </div>
 
         <PreviewFrame>
-          <SelectedStandardPage />
+          <Suspense fallback={<LoadingSpinner variant="card" message="Loading preview..." />}>
+            <SelectedStandardPage />
+          </Suspense>
         </PreviewFrame>
       </div>
 
@@ -401,7 +405,9 @@ const UnifiedComponentsGallery = ({ user }) => {
           </div>
 
           <PreviewFrame>
-            <SelectedHrPage user={user || {}} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />
+            <Suspense fallback={<LoadingSpinner variant="card" message="Loading preview..." />}>
+              <SelectedHrPage user={user || {}} pageConfig={{}} onUserUpdate={() => {}} onNavigate={() => {}} />
+            </Suspense>
           </PreviewFrame>
         </div>
       )}
