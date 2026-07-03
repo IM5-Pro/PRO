@@ -17,7 +17,6 @@ const MyResignationPage = lazy(() => import('../Pages/MyResignation'));
 const ResignationApprovalsPage = lazy(() => import('../Pages/ResignationApprovals'));
 const DashboardOverviewPage = lazy(() => import('../Pages/HR/DashboardOverview'));
 const LeavesAttendancePage = lazy(() => import('../Pages/HR/LeavesAttendance'));
-const ManpowerPlanningPage = lazy(() => import('../Pages/HR/ManpowerPlanning'));
 const HRPayrollPage = lazy(() => import('../Pages/HR/Payroll'));
 const ExitClearancePage = lazy(() => import('../Pages/HR/ExitClearance'));
 const MeetingRoomPage = lazy(() => import('../Pages/HR/MeetingRoom'));
@@ -102,7 +101,6 @@ export const HR_PAGE_COMPONENTS = {
   'dashboard-overview': DashboardOverviewPage,
   announcements: AnnouncementsPage,
   'leaves-attendance': LeavesAttendancePage,
-  'manpower-planning': ManpowerPlanningPage,
   'hr-payroll': HRPayrollPage,
   'exit-clearance': ExitClearancePage,
   'meeting-room': MeetingRoomPage,

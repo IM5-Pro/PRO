@@ -32,7 +32,6 @@ const ReportsPage = lazy(() => import('../../Pages/Reports'));
 const SettingsPortalPage = lazy(() => import('../../Pages/Settings'));
 const TeamCollaborationPage = lazy(() => import('../../Pages/TeamCollaboration'));
 const LeavesAttendancePage = lazy(() => import('../../Pages/HR/LeavesAttendance'));
-const ManpowerPlanningPage = lazy(() => import('../../Pages/HR/ManpowerPlanning'));
 const HRPayrollPage = lazy(() => import('../../Pages/HR/Payroll'));
 const ExitClearancePage = lazy(() => import('../../Pages/HR/ExitClearance'));
 const MeetingRoomPage = lazy(() => import('../../Pages/HR/MeetingRoom'));
@@ -64,7 +63,6 @@ const GALLERY_HR_PAGE_COMPONENTS = {
   dashboard: DashboardOverviewPage,
   announcements: AnnouncementsPage,
   'leaves-attendance': LeavesAttendancePage,
-  'manpower-planning': ManpowerPlanningPage,
   'hr-payroll': HRPayrollPage,
   'exit-clearance': ExitClearancePage,
   'meeting-room': MeetingRoomPage,
@@ -136,7 +134,6 @@ const HR_PAGE_OPTIONS = [
   { id: 'dashboard-overview', label: 'HR Overview' },
   { id: 'announcements', label: 'Announcements' },
   { id: 'leaves-attendance', label: 'Leaves & Attendance' },
-  { id: 'manpower-planning', label: 'Manpower Planning' },
   { id: 'hr-payroll', label: 'HR Payroll' },
   { id: 'exit-clearance', label: 'Exit Clearance' },
   { id: 'meeting-room', label: 'Meeting Room' },
@@ -164,7 +161,7 @@ const ROLE_AWARE_PREVIEW_CONFIG = {
     showManagerSection: false,
     showHrSection: true,
     standardPages: ['dashboard', 'attendance', 'announcements', 'analytics', 'employees', 'leave-management', 'leaves', 'payroll', 'performance', 'reports', 'settings', 'team-collaboration'],
-    hrPages: ['dashboard-overview', 'announcements', 'leaves-attendance', 'manpower-planning', 'hr-payroll', 'exit-clearance', 'meeting-room', 'workflows', 'letter-templates', 'user-management', 'masters', 'admin-panel-config'],
+    hrPages: ['dashboard-overview', 'announcements', 'leaves-attendance', 'hr-payroll', 'exit-clearance', 'meeting-room', 'workflows', 'letter-templates', 'user-management', 'masters', 'admin-panel-config'],
     showTeamWidgets: true,
   },
   [ROLES.DEPT_ADMIN]: {

@@ -174,58 +174,6 @@ export const ADMIN_ENDPOINTS = {
   transferHistory: '/admin/transfer-history',
 };
 
-// ============================================================================
-// MANPOWER PLANNING ENDPOINTS
-// ============================================================================
-
-export const MANPOWER_PLANNING_ENDPOINTS = {
-  /**
-   * Get workforce planning metrics summary
-   * Returns: totalStrength, openPositions, pendingApprovals, departmentEfficiency
-   * Path: GET /api/manpower-planning/metrics
-   */
-  metrics: '/manpower-planning/metrics',
-
-  /**
-   * Get open job positions with pagination and optional department filter
-   * Query params: limit, skip, department
-   * Path: GET /api/manpower-planning/open-positions
-   */
-  openPositions: (options = {}) => {
-    const params = [];
-    if (options.limit) params.push(`limit=${encodeURIComponent(options.limit)}`);
-    if (options.skip) params.push(`skip=${encodeURIComponent(options.skip)}`);
-    if (options.department) params.push(`department=${encodeURIComponent(options.department)}`);
-    return params.length > 0 ? `/manpower-planning/open-positions?${params.join('&')}` : '/manpower-planning/open-positions';
-  },
-
-  /**
-   * Get pending leave/approval requests with pagination
-   * Query params: limit, skip
-   * Path: GET /api/manpower-planning/pending-approvals
-   */
-  pendingApprovals: (options = {}) => {
-    const params = [];
-    if (options.limit) params.push(`limit=${encodeURIComponent(options.limit)}`);
-    if (options.skip) params.push(`skip=${encodeURIComponent(options.skip)}`);
-    return params.length > 0 ? `/manpower-planning/pending-approvals?${params.join('&')}` : '/manpower-planning/pending-approvals';
-  },
-
-  /**
-   * Get department-wise workforce summary
-   * Returns: departments array with strength, budget, efficiency
-   * Path: GET /api/manpower-planning/departments-summary
-   */
-  departmentsSummary: '/manpower-planning/departments-summary',
-
-  /**
-   * Get workforce trend data for visualization
-   * Query params: period (week, month, quarter, year)
-   * Path: GET /api/manpower-planning/trends
-   */
-  trends: (period = 'month') => `/manpower-planning/trends?period=${encodeURIComponent(period)}`,
-};
-
 // Additional endpoints for activity feed data
 export const ACTIVITIES_ENDPOINTS = {
   announcements: (limit) => withLimit('/announcements', limit),

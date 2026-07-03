@@ -8,7 +8,7 @@
  * @version 2.0.0
  * @example
  * <HRSidebar
- *   currentPage="manpower"
+ *   currentPage="dashboard-overview"
  *   onNavigate={handleNavigation}
  *   pageConfigs={PAGE_CONFIGS}
  * />
