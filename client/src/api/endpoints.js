@@ -169,6 +169,9 @@ export const DASHBOARD_ENDPOINTS = {
 
 export const ADMIN_ENDPOINTS = {
   auditLogs: '/admin/audit-logs',
+  eligibleRecipients: '/admin/eligible-recipients',
+  transferRole: '/admin/transfer-role',
+  transferHistory: '/admin/transfer-history',
 };
 
 // ============================================================================
