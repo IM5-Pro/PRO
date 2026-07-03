@@ -343,8 +343,8 @@ const Employees = () => {
         return;
       }
 
-      if (!normalizedLastName || normalizedLastName.length < 2) {
-        setCreateError('Last name must be at least 2 characters');
+      if (!normalizedLastName || normalizedLastName.length < 1) {
+        setCreateError('Last name must be at least 1s characters');
         return;
       }
 

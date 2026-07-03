@@ -264,7 +264,7 @@ const collectAllManagerCandidates = async ({
   deptDoc,
   parsedLimit,
 }) => {
-  const designationClauses = [{ designation: { $regex: MANAGER_DESIGNATION_PATTERN, $options: "i" } }];
+  const designationClauses = [{ designation: { $regex: MANAGER_DESIGNATION_PATTERN } }];
   if (designationRefs.length > 0) {
     designationClauses.unshift({ designation: { $in: designationRefs } });
   }
