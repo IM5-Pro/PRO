@@ -140,6 +140,16 @@ const ROLE_PERMISSIONS = {
       assign: true,
     },
 
+    // Department Management
+    department: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+      list: true,
+      assign_manager: true,
+    },
+
     // Resignation Management
     resignations: {
       create: true,
@@ -288,6 +298,16 @@ const ROLE_PERMISSIONS = {
       assign: true,
     },
 
+    // Department Management (Masters, org structure, employee onboarding)
+    department: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true, // soft-deactivate via DELETE route
+      list: true,
+      assign_manager: true,
+    },
+
     // Resignation Management
     resignations: {
       create: true,
@@ -434,6 +454,16 @@ const ROLE_PERMISSIONS = {
       delete: false,
       list: true, // Can list designations
       assign: false,
+    },
+
+    // Department Management (read-only for org structure views)
+    department: {
+      create: false,
+      read: true,
+      update: false,
+      delete: false,
+      list: true,
+      assign_manager: false,
     },
 
     // Resignation Management
@@ -882,6 +912,13 @@ const ROLE_PERMISSIONS = {
   },
 };
 
+const normalizeRoleKey = (role) => {
+  if (!role || typeof role !== "string") {
+    return "";
+  }
+  return role.trim().toUpperCase();
+};
+
 /**
  * Check if a role has permission for an action
  * @param {string} role - User role (SUPER_ADMIN, HR_ADMIN, MANAGER, EMPLOYEE)
@@ -890,12 +927,14 @@ const ROLE_PERMISSIONS = {
  * @returns {boolean} - True if permission exists, false otherwise
  */
 const hasPermission = (role, resource, action) => {
+  const normalizedRole = normalizeRoleKey(role);
+
   // SUPER_ADMIN bypasses permission checks by design.
-  if (role === "SUPER_ADMIN") {
+  if (normalizedRole === "SUPER_ADMIN") {
     return true;
   }
 
-  const rolePermissions = ROLE_PERMISSIONS[role];
+  const rolePermissions = ROLE_PERMISSIONS[normalizedRole];
 
   if (!rolePermissions) {
     return false;
@@ -914,12 +953,14 @@ const hasPermission = (role, resource, action) => {
  * @returns {object} - All permissions for the role
  */
 const getPermissions = (role) => {
+  const normalizedRole = normalizeRoleKey(role);
+
   // Return a copy of the SUPER_ADMIN permission set for super admins.
-  if (role === "SUPER_ADMIN") {
+  if (normalizedRole === "SUPER_ADMIN") {
     return { ...ROLE_PERMISSIONS.SUPER_ADMIN };
   }
 
-  return ROLE_PERMISSIONS[role] || {};
+  return ROLE_PERMISSIONS[normalizedRole] || {};
 };
 
 /**
@@ -929,11 +970,13 @@ const getPermissions = (role) => {
  * @returns {object} - Permissions for the resource
  */
 const getResourcePermissions = (role, resource) => {
-  if (role === "SUPER_ADMIN") {
+  const normalizedRole = normalizeRoleKey(role);
+
+  if (normalizedRole === "SUPER_ADMIN") {
     return ROLE_PERMISSIONS.SUPER_ADMIN[resource] || {};
   }
 
-  return ROLE_PERMISSIONS[role]?.[resource] || {};
+  return ROLE_PERMISSIONS[normalizedRole]?.[resource] || {};
 };
 
 /**

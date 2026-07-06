@@ -219,6 +219,7 @@ export const roles = [
         p.startsWith("leave.") ||
         p.startsWith("attendance.") ||
         p.startsWith("department.") ||
+        p.startsWith("designation.") ||
         p.startsWith("payroll.") ||
         p.startsWith("performance.") ||
         p.startsWith("document.") ||
