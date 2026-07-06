@@ -109,7 +109,6 @@ export const ROLE_PAGE_USAGE_ORDER = {
     'attendance-approvals': 140,
     'hr-payroll': 150,
     recruitment: 160,
-    'manpower-planning': 170,
     'employee-bulk-ops': 180,
     'shift-management': 190,
     'performance-management': 200,

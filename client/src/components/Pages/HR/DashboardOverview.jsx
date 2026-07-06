@@ -154,7 +154,6 @@ const DashboardOverview = ({ user = {}, onNavigate = () => {} }) => {
    */
   const quickAccessItems = useMemo(
     () => [
-      { id: 'manpower-planning', label: 'Manpower Planning' },
       { id: 'user-management', label: 'User Management' },
       { id: 'leaves-attendance', label: 'Leaves and Attendance' },
       { id: 'hr-payroll', label: 'Payroll' },
@@ -209,9 +208,9 @@ const DashboardOverview = ({ user = {}, onNavigate = () => {} }) => {
             key={card.id}
             onClick={() => {
               // Navigate to related page based on card type (HR Admin pages)
-              if (card.id === 'employees') onNavigate('manpower-planning');
+              if (card.id === 'employees') onNavigate('user-management');
               else if (card.id === 'leave-requests') onNavigate('leaves-attendance');
-              else if (card.id === 'new-joiners') onNavigate('manpower-planning');
+              else if (card.id === 'new-joiners') onNavigate('user-management');
               else if (card.id === 'payroll-status') onNavigate('hr-payroll');
             }}
             className={`bg-gradient-to-br ${colors.gradient.card} rounded-2xl border-2 ${colors.border.primary} p-6 hover:border-slate-300 hover:shadow-lg cursor-pointer transition-all duration-300 ${
@@ -222,9 +221,9 @@ const DashboardOverview = ({ user = {}, onNavigate = () => {} }) => {
             tabIndex={0}
             onKeyPress={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                if (card.id === 'employees') onNavigate('manpower-planning');
+                if (card.id === 'employees') onNavigate('user-management');
                 else if (card.id === 'leave-requests') onNavigate('leaves-attendance');
-                else if (card.id === 'new-joiners') onNavigate('manpower-planning');
+                else if (card.id === 'new-joiners') onNavigate('user-management');
                 else if (card.id === 'payroll-status') onNavigate('hr-payroll');
               }
             }}
