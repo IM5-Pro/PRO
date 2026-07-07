@@ -5,15 +5,6 @@ import API from '../../api/client';
 import { EDUCATION_ENDPOINTS } from '../../api/endpoints';
 import EducationForm from './EducationForm';
 
-// Toast utility (simple, replace with your preferred library if needed)
-const showToast = (msg, type = 'success') => {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-};
-
 const EducationSection = ({ employeeId }) => {
   const [education, setEducation] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +49,6 @@ const EducationSection = ({ employeeId }) => {
     setActionLoading(true);
     API.delete(EDUCATION_ENDPOINTS.delete(id))
       .then(() => {
-        showToast('Deleted successfully');
         fetchEducation();
       })
       .catch(() => setError('Delete failed'))
@@ -75,7 +65,6 @@ const EducationSection = ({ employeeId }) => {
       : API.post(EDUCATION_ENDPOINTS.add(employeeId), data);
     req.then(() => {
       setShowForm(false);
-      showToast(editItem ? 'Updated successfully' : 'Added successfully');
       fetchEducation();
     })
       .catch(() => setError('Save failed'))

@@ -6,14 +6,6 @@ import { PAYROLL_DETAIL_ENDPOINTS } from '../../api/endpoints';
 import PayrollForm from './PayrollForm';
 import { formatINR } from '../../utils/currency';
 
-const showToast = (msg, type = 'success') => {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-};
-
 const PayrollSection = ({ employeeId }) => {
   const [payroll, setPayroll] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +38,6 @@ const PayrollSection = ({ employeeId }) => {
     API.put(PAYROLL_DETAIL_ENDPOINTS.update(employeeId), data)
       .then(() => {
         setShowForm(false);
-        showToast('Payroll updated successfully');
         fetchPayroll();
       })
       .catch(() => setError('Save failed'))
