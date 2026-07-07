@@ -5,14 +5,6 @@ import API from '../../api/client';
 import { ASSET_ENDPOINTS } from '../../api/endpoints';
 import AssetForm from './AssetForm';
 
-const showToast = (msg, type = 'success') => {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-};
-
 const AssetsSection = ({ employeeId }) => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +49,6 @@ const AssetsSection = ({ employeeId }) => {
     setActionLoading(true);
     API.delete(ASSET_ENDPOINTS.delete(id))
       .then(() => {
-        showToast('Deleted successfully');
         fetchAssets();
       })
       .catch(() => setError('Delete failed'))
@@ -74,7 +65,6 @@ const AssetsSection = ({ employeeId }) => {
       : API.post(ASSET_ENDPOINTS.add(employeeId), data);
     req.then(() => {
       setShowForm(false);
-      showToast(editItem ? 'Updated successfully' : 'Added successfully');
       fetchAssets();
     })
       .catch(() => setError('Save failed'))

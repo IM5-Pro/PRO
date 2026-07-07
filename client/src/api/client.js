@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { showToast } from '../utils/toast';
 
 const PUNCH_COOKIES = ['isPunchedIn', 'punchInTime', 'hasPunchedInToday', 'punchDayKey', 'dailyWorkingHours'];
 const AUTH_EXEMPT_401_PATHS = [
@@ -35,6 +36,52 @@ const API = axios.create({
   withCredentials: true,
 });
 
+const TOAST_ENABLED_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+
+const isToastEligibleRequest = (config = {}) => {
+  const method = String(config.method || '').toLowerCase();
+  if (!TOAST_ENABLED_METHODS.has(method)) {
+    return false;
+  }
+
+  if (config.skipGlobalToast) {
+    return false;
+  }
+
+  const requestUrl = String(config.url || '');
+  if (isAuthExemptRequest(requestUrl)) {
+    return false;
+  }
+
+  return true;
+};
+
+const getSuccessToastMessage = (response) => {
+  const responseMessage = response?.data?.message || response?.data?.data?.message;
+  if (responseMessage) {
+    return responseMessage;
+  }
+
+  const method = String(response?.config?.method || '').toLowerCase();
+  if (method === 'delete') {
+    return 'Deleted successfully';
+  }
+
+  if (method === 'post') {
+    return 'Created successfully';
+  }
+
+  return 'Updated successfully';
+};
+
+const getErrorToastMessage = (error) => {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    'Unable to save changes'
+  );
+};
+
 let refreshPromise = null;
 
 const refreshSession = async () => {
@@ -50,7 +97,12 @@ const refreshSession = async () => {
 };
 
 API.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (isToastEligibleRequest(response?.config)) {
+      showToast(getSuccessToastMessage(response), 'success');
+    }
+    return response;
+  },
   async (error) => {
     const status = error?.response?.status;
     const requestUrl = error?.config?.url || '';
@@ -72,6 +124,10 @@ API.interceptors.response.use(
           redirectToLoginWithCurrentPath();
         }
       }
+    }
+
+    if (isToastEligibleRequest(originalConfig)) {
+      showToast(getErrorToastMessage(error), 'error');
     }
 
     return Promise.reject(error);

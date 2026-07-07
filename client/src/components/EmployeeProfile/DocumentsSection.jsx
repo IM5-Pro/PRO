@@ -5,14 +5,6 @@ import API from '../../api/client';
 import { DOCUMENT_ENDPOINTS } from '../../api/endpoints';
 import DocumentUploadForm from './DocumentUploadForm';
 
-const showToast = (msg, type = 'success') => {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-};
-
 const DocumentsSection = ({ employeeId }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +41,6 @@ const DocumentsSection = ({ employeeId }) => {
     })
       .then(() => {
         setShowForm(false);
-        showToast('Document uploaded successfully');
         fetchDocuments();
       })
       .catch(() => setError('Upload failed'))
@@ -65,7 +56,6 @@ const DocumentsSection = ({ employeeId }) => {
     setActionLoading(true);
     API.delete(DOCUMENT_ENDPOINTS.upload(id))
       .then(() => {
-        showToast('Deleted successfully');
         fetchDocuments();
       })
       .catch(() => setError('Delete failed'))
