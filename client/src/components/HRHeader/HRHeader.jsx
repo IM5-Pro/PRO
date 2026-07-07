@@ -16,7 +16,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { FiSearch, FiBell, FiChevronDown, FiUser, FiLogOut, FiSettings, FiLogIn } from 'react-icons/fi';
+import { FiSearch, FiBell, FiChevronDown, FiUser, FiLogOut, FiLogIn } from 'react-icons/fi';
 import { usePunch } from '../../context/PunchContext';
 import { useNotifications } from '../../context/NotificationContext';
 import NotificationsPanel from '../Notifications/NotificationsPanel';
@@ -690,15 +690,6 @@ const HRHeader = ({
                   >
                     <FiUser size={18} />
                     <span>My Profile</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleProfileMenuClick('settings')}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-300"
-                    role="menuitem"
-                  >
-                    <FiSettings size={18} />
-                    <span>Workspace Settings</span>
                   </button>
 
                   <div className="border-t border-slate-200 my-2" />

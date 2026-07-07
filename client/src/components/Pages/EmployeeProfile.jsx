@@ -516,8 +516,6 @@ const EmployeeProfile = () => {
             experience="—"
             location={profile.location}
             manager={profile.manager !== '—' ? profile.manager : ''}
-            onMessage={() => {}}
-            onViewTeam={() => {}}
             onManagerClick={() => {}}
           />
         </div>
