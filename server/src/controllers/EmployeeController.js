@@ -264,7 +264,7 @@ const collectAllManagerCandidates = async ({
   deptDoc,
   parsedLimit,
 }) => {
-  const designationClauses = [{ designation: { $regex: MANAGER_DESIGNATION_PATTERN, $options: "i" } }];
+  const designationClauses = [{ designation: { $regex: MANAGER_DESIGNATION_PATTERN } }];
   if (designationRefs.length > 0) {
     designationClauses.unshift({ designation: { $in: designationRefs } });
   }
@@ -642,6 +642,98 @@ const deactivateEmployee = async (req, res) => {
     });
   } catch (err) {
     console.error("Deactivate employee error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * Terminate employee (records reason + last working date, blocks login)
+ */
+const terminateEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { reason, lastWorkingDate } = req.body;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee ID is required",
+      });
+    }
+
+    const trimmedReason = String(reason || "").trim();
+    if (!trimmedReason) {
+      return res.status(400).json({
+        success: false,
+        message: "Termination reason is required",
+      });
+    }
+
+    if (!lastWorkingDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Last working date is required",
+      });
+    }
+
+    const parsedLastWorkingDate = new Date(lastWorkingDate);
+    if (Number.isNaN(parsedLastWorkingDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Last working date is invalid",
+      });
+    }
+
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    if (employee.status === "TERMINATED") {
+      return res.status(400).json({
+        success: false,
+        message: "Employee is already terminated",
+      });
+    }
+
+    employee.status = "TERMINATED";
+    employee.isActive = false;
+    employee.termination = {
+      reason: trimmedReason,
+      lastWorkingDate: parsedLastWorkingDate,
+      terminatedAt: new Date(),
+      terminatedBy: req.user?.id || null,
+    };
+    employee.updatedBy = req.user?.id;
+    await employee.save();
+
+    // Block login for any linked user account
+    await User.updateMany(
+      { employeeId: employee._id },
+      { $set: { isActive: false } }
+    );
+
+    await recordAudit(req, {
+      action: "employee.terminate",
+      entityType: "Employee",
+      entityId: employeeId,
+      description: `Terminated employee: ${employee.firstName} ${employee.lastName}. Reason: ${trimmedReason}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Employee terminated successfully",
+      data: employee,
+    });
+  } catch (err) {
+    console.error("Terminate employee error:", err);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -1557,6 +1649,7 @@ export {
   updateEmployee,
   deactivateEmployee,
   activateEmployee,
+  terminateEmployee,
   viewProfile,
   updateProfile,
   transferDepartment,

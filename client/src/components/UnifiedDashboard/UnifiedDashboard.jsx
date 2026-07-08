@@ -292,11 +292,6 @@ const UnifiedDashboard = () => {
         return;
       }
 
-      if (action === 'settings') {
-        handleNavigate('settings');
-        return;
-      }
-
       if (action === 'profile') {
         handleNavigate('employee-profile');
         return;

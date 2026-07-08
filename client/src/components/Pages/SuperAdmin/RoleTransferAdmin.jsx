@@ -139,32 +139,31 @@ const RoleTransferAdmin = () => {
           </div>
         </div>
 
-        {/* Eligibility Requirements */}
+        {/* Recipient guidance */}
         <div className="bg-white rounded-lg shadow-md border border-slate-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Who Can Receive This Role?</h2>
-          <p className="text-slate-700 mb-4">Not all employees are eligible to receive the super admin role. The recipient must meet these criteria:</p>
+          <p className="text-slate-700 mb-4">
+            All employees are listed by department. You can transfer the super admin role to any employee
+            who has a login account, regardless of their current role or department.
+          </p>
 
           <div className="bg-slate-50 p-4 rounded-lg">
             <ul className="space-y-2 text-slate-700">
               <li className="flex items-start gap-3">
                 <span className="text-green-600 font-bold mt-0.5">✓</span>
-                <span>Must be an active employee with full account verification</span>
+                <span>Employees are grouped by department for easier selection</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-green-600 font-bold mt-0.5">✓</span>
-                <span>Must have minimum 6 months tenure in the organization</span>
+                <span>HR admins, managers, and employees from all departments are included</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-0.5">✓</span>
-                <span>Must have passed background verification and security clearance</span>
+                <span className="text-amber-600 font-bold mt-0.5">!</span>
+                <span>Only employees with an existing login account can receive the transfer</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-0.5">✓</span>
-                <span>Must not already have super admin or HR admin role</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-600 font-bold mt-0.5">✓</span>
-                <span>Must have a valid email address registered in the system</span>
+                <span className="text-amber-600 font-bold mt-0.5">!</span>
+                <span>You cannot transfer the role to yourself</span>
               </li>
             </ul>
           </div>

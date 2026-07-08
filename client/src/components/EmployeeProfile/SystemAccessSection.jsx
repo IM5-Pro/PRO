@@ -5,14 +5,6 @@ import API from '../../api/client';
 import { SYSTEM_ACCESS_ENDPOINTS } from '../../api/endpoints';
 import SystemAccessForm from './SystemAccessForm';
 
-const showToast = (msg, type = 'success') => {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-};
-
 const SystemAccessSection = ({ employeeId }) => {
   const [access, setAccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +37,6 @@ const SystemAccessSection = ({ employeeId }) => {
     API.put(SYSTEM_ACCESS_ENDPOINTS.update(employeeId), data)
       .then(() => {
         setShowForm(false);
-        showToast('System access updated successfully');
         fetchAccess();
       })
       .catch(() => setError('Save failed'))

@@ -5,14 +5,6 @@ import API from '../../api/client';
 import { EXPERIENCE_ENDPOINTS } from '../../api/endpoints';
 import ExperienceForm from './ExperienceForm';
 
-const showToast = (msg, type = 'success') => {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-};
-
 const ExperienceSection = ({ employeeId }) => {
   const [experience, setExperience] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +49,6 @@ const ExperienceSection = ({ employeeId }) => {
     setActionLoading(true);
     API.delete(EXPERIENCE_ENDPOINTS.delete(id))
       .then(() => {
-        showToast('Deleted successfully');
         fetchExperience();
       })
       .catch(() => setError('Delete failed'))
@@ -74,7 +65,6 @@ const ExperienceSection = ({ employeeId }) => {
       : API.post(EXPERIENCE_ENDPOINTS.add(employeeId), data);
     req.then(() => {
       setShowForm(false);
-      showToast(editItem ? 'Updated successfully' : 'Added successfully');
       fetchExperience();
     })
       .catch(() => setError('Save failed'))

@@ -5,14 +5,6 @@ import API from '../../api/client';
 import { PERFORMANCE_ENDPOINTS } from '../../api/endpoints';
 import PerformanceForm from './PerformanceForm';
 
-const showToast = (msg, type = 'success') => {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-};
-
 const PerformanceSection = ({ employeeId }) => {
   const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +37,6 @@ const PerformanceSection = ({ employeeId }) => {
     API.put(PERFORMANCE_ENDPOINTS.update(employeeId), data)
       .then(() => {
         setShowForm(false);
-        showToast('Performance updated successfully');
         fetchPerformance();
       })
       .catch(() => setError('Save failed'))
