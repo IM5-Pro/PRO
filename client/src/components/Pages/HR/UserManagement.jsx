@@ -11,6 +11,7 @@ import {
   FiRefreshCw,
   FiSearch,
   FiShield,
+  FiSlash,
   FiUser,
   FiUserCheck,
   FiUserX,
@@ -29,6 +30,7 @@ import {
   fetchAdminEmployeesPage,
   fetchEmployeeProfile,
   resetEmployeePassword,
+  terminateEmployee,
   toErrorMessage,
   updateAdminEmployee,
   updateEmployeeStatus,
@@ -170,6 +172,8 @@ const toEmployeeCard = (employee, index) => {
     salary: employee?.salary ?? '',
     role: String(employee?.role || employee?.accountRole || 'EMPLOYEE').toUpperCase(),
     status: employee?.isActive === false ? 'inactive' : 'active',
+    lifecycleStatus: String(employee?.status || 'ACTIVE').toUpperCase(),
+    isTerminated: String(employee?.status || '').toUpperCase() === 'TERMINATED',
     joinDate: employee?.joinDate || employee?.joiningDate || employee?.createdAt || '',
   };
 };
@@ -192,6 +196,9 @@ const HRUserManagement = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [banner, setBanner] = useState({ type: '', text: '' });
   const [actionLoading, setActionLoading] = useState('');
+  const [terminateTarget, setTerminateTarget] = useState(null);
+  const [terminateForm, setTerminateForm] = useState({ reason: '', lastWorkingDate: '' });
+  const [terminateLoading, setTerminateLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -1158,6 +1165,58 @@ const HRUserManagement = () => {
     }
   };
 
+  const openTerminateModal = (employee) => {
+    if (!employee?.id) {
+      return;
+    }
+    setTerminateTarget(employee);
+    setTerminateForm({ reason: '', lastWorkingDate: '' });
+    setBanner({ type: '', text: '' });
+  };
+
+  const closeTerminateModal = () => {
+    if (terminateLoading) {
+      return;
+    }
+    setTerminateTarget(null);
+    setTerminateForm({ reason: '', lastWorkingDate: '' });
+  };
+
+  const submitTermination = async (event) => {
+    event.preventDefault();
+    if (!terminateTarget?.id) {
+      return;
+    }
+
+    const reason = terminateForm.reason.trim();
+    if (!reason) {
+      setBanner({ type: 'error', text: 'Please provide a reason for termination.' });
+      return;
+    }
+    if (!terminateForm.lastWorkingDate) {
+      setBanner({ type: 'error', text: 'Please select the last working date.' });
+      return;
+    }
+
+    setTerminateLoading(true);
+    setBanner({ type: '', text: '' });
+
+    try {
+      await terminateEmployee(terminateTarget.id, {
+        reason,
+        lastWorkingDate: terminateForm.lastWorkingDate,
+      });
+      setBanner({ type: 'success', text: `${terminateTarget.name} has been terminated.` });
+      setTerminateTarget(null);
+      setTerminateForm({ reason: '', lastWorkingDate: '' });
+      await loadEmployees();
+    } catch (error) {
+      setBanner({ type: 'error', text: toErrorMessage(error, 'Failed to terminate employee') });
+    } finally {
+      setTerminateLoading(false);
+    }
+  };
+
   const handleResetPassword = async (employee) => {
     if (!employee?.id) {
       return;
@@ -1328,8 +1387,8 @@ const HRUserManagement = () => {
                     <p className="mt-0.5 text-xs text-slate-500">{employee.designationLabel}</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${employee.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
-                  {employee.status === 'active' ? 'Active' : 'Inactive'}
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${employee.isTerminated ? 'bg-rose-100 text-rose-700' : employee.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
+                  {employee.isTerminated ? 'Terminated' : employee.status === 'active' ? 'Active' : 'Inactive'}
                 </span>
               </div>
 
@@ -1361,7 +1420,7 @@ const HRUserManagement = () => {
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <button
                   onClick={() => beginEditEmployee(employee)}
                   className="h-9 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
@@ -1379,13 +1438,21 @@ const HRUserManagement = () => {
                 </button>
                 <button
                   onClick={() => toggleEmployeeStatus(employee)}
-                  disabled={actionLoading === `status-${employee.id}`}
+                  disabled={actionLoading === `status-${employee.id}` || employee.isTerminated}
                   className={`h-9 inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:opacity-50 ${employee.status === 'active' ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
                 >
                   {employee.status === 'active' ? <FiUserX size={14} /> : <FiUserCheck size={14} />}
                   {actionLoading === `status-${employee.id}`
                     ? employee.status === 'active' ? 'Deactivating...' : 'Activating...'
                     : employee.status === 'active' ? 'Deactivate' : 'Activate'}
+                </button>
+                <button
+                  onClick={() => openTerminateModal(employee)}
+                  disabled={employee.isTerminated}
+                  className="h-9 inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-300 bg-rose-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <FiSlash size={14} />
+                  {employee.isTerminated ? 'Terminated' : 'Terminate'}
                 </button>
               </div>
             </div>
@@ -1432,6 +1499,89 @@ const HRUserManagement = () => {
           </div>
         </div>
         </>
+      )}
+
+      {terminateTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 px-3 py-6 sm:px-6">
+          <div className="mx-auto flex min-h-full max-w-lg items-center justify-center">
+            <form
+              onSubmit={submitTermination}
+              className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900">Terminate employee</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Terminating {terminateTarget.name}. This deactivates their account and login access.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeTerminateModal}
+                  disabled={terminateLoading}
+                  className="text-slate-400 transition-colors hover:text-slate-600 disabled:opacity-50"
+                  aria-label="Close"
+                >
+                  <FiXCircle size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4 px-5 py-5">
+                <div>
+                  <label htmlFor="terminate-reason" className="mb-1 block text-xs font-semibold text-slate-700">
+                    Reason for termination <span className="text-rose-600">*</span>
+                  </label>
+                  <textarea
+                    id="terminate-reason"
+                    rows={4}
+                    required
+                    value={terminateForm.reason}
+                    onChange={(event) =>
+                      setTerminateForm((previous) => ({ ...previous, reason: event.target.value }))
+                    }
+                    placeholder="Explain the reason for termination"
+                    className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="terminate-last-date" className="mb-1 block text-xs font-semibold text-slate-700">
+                    Last working date <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    id="terminate-last-date"
+                    type="date"
+                    required
+                    value={terminateForm.lastWorkingDate}
+                    onChange={(event) =>
+                      setTerminateForm((previous) => ({ ...previous, lastWorkingDate: event.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 px-5 py-4">
+                <button
+                  type="button"
+                  onClick={closeTerminateModal}
+                  disabled={terminateLoading}
+                  className="h-9 rounded-lg border border-slate-300 px-4 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={terminateLoading}
+                  className="h-9 inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+                >
+                  <FiSlash size={14} />
+                  {terminateLoading ? 'Terminating...' : 'Confirm termination'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {createOpen && (

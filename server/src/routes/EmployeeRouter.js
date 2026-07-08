@@ -296,6 +296,17 @@ router.put(
 );
 
 /**
+ * Terminate employee (reason + last working date)
+ * PUT /api/employees/:employeeId/terminate
+ */
+router.put(
+  "/:employeeId/terminate",
+  authGuard,
+  roleGuard("SUPER_ADMIN", "HR_ADMIN"),
+  employeeController.terminateEmployee
+);
+
+/**
  * Get employee details
  * GET /api/employees/:employeeId
  */

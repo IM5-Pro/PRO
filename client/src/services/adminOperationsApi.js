@@ -187,6 +187,14 @@ export const updateEmployeeStatus = async (employeeId, isActive) => {
   return unwrapData(toPayload(response));
 };
 
+export const terminateEmployee = async (employeeId, { reason, lastWorkingDate } = {}) => {
+  const response = await API.put(EMPLOYEE_ENDPOINTS.terminate(employeeId), {
+    reason,
+    lastWorkingDate,
+  });
+  return unwrapData(toPayload(response));
+};
+
 export const resetEmployeePassword = async (employeeId) => {
   const response = await API.post(USER_ENDPOINTS.resetPassword(employeeId));
   const payload = toPayload(response);

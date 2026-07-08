@@ -113,6 +113,7 @@ export const EMPLOYEE_ENDPOINTS = {
   profile: (employeeId) => `/employees/${employeeId}/profile`,
   activate: (employeeId) => `/employees/${employeeId}/activate`,
   deactivate: (employeeId) => `/employees/${employeeId}/deactivate`,
+  terminate: (employeeId) => `/employees/${employeeId}/terminate`,
 };
 
 export const ROLE_ENDPOINTS = {

@@ -308,6 +308,21 @@ const ROLE_PERMISSIONS = {
       assign_manager: true,
     },
 
+    // Recruitment (full hiring lifecycle)
+    recruitment: {
+      create_job: true,
+      update_job: true,
+      delete_job: true,
+      view_jobs: true,
+      apply_candidate: true,
+      update_candidate: true,
+      delete_candidate: true,
+      schedule_interview: true,
+      update_interview: true,
+      reject_candidate: true,
+      hire_candidate: true,
+    },
+
     // Resignation Management
     resignations: {
       create: true,
