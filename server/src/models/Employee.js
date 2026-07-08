@@ -121,6 +121,12 @@ const employeeSchema = new mongoose.Schema(
       type: [employeeStatusHistorySchema],
       default: [],
     },
+    termination: {
+      reason: { type: String, default: "" },
+      lastWorkingDate: { type: Date, default: null },
+      terminatedAt: { type: Date, default: null },
+      terminatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    },
   },
   { timestamps: true },
 );
