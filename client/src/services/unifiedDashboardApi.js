@@ -12,6 +12,7 @@ import {
 } from '../api/endpoints';
 import { ROLES } from '../utils/roles';
 import { getMonthDateRangeParams } from '../utils/monthDateRange';
+import { countPresentDaysFromSummary } from '../utils/attendanceDisplay';
 
 const getByPath = (input, path) => {
   if (!path) {
@@ -158,7 +159,7 @@ const filterPayrollDetailsForCurrentMonth = (rows) =>
 
 const DASHBOARD_WIDGET_SOURCES = {
   [ROLES.EMPLOYEE]: [
-    { key: 'attendance', endpoint: ATTENDANCE_ENDPOINTS.own(), params: currentMonthAttendanceRangeParams },
+    { key: 'attendance', endpoint: ATTENDANCE_ENDPOINTS.monthlySummary },
     { key: 'leaves', endpoint: LEAVE_ENDPOINTS.own, filterRows: filterApprovedLeavesCurrentMonth },
     { key: 'holidays', endpoint: LEAVE_ENDPOINTS.policy },
     { key: 'payslip', endpoint: PAYROLL_ENDPOINTS.own, filterRows: filterPayrollDetailsForCurrentMonth },
@@ -378,6 +379,10 @@ export const fetchDashboardWidgetValues = async (role) => {
     }
 
     let displayCount = item.count;
+    if (item.key === 'attendance') {
+      displayCount = countPresentDaysFromSummary(item.payload?.summary);
+    }
+
     if (item.key === 'pending-leaves') {
       displayCount = getPendingCount(item.rows);
     }
