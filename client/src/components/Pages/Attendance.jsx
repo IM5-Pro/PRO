@@ -71,39 +71,34 @@ const Attendance = () => {
   ];
 
   return (
-    <div
-      className="min-h-screen bg-im5-page p-0"
-    >
+    <div className="min-h-screen bg-im5-page px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between mb-6 gap-4 animate-slideInDown">
-        <div className="shrink-0">
-          <h1 className={`text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3 transition-colors duration-300 ${colors.text.primary}`}>
+      <div className="grid grid-cols-5 gap-4 mb-8 animate-slideInDown items-center w-full">
+        <div className="col-span-1 flex flex-col justify-center h-full">
+          <h1 className={`text-3xl md:text-2xl font-bold mb-2 flex items-center justify-center gap-3 transition-colors duration-300 ${colors.text.primary}`}>
             <FiClock className="w-10 h-10" /> Attendance
           </h1>
-          <p className={`transition-colors duration-300 ${colors.text.tertiary}`}>Track your work hours and attendance</p>
+          <p className={`transition-colors duration-300 text-center ${colors.text.tertiary}`}>Track your work hours and attendance</p>
         </div>
-        <div className="w-full 2xl:flex-1 2xl:max-w-5xl">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {stats.map((stat, idx) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={idx}
-                  style={{ animationDelay: `${idx * 0.08}s` }}
-                  className={`group stat-card animate-fadeInUp hover-lift`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`icon-box bg-gradient-to-br ${stat.color} text-white`}>
-                      <Icon size={24} />
-                    </div>
+        {stats.map((stat, idx) => {
+          const Icon = stat.icon;
+          return (
+            <div key={idx} className="col-span-1">
+              <div
+                style={{ animationDelay: `${idx * 0.08}s` }}
+                className={`group stat-card animate-fadeInUp hover-lift w-full max-w-full rounded-2xl border ${colors.border.primary} bg-white/80 px-3 py-4 sm:px-4 sm:py-5`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`icon-box bg-gradient-to-br ${stat.color} text-white`}>
+                    <Icon size={24} />
                   </div>
-                  <p className={`text-sm font-medium mb-2 transition-colors duration-300 ${colors.text.tertiary}`}>{stat.title}</p>
-                  <p className={`text-3xl font-bold transition-colors duration-300 ${colors.text.primary}`}>{stat.value}</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <p className={`text-sm font-medium mb-2 transition-colors duration-300 ${colors.text.tertiary}`}>{stat.title}</p>
+                <p className={`text-3xl font-bold transition-colors duration-300 ${colors.text.primary}`}>{stat.value}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {showApprovalsLink ? (
