@@ -56,6 +56,7 @@ const EMPTY_EDIT_FORM = {
   lastName: '',
   email: '',
   phoneNumber: '',
+  accountRole: 'EMPLOYEE',
   managerId: '',
   department: '',
   designation: '',
@@ -75,6 +76,11 @@ const EMPTY_EDIT_FORM = {
 const toOptionId = (value) => String(value || '').trim();
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
 const MANAGER_ACCOUNT_ROLES = new Set(['MANAGER', 'HR_ADMIN', 'DEPT_ADMIN']);
+const ACCOUNT_ROLE_OPTIONS = [
+  { value: 'MANAGER', label: 'Manager' },
+  { value: 'EMPLOYEE', label: 'Employee' },
+  { value: 'HR_ADMIN', label: 'HR Admin' },
+];
 const formatEmployeeEmail = (firstName, lastName) => {
   const normalize = (value) =>
     String(value || '')
@@ -997,6 +1003,7 @@ const HRUserManagement = () => {
         lastName: profile?.lastName || employee.lastName || '',
         email: profile?.email || employee.email || '',
         phoneNumber: profile?.phoneNumber || profile?.phone || employee.phone || '',
+        accountRole: String(profile?.accountRole || profile?.role || employee.role || 'EMPLOYEE').toUpperCase(),
         managerId: toOptionId(manager?._id || manager?.id || profile?.managerId || profile?.managerID || ''),
         department: profile?.department || employee.department || '',
         designation: resolvedDesignationId,
@@ -1036,6 +1043,7 @@ const HRUserManagement = () => {
         lastName: String(editForm.lastName || '').trim(),
         email: String(editForm.email || '').trim().toLowerCase(),
         phoneNumber: String(editForm.phoneNumber || '').trim(),
+        accountRole: String(editForm.accountRole || 'EMPLOYEE').trim().toUpperCase(),
         department: String(editForm.department || '').trim(),
         city: String(editForm.city || '').trim(),
         state: String(editForm.state || '').trim(),
@@ -1882,7 +1890,7 @@ const HRUserManagement = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1">First Name</label>
                           <input required value={editForm.firstName} onChange={setEditValue('firstName')} placeholder="First name" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
@@ -1899,7 +1907,21 @@ const HRUserManagement = () => {
                           <label className="block text-xs font-medium text-slate-500 mb-1">Phone Number</label>
                           <input value={editForm.phoneNumber} onChange={setEditValue('phoneNumber')} placeholder="Phone (10 digits)" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                         </div>
-                        <div className="md:col-span-2 lg:col-span-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Account Role</label>
+                          <select
+                            value={editForm.accountRole}
+                            onChange={setEditValue('accountRole')}
+                            className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          >
+                            {ACCOUNT_ROLE_OPTIONS.map((roleOption) => (
+                              <option key={roleOption.value} value={roleOption.value}>
+                                {roleOption.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
                           <label className="block text-xs font-medium text-slate-500 mb-1">Reporting Manager</label>
                           <input
                             value={managerSearchQuery}
@@ -2000,7 +2022,7 @@ const HRUserManagement = () => {
                           <label className="block text-xs font-medium text-slate-500 mb-1">Zip Code</label>
                           <input value={editForm.zipCode} onChange={setEditValue('zipCode')} placeholder="Zip code" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                         </div>
-                        <div className="md:col-span-2 lg:col-span-3">
+                        <div className="md:col-span-2">
                           <label className="block text-xs font-medium text-slate-500 mb-1">Address Line</label>
                           <input value={editForm.addressLine} onChange={setEditValue('addressLine')} placeholder="Address line" className="h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                         </div>

@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { normalizeRole, ROLES } from '../../utils/roles';
 import API from '../../api/client';
 import { ATTENDANCE_ENDPOINTS } from '../../api/endpoints';
-import { getMonthDateRangeParams } from '../../utils/monthDateRange';
+import { countPresentDaysFromSummary } from '../../utils/attendanceDisplay';
 
 const APPROVAL_ROLES = new Set([ROLES.MANAGER, ROLES.HR_ADMIN, ROLES.DEPT_ADMIN, ROLES.SUPER_ADMIN]);
 
@@ -29,25 +29,11 @@ const Attendance = () => {
   const loadMonthlySummary = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const now = new Date();
-      const { startDate, endDate } = getMonthDateRangeParams(now.getFullYear(), now.getMonth());
-      const res = await API.get(ATTENDANCE_ENDPOINTS.own(), {
-        params: {
-          startDate,
-          endDate,
-          limit: 62,
-          page: 1,
-        },
-      });
-      const attendanceArr = res.data?.attendance || [];
-      let present = 0, absent = 0, totalHours = 0;
-      attendanceArr.forEach((record) => {
-        if (record.status === 'Present' || record.status === 'Late' || record.status === 'EarlyCheckout' || record.status === 'HalfDay') {
-          present++;
-        }
-        if (record.status === 'Absent') absent++;
-        if (record.workingHours) totalHours += record.workingHours;
-      });
+      const res = await API.get(ATTENDANCE_ENDPOINTS.monthlySummary);
+      const summary = res.data?.summary || {};
+      const present = countPresentDaysFromSummary(summary);
+      const absent = Number(summary.absentCount ?? 0);
+      const totalHours = Number(summary.totalWorkingHours ?? 0);
       setMonthlySummary({
         present,
         absent,
