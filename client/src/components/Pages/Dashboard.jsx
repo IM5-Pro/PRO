@@ -18,6 +18,7 @@ import {
   FiClock,
   FiHome,
   FiLogIn,
+  FiLogOut,
   FiMapPin,
   FiPhoneCall,
   FiStar,
@@ -29,7 +30,7 @@ const Dashboard = () => {
   const {
     canPunch, punchStatus, punchInTime, punchOutTime,
     punchInLocation, punchOutLocation, workingHours,
-    attendanceStatus, loading: punchLoading, locationLabel, punchIn, punchOut,
+    attendanceStatus, loading: punchLoading, locationLabel,
   } = usePunch();
 
   const statsCards = [
@@ -125,24 +126,27 @@ const Dashboard = () => {
                 )}
 
                 <div className="mt-2">
-                  {punchStatus === 'in' ? (
-                    <button
-                      onClick={punchOut}
-                      disabled={punchLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
-                    >
-                      <FiLogIn size={12} className="rotate-180" />{punchLoading ? 'Recording…' : 'Punch Out'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={punchIn}
-                      disabled={punchLoading}
-                      title={locationLabel}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
-                    >
-                      <FiLogIn size={12} />{punchLoading ? 'Recording…' : 'Punch In'}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigate('/punch')}
+                    disabled={punchLoading}
+                    title={
+                      punchStatus === 'in'
+                        ? `Punched in · ${locationLabel}`
+                        : punchStatus === 'out'
+                          ? `Punched out · ${locationLabel}`
+                          : `Not punched in · ${locationLabel}`
+                    }
+                    aria-label="Open attendance page"
+                    className={`flex items-center justify-center p-2 rounded-lg text-white transition-all disabled:opacity-60 ${
+                      punchStatus === 'in'
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : punchStatus === 'out'
+                          ? 'bg-red-600 hover:bg-red-700'
+                          : 'bg-slate-500 hover:bg-slate-600'
+                    }`}
+                  >
+                    {punchStatus === 'out' ? <FiLogOut size={16} /> : <FiLogIn size={16} />}
+                  </button>
                 </div>
               </div>
             )}

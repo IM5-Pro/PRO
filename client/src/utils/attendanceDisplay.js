@@ -30,3 +30,18 @@ export const formatAttendanceRecordDate = (record, locale = undefined, options) 
   if (!d) return '—';
   return d.toLocaleDateString(locale, options);
 };
+
+export const PRESENT_ATTENDANCE_STATUSES = new Set(['Present', 'Late', 'EarlyCheckout', 'HalfDay']);
+
+export const isPresentAttendanceStatus = (status) => PRESENT_ATTENDANCE_STATUSES.has(status);
+
+/** Count days marked present (matches Attendance page "Days Present" card). */
+export const countPresentDaysFromRecords = (records = []) =>
+  records.reduce((count, record) => (isPresentAttendanceStatus(record?.status) ? count + 1 : count), 0);
+
+/** Count present days from /attendance/monthly-summary payload. */
+export const countPresentDaysFromSummary = (summary = {}) => {
+  const present = Number(summary.presentCount ?? summary.daysPresent ?? summary.presentDays ?? 0);
+  const halfDay = Number(summary.halfDayCount ?? 0);
+  return present + halfDay;
+};

@@ -16,6 +16,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiBell, FiChevronDown, FiUser, FiLogOut, FiLogIn } from 'react-icons/fi';
 import { usePunch } from '../../context/PunchContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -73,9 +74,14 @@ const HRHeader = ({
   const searchContainerRef = useRef(null);
   const searchRequestRef = useRef(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const navigate = useNavigate();
 
   // Punch state from shared context
-  const { canPunch, punchStatus, loading: punchLoading, locationLabel: punchLocationLabel, punchIn: handlePunchIn, punchOut: handlePunchOut } = usePunch();
+  const { canPunch, punchStatus, loading: punchLoading, locationLabel: punchLocationLabel } = usePunch();
+
+  const handlePunchNavigate = useCallback(() => {
+    navigate('/punch');
+  }, [navigate]);
 
   // Notification state and actions from context
   const { unreadCount, notifications } = useNotifications();
@@ -583,29 +589,37 @@ const HRHeader = ({
             <p className="text-xs text-slate-600">{formattedDate}</p>
           </div>
 
-          {/* Punch In / Out Button */}
+          {/* Punch status — opens punch page to punch in/out */}
           {canPunch && (
-            punchStatus === 'in' ? (
-              <button
-                onClick={handlePunchOut}
-                disabled={punchLoading}
-                title={`Location: ${punchLocationLabel}`}
-                className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-all duration-200 shadow-md disabled:opacity-60"
-              >
-                <FiLogIn size={15} className="rotate-180" />
-                {punchLoading ? 'Recording…' : 'Punch Out'}
-              </button>
-            ) : (
-              <button
-                onClick={handlePunchIn}
-                disabled={punchLoading}
-                title={`Location: ${punchLocationLabel}`}
-                className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-all duration-200 shadow-md disabled:opacity-60"
-              >
-                <FiLogIn size={15} />
-                {punchLoading ? 'Recording…' : 'Punch In'}
-              </button>
-            )
+            <button
+              onClick={handlePunchNavigate}
+              disabled={punchLoading}
+              title={
+                punchLoading
+                  ? 'Updating attendance…'
+                  : punchStatus === 'in'
+                    ? `Punched in · ${punchLocationLabel}`
+                    : punchStatus === 'out'
+                      ? `Punched out · ${punchLocationLabel}`
+                      : `Not punched in · ${punchLocationLabel}`
+              }
+              aria-label={
+                punchStatus === 'in'
+                  ? 'Punched in — open attendance'
+                  : punchStatus === 'out'
+                    ? 'Punched out — open attendance'
+                    : 'Not punched in — open attendance'
+              }
+              className={`hidden sm:flex items-center justify-center p-2 rounded-lg text-white transition-all duration-200 shadow-md disabled:opacity-60 ${
+                punchStatus === 'in'
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : punchStatus === 'out'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-slate-500 hover:bg-slate-600'
+              }`}
+            >
+              {punchStatus === 'out' ? <FiLogOut size={18} /> : <FiLogIn size={18} />}
+            </button>
           )}
 
           {/* Notification Bell */}

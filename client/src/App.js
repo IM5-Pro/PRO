@@ -86,11 +86,6 @@ const AppContent = () => {
     return <Navigate to="/punch" replace />;
   }
 
-  // Once user is checked in, never keep them on /punch.
-  if (location.pathname === '/punch' && punchRoles.includes(userRole) && isPunchedIn) {
-    return <Navigate to="/" replace />;
-  }
-
   // Only super admin should never stay on /punch route.
   if (location.pathname === '/punch' && !punchRoles.includes(userRole)) {
     return <Navigate to="/" replace />;
