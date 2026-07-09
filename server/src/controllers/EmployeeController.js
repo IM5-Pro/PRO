@@ -98,6 +98,7 @@ const listEmployees = async (req, res) => {
 
 const MANAGER_ROLE_PATTERN = /^(MANAGER|DEPT_ADMIN|HR_ADMIN)$/i;
 const MANAGER_DESIGNATION_PATTERN = /manager/i;
+const EDITABLE_ACCOUNT_ROLES = new Set(["EMPLOYEE", "MANAGER", "HR_ADMIN"]);
 
 const buildManagerDepartmentFilter = async (normalizedDepartment) => {
   const departmentLabels = new Set([normalizedDepartment]);
@@ -540,11 +541,36 @@ const updateEmployee = async (req, res) => {
       });
     }
 
+    const body = req.body || {};
+    const roleInput = typeof body.accountRole === "string" ? body.accountRole.trim().toUpperCase() : "";
+    if (roleInput && !EDITABLE_ACCOUNT_ROLES.has(roleInput)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid accountRole. Allowed values: EMPLOYEE, MANAGER, HR_ADMIN",
+      });
+    }
+
+    const employeeUpdatePayload = { ...body };
+    delete employeeUpdatePayload.accountRole;
+
+    let accountRoleChange = null;
+    if (roleInput) {
+      const linkedUser = await User.findOne({ employeeId }).select("role");
+      if (linkedUser) {
+        const oldRole = String(linkedUser.role || "EMPLOYEE").toUpperCase();
+        if (oldRole !== roleInput) {
+          linkedUser.role = roleInput;
+          await linkedUser.save();
+          accountRoleChange = { old: oldRole, new: roleInput };
+        }
+      }
+    }
+
     const oldData = employee.toObject();
     const updatedEmployee = await Employee.findByIdAndUpdate(
       employeeId,
       {
-        ...req.body,
+        ...employeeUpdatePayload,
         updatedAt: new Date(),
       },
       { new: true }
@@ -552,11 +578,14 @@ const updateEmployee = async (req, res) => {
 
     // Log action with changes
     const changes = {};
-    Object.keys(req.body).forEach((key) => {
-      if (oldData[key] !== req.body[key]) {
-        changes[key] = { old: oldData[key], new: req.body[key] };
+    Object.keys(employeeUpdatePayload).forEach((key) => {
+      if (oldData[key] !== employeeUpdatePayload[key]) {
+        changes[key] = { old: oldData[key], new: employeeUpdatePayload[key] };
       }
     });
+    if (accountRoleChange) {
+      changes.accountRole = accountRoleChange;
+    }
 
     await recordAudit(req, {
       action: "employee.update",
@@ -566,9 +595,9 @@ const updateEmployee = async (req, res) => {
       changes,
     });
 
-    if (req.body.assignedProjectId !== undefined) {
-      const newProjectId = req.body.assignedProjectId
-        ? String(req.body.assignedProjectId).trim()
+    if (employeeUpdatePayload.assignedProjectId !== undefined) {
+      const newProjectId = employeeUpdatePayload.assignedProjectId
+        ? String(employeeUpdatePayload.assignedProjectId).trim()
         : "";
       const oldProjectId = oldData.assignedProjectId
         ? String(oldData.assignedProjectId)
