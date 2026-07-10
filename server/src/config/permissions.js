@@ -334,6 +334,22 @@ const ROLE_PERMISSIONS = {
       reject: true,
       cancel: false,
     },
+
+    // Performance Management (full HR access)
+    performance: {
+      create_review: true,
+      update_review: true,
+      delete_review: true,
+      view_review: true,
+      submit_review: true,
+      approve_review: true,
+      reject_review: true,
+      goal_create: true,
+      goal_update: true,
+      goal_delete: true,
+      goal_assign: true,
+      goal_view: true,
+    },
   },
 
   MANAGER: {

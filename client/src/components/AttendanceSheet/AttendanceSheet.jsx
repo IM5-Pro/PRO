@@ -4,7 +4,7 @@
  * Features: Monthly calendar view, shift tracking, hours logged, view options
  */
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FiChevronLeft, FiChevronRight, FiRefreshCw, FiX, FiClock, FiEdit } from 'react-icons/fi';
 import API from '../../api/client';
@@ -32,6 +32,93 @@ const HOLIDAYS_DATA = [
   { occasion: "Day after Thanksgiving Day", day: "Friday", date: "27-11-2026", category: "Project Development", department: "Technical", division: "IT" },
   { occasion: "Christmas", day: "Friday", date: "25-12-2026", category: "All", department: "All", division: "All" },
 ];
+
+const buildLeaveMap = (leaveArr, y, m) => {
+  const leaveMap = {};
+  leaveArr.forEach((request) => {
+    if (!request?.startDate || !request?.endDate) return;
+    const normalizedStatus = String(request.status || '').toLowerCase();
+    if (!['approved', 'pending'].includes(normalizedStatus)) return;
+
+    const start = new Date(request.startDate);
+    const end = new Date(request.endDate);
+    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+      if (date.getFullYear() !== y || date.getMonth() !== m) continue;
+      const day = date.getDate();
+      const existing = leaveMap[day];
+      if (!existing || (existing.status === 'pending' && normalizedStatus === 'approved')) {
+        leaveMap[day] = request;
+      }
+    }
+  });
+  return leaveMap;
+};
+
+const buildHolidayMap = (holidayArr, y, m) => {
+  const holidayMap = {};
+  holidayArr.forEach((holiday) => {
+    if (!holiday?.date) return;
+    const dateStr = holiday.date;
+    const [dayStr, monthStr, yearStr] = dateStr.split('-');
+    const holidayDate = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, parseInt(dayStr, 10));
+    if (holidayDate.getFullYear() === y && holidayDate.getMonth() === m) {
+      holidayMap[holidayDate.getDate()] = holiday;
+    }
+  });
+  return holidayMap;
+};
+
+const mapAttendanceRecordToDay = (record) => ({
+  shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
+  timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
+  offType: record.status === 'Absent' ? 'Absent' : null,
+  status: record.status,
+  isLossOfPay: record.isLossOfPay,
+  isAutoMarked: record.isAutoMarked,
+  lopReason: record.lopReason,
+  requiresApproval: record.requiresManagerApproval,
+  approvalStatus: record.approvalStatus,
+  manuallyAdded: Boolean(record.manuallyAddedBy),
+  isArchived: record.isArchived,
+});
+
+const buildCalendarObject = (attendanceArr, leaveArr, y, m, holidayArr = HOLIDAYS_DATA) => {
+  const leaveMap = buildLeaveMap(leaveArr, y, m);
+  const holidayMap = buildHolidayMap(holidayArr, y, m);
+  const calendarObj = {};
+
+  attendanceArr.forEach((record) => {
+    const d = new Date(record.attendanceDate);
+    if (d.getFullYear() !== y || d.getMonth() !== m) return;
+    calendarObj[d.getDate()] = mapAttendanceRecordToDay(record);
+  });
+
+  Object.entries(leaveMap).forEach(([dayKey, leaveRequest]) => {
+    const day = Number(dayKey);
+    const existing = calendarObj[day] || {};
+    calendarObj[day] = {
+      ...existing,
+      leaveRequest,
+      status: 'Leave',
+      offType: leaveRequest.status === 'approved' ? 'Leave - Approved' : 'Leave - Applied',
+      leaveType: leaveRequest.type,
+    };
+  });
+
+  Object.entries(holidayMap).forEach(([dayKey, holiday]) => {
+    const day = Number(dayKey);
+    const existing = calendarObj[day] || {};
+    calendarObj[day] = {
+      ...existing,
+      holiday,
+      status: 'Holiday',
+      offType: 'Holiday',
+      holidayName: holiday.occasion,
+    };
+  });
+
+  return calendarObj;
+};
 
 const AttendanceSheet = () => {
   const { user } = useContext(AuthContext);
@@ -92,127 +179,14 @@ const AttendanceSheet = () => {
   // Stats
   // const [stats, setStats] = useState({ present: 0, absent: 0, totalHours: 0, avgHours: 0 });
 
-  useEffect(() => {
-    const fetchAttendance = async () => {
+  const fetchMonthAttendance = useCallback(async ({ showLoading = true } = {}) => {
+    if (showLoading) {
       setLoading(true);
-      setError(null);
-      // Avoid showing last month's cells under the new month's grid while the request runs
       setAttendanceData({});
-      try {
-        const y = currentDate.getFullYear();
-        const m = currentDate.getMonth();
-        const { startDate, endDate } = getMonthDateRangeParams(y, m);
-
-        const [attendanceRes, leaveRes] = await Promise.all([
-          API.get(ATTENDANCE_ENDPOINTS.own(), {
-            params: {
-              startDate,
-              endDate,
-              limit: 62,
-              page: 1,
-            },
-          }),
-          fetchOwnLeaveRequests(),
-        ]);
-
-        const attendanceArr = attendanceRes.data?.attendance || [];
-        const leaveArr = Array.isArray(leaveRes?.data) ? leaveRes.data : [];
-        const holidayArr = HOLIDAYS_DATA;
-
-        const leaveMap = {};
-        leaveArr.forEach((request) => {
-          if (!request?.startDate || !request?.endDate) return;
-          const normalizedStatus = String(request.status || '').toLowerCase();
-          if (!['approved', 'pending'].includes(normalizedStatus)) return;
-
-          const start = new Date(request.startDate);
-          const end = new Date(request.endDate);
-          for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-            if (date.getFullYear() !== y || date.getMonth() !== m) continue;
-            const day = date.getDate();
-            const existing = leaveMap[day];
-            if (!existing || (existing.status === 'pending' && normalizedStatus === 'approved')) {
-              leaveMap[day] = request;
-            }
-          }
-        });
-
-        const holidayMap = {};
-        holidayArr.forEach((holiday) => {
-          if (!holiday?.date) return;
-          const dateStr = holiday.date; // e.g., "01-01-2026"
-          const [dayStr, monthStr, yearStr] = dateStr.split('-');
-          const holidayDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
-          if (holidayDate.getFullYear() === y && holidayDate.getMonth() === m) {
-            const day = holidayDate.getDate();
-            holidayMap[day] = holiday;
-          }
-        });
-
-        const calendarObj = {};
-        attendanceArr.forEach((record) => {
-          const d = new Date(record.attendanceDate);
-          // Only map rows that belong to the visible month (safety if API returns extra rows)
-          if (d.getFullYear() !== y || d.getMonth() !== m) return;
-          const day = d.getDate();
-          calendarObj[day] = {
-            shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
-            timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
-            offType: record.status === 'Absent' ? 'Absent' : null,
-            status: record.status,
-            isLossOfPay: record.isLossOfPay,
-            isAutoMarked: record.isAutoMarked,
-            lopReason: record.lopReason,
-            requiresApproval: record.requiresManagerApproval,
-            approvalStatus: record.approvalStatus,
-            isArchived: record.isArchived,
-          };
-        });
-
-        Object.entries(leaveMap).forEach(([dayKey, leaveRequest]) => {
-          const day = Number(dayKey);
-          const existing = calendarObj[day] || {};
-          calendarObj[day] = {
-            ...existing,
-            leaveRequest,
-            status: 'Leave',
-            offType: leaveRequest.status === 'approved' ? 'Leave - Approved' : 'Leave - Applied',
-            leaveType: leaveRequest.type,
-          };
-        });
-
-        Object.entries(holidayMap).forEach(([dayKey, holiday]) => {
-          const day = Number(dayKey);
-          const existing = calendarObj[day] || {};
-          calendarObj[day] = {
-            ...existing,
-            holiday,
-            status: 'Holiday',
-            offType: 'Holiday',
-            holidayName: holiday.occasion,
-          };
-        });
-
-        setAttendanceData(calendarObj);
-      } catch (err) {
-        setError('Failed to load attendance');
-        setAttendanceData({});
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAttendance();
-  }, [currentDate]);
-
-  // Handle sync attendance - fetches latest punch data and updates calendar
-  const handleSyncAttendance = async () => {
-    setIsSyncing(true);
+    }
     setError(null);
-    try {
-      // Call API to sync attendance from punch records
-      await API.post(ATTENDANCE_ENDPOINTS.sync);
 
-      // Refresh the attendance data to show updated hours
+    try {
       const y = currentDate.getFullYear();
       const m = currentDate.getMonth();
       const { startDate, endDate } = getMonthDateRangeParams(y, m);
@@ -231,82 +205,49 @@ const AttendanceSheet = () => {
 
       const attendanceArr = attendanceRes.data?.attendance || [];
       const leaveArr = Array.isArray(leaveRes?.data) ? leaveRes.data : [];
-      const holidayArr = HOLIDAYS_DATA;
+      setAttendanceData(buildCalendarObject(attendanceArr, leaveArr, y, m));
+    } catch (err) {
+      setError('Failed to load attendance');
+      if (showLoading) {
+        setAttendanceData({});
+      }
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  }, [currentDate]);
 
-      const leaveMap = {};
-      leaveArr.forEach((request) => {
-        if (!request?.startDate || !request?.endDate) return;
-        const normalizedStatus = String(request.status || '').toLowerCase();
-        if (!['approved', 'pending'].includes(normalizedStatus)) return;
+  useEffect(() => {
+    fetchMonthAttendance();
+  }, [fetchMonthAttendance]);
 
-        const start = new Date(request.startDate);
-        const end = new Date(request.endDate);
-        for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-          if (date.getFullYear() !== y || date.getMonth() !== m) continue;
-          const day = date.getDate();
-          const existing = leaveMap[day];
-          if (!existing || (existing.status === 'pending' && normalizedStatus === 'approved')) {
-            leaveMap[day] = request;
-          }
-        }
-      });
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        fetchMonthAttendance({ showLoading: false });
+      }
+    };
 
-      const holidayMap = {};
-      holidayArr.forEach((holiday) => {
-        if (!holiday?.date) return;
-        const dateStr = holiday.date;
-        const [dayStr, monthStr, yearStr] = dateStr.split('-');
-        const holidayDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
-        if (holidayDate.getFullYear() === y && holidayDate.getMonth() === m) {
-          const day = holidayDate.getDate();
-          holidayMap[day] = holiday;
-        }
-      });
+    window.addEventListener('focus', refreshIfVisible);
+    document.addEventListener('visibilitychange', refreshIfVisible);
 
-      const calendarObj = {};
-      attendanceArr.forEach((record) => {
-        const d = new Date(record.attendanceDate);
-        if (d.getFullYear() !== y || d.getMonth() !== m) return;
-        const day = d.getDate();
-        calendarObj[day] = {
-          shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
-          timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
-          offType: record.status === 'Absent' ? 'Absent' : null,
-          status: record.status,
-          isLossOfPay: record.isLossOfPay,
-          isAutoMarked: record.isAutoMarked,
-          lopReason: record.lopReason,
-          requiresApproval: record.requiresManagerApproval,
-          approvalStatus: record.approvalStatus,
-          isArchived: record.isArchived,
-        };
-      });
+    const pollInterval = setInterval(refreshIfVisible, 30000);
 
-      Object.entries(leaveMap).forEach(([dayKey, leaveRequest]) => {
-        const day = Number(dayKey);
-        const existing = calendarObj[day] || {};
-        calendarObj[day] = {
-          ...existing,
-          leaveRequest,
-          status: 'Leave',
-          offType: leaveRequest.status === 'approved' ? 'Leave - Approved' : 'Leave - Applied',
-          leaveType: leaveRequest.type,
-        };
-      });
+    return () => {
+      window.removeEventListener('focus', refreshIfVisible);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+      clearInterval(pollInterval);
+    };
+  }, [fetchMonthAttendance]);
 
-      Object.entries(holidayMap).forEach(([dayKey, holiday]) => {
-        const day = Number(dayKey);
-        const existing = calendarObj[day] || {};
-        calendarObj[day] = {
-          ...existing,
-          holiday,
-          status: 'Holiday',
-          offType: 'Holiday',
-          holidayName: holiday.occasion,
-        };
-      });
-
-      setAttendanceData(calendarObj);
+  // Handle sync attendance - fetches latest punch data and updates calendar
+  const handleSyncAttendance = async () => {
+    setIsSyncing(true);
+    setError(null);
+    try {
+      await API.post(ATTENDANCE_ENDPOINTS.sync);
+      await fetchMonthAttendance({ showLoading: false });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -392,71 +333,7 @@ const AttendanceSheet = () => {
 
       setShowAddModal(false);
       setError(null);
-      
-      // Refresh attendance data
-      const y = currentDate.getFullYear();
-      const m = currentDate.getMonth();
-      const { startDate, endDate } = getMonthDateRangeParams(y, m);
-
-      const [attendanceRes, leaveRes] = await Promise.all([
-        API.get(ATTENDANCE_ENDPOINTS.own(), {
-          params: {
-            startDate,
-            endDate,
-            limit: 62,
-            page: 1,
-          },
-        }),
-        fetchOwnLeaveRequests(),
-      ]);
-
-      const attendanceArr = attendanceRes.data?.attendance || [];
-      const leaveArr = Array.isArray(leaveRes?.data) ? leaveRes.data : [];
-
-      const leaveMap = {};
-      leaveArr.forEach((request) => {
-        if (!request?.startDate || !request?.endDate) return;
-        const normalizedStatus = String(request.status || '').toLowerCase();
-        if (!['approved', 'pending'].includes(normalizedStatus)) return;
-
-        const start = new Date(request.startDate);
-        const end = new Date(request.endDate);
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          if (d.getFullYear() !== y || d.getMonth() !== m) continue;
-          const dayNum = d.getDate();
-          const existing = leaveMap[dayNum];
-          if (!existing || (existing.status === 'pending' && normalizedStatus === 'approved')) {
-            leaveMap[dayNum] = request;
-          }
-        }
-      });
-
-      const calendarObj = {};
-      attendanceArr.forEach((record) => {
-        const d = new Date(record.attendanceDate);
-        if (d.getFullYear() !== y || d.getMonth() !== m) return;
-        const dayNum = d.getDate();
-        calendarObj[dayNum] = {
-          shift: record.shift ? `${record.shift.startTime}-${record.shift.endTime}` : null,
-          timeEntry: record.workingHours ? `${record.workingHours.toFixed(2)} hours` : null,
-          offType: record.status === 'Absent' ? 'Absent' : null,
-          status: record.status,
-        };
-      });
-
-      Object.entries(leaveMap).forEach(([dayKey, leaveRequest]) => {
-        const dayNum = Number(dayKey);
-        const existing = calendarObj[dayNum] || {};
-        calendarObj[dayNum] = {
-          ...existing,
-          leaveRequest,
-          status: 'Leave',
-          offType: leaveRequest.status === 'approved' ? 'Leave - Approved' : 'Leave - Applied',
-          leaveType: leaveRequest.type,
-        };
-      });
-
-      setAttendanceData(calendarObj);
+      await fetchMonthAttendance({ showLoading: false });
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to add attendance');
       console.error('Error adding attendance:', err);
@@ -540,9 +417,19 @@ const AttendanceSheet = () => {
           {data.isAutoMarked && (
             <div className="truncate rounded bg-gradient-to-r from-amber-500 to-yellow-500 px-1 py-0.5 text-white shadow-sm sm:px-2 sm:py-1">🤖 Auto</div>
           )}
-          {data.requiresApproval && (
+          {data.approvalStatus === 'Pending' && (
             <div className="truncate rounded bg-gradient-to-r from-blue-600 to-cyan-600 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">
-              ⏳ {data.approvalStatus}
+              ⏳ Pending
+            </div>
+          )}
+          {data.approvalStatus === 'Approved' && data.manuallyAdded && (
+            <div className="truncate rounded bg-gradient-to-r from-green-600 to-emerald-500 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">
+              ✓ Approved
+            </div>
+          )}
+          {data.approvalStatus === 'Rejected' && (
+            <div className="truncate rounded bg-gradient-to-r from-red-600 to-rose-500 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">
+              ✗ Rejected
             </div>
           )}
           {hasBothLeaveAndAttendance && (
