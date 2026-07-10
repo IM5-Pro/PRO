@@ -263,29 +263,55 @@ const Announcements = () => {
 
   const canCreate = permission.create;
 
+  const filterOptions = [
+    { key: 'all', label: 'All' },
+    { key: 'high', label: 'High' },
+    { key: 'medium', label: 'Medium' },
+    { key: 'low', label: 'Low' },
+  ];
+
+  const getFilterButtonClass = (key, active) => {
+    const base = 'rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors focus:outline-none';
+
+    if (!active) {
+      return `${base} border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300`;
+    }
+
+    const activeStyles = {
+      all: 'bg-slate-800 text-white border-slate-800 shadow-sm',
+      high: 'bg-red-50 text-red-700 border-red-200 shadow-sm',
+      medium: 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm',
+      low: 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm',
+    };
+
+    return `${base} ${activeStyles[key] || activeStyles.all}`;
+  };
+
   return (
     <div className="min-h-screen bg-im5-page p-6 md:p-8">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className={`text-4xl font-bold ${colors.text.primary} mb-2 flex items-center gap-3`}>
+          <h1 className={`text-4xl font-bold ${colors.text.primary} flex items-center gap-3`}>
             <FiBell className="w-10 h-10" /> Announcements
           </h1>
-          <p className={colors.text.tertiary}>Role-based announcements with targeted audience delivery</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className={`flex items-center gap-2 bg-white border ${colors.border.primary} rounded-xl px-4 py-3`}>
-            <FiFilter className={colors.text.tertiary} size={18} />
-            <select
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              className={`bg-transparent ${colors.text.primary} outline-none font-medium`}
-            >
-              <option value="all">All Announcements</option>
-              <option value="high">High Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="low">Low Priority</option>
-            </select>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm">
+            <FiFilter className="text-slate-400 shrink-0" size={16} aria-hidden />
+            <div className="flex flex-wrap items-center gap-1.5">
+              {filterOptions.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setFilter(option.key)}
+                  className={getFilterButtonClass(option.key, filter === option.key)}
+                  aria-pressed={filter === option.key}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {canCreate && (

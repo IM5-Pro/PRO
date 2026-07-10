@@ -30,6 +30,51 @@ import {
   finalizeAttendanceCheckout,
   syncOpenAttendanceWindow,
 } from "../services/attendancePunchService.js";
+import {
+  notifyAttendanceCorrectionApproval,
+  notifyAttendanceCorrectionRejection,
+} from "../services/notificationService.js";
+
+const formatPunchTime = (value) => {
+  if (!value) return "N/A";
+  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
+
+const notifyEmployeeAttendanceDecision = async (attendance, req, decision) => {
+  if (!attendance?.manuallyAddedBy) return;
+
+  try {
+    const employeeUser = await User.findOne({ employeeId: attendance.employee })
+      .select("_id")
+      .lean();
+    if (!employeeUser?._id) return;
+
+    const punch = attendance.punches?.[0];
+    const payload = {
+      employeeId: employeeUser._id,
+      attendanceId: attendance._id,
+      correctionDate: attendance.attendanceDate,
+    };
+
+    if (decision === "approved") {
+      await notifyAttendanceCorrectionApproval({
+        ...payload,
+        approvedBy: req.user.id,
+        newCheckIn: formatPunchTime(punch?.checkInTime),
+        newCheckOut: formatPunchTime(punch?.checkOutTime),
+      });
+      return;
+    }
+
+    await notifyAttendanceCorrectionRejection({
+      ...payload,
+      rejectedBy: req.user.id,
+      rejectionReason: attendance.approvalRemarks || "",
+    });
+  } catch (notifError) {
+    console.error("Attendance decision notification error:", notifError);
+  }
+};
 
 
 /**
@@ -1202,8 +1247,11 @@ export const approveAttendance = async (req, res) => {
     attendance.approvedBy = req.user.id;
     attendance.approvalDate = new Date();
     attendance.updatedBy = req.user.id;
+    attendance.requiresManagerApproval = false;
 
     await attendance.save();
+
+    await notifyEmployeeAttendanceDecision(attendance, req, "approved");
 
     // Log action
     await recordAudit(req, {
@@ -1255,8 +1303,11 @@ export const rejectAttendance = async (req, res) => {
     attendance.approvedBy = req.user.id;
     attendance.approvalDate = new Date();
     attendance.updatedBy = req.user.id;
+    attendance.requiresManagerApproval = false;
 
     await attendance.save();
+
+    await notifyEmployeeAttendanceDecision(attendance, req, "rejected");
 
     // Log action
     await recordAudit(req, {
