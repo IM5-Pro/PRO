@@ -95,22 +95,27 @@ jobs:
           JWT_SECRET=$(get_param "$SSM_PREFIX/jwt-secret")
           JWT_REFRESH_SECRET=$(get_param "$SSM_PREFIX/jwt-refresh-secret")
           SUPER_ADMIN_SETUP_KEY=$(get_param "$SSM_PREFIX/super-admin-setup-key")
-          CLIENT_ORIGIN=$(get_param "$SSM_PREFIX/client-origin")
 
-          if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "https://localhost" ]; then
-            STACK_ORIGIN=$(aws cloudformation describe-stacks \
-              --stack-name "$STACK_NAME" \
-              --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
-              --output text 2>/dev/null || true)
-            STACK_ORIGIN=$(printf '%s' "$STACK_ORIGIN" | tr -d '\r\n')
-            if [ -n "$STACK_ORIGIN" ] && [ "$STACK_ORIGIN" != "None" ]; then
-              CLIENT_ORIGIN="$STACK_ORIGIN"
-            fi
-          fi
+          # Always prefer CloudFormation output for ClientOrigin (must be a URL, never HTML).
+          CLIENT_ORIGIN=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
+            --output text 2>/dev/null || true)
+          CLIENT_ORIGIN=$(printf '%s' "$CLIENT_ORIGIN" | tr -d '\r\n')
 
           if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "None" ]; then
-            CLIENT_ORIGIN="https://localhost"
+            CLIENT_ORIGIN=$(get_param "$SSM_PREFIX/client-origin" || true)
+            CLIENT_ORIGIN=$(printf '%s' "$CLIENT_ORIGIN" | tr -d '\r\n')
           fi
+
+          case "$CLIENT_ORIGIN" in
+            https://*)
+              ;;
+            *)
+              echo "::error::CLIENT_ORIGIN must be an https URL. Got: ${CLIENT_ORIGIN:0:80}"
+              exit 1
+              ;;
+          esac
 
           echo "::add-mask::$MONGODB_URI"
           echo "::add-mask::$JWT_SECRET"
@@ -135,7 +140,7 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_ENV"
 
-          echo "Loaded SSM config. CLIENT_ORIGIN=$CLIENT_ORIGIN"
+          echo "Loaded deploy config. CLIENT_ORIGIN=$CLIENT_ORIGIN"
 
       - name: Install server dependencies
         working-directory: server
@@ -153,19 +158,31 @@ jobs:
         shell: bash
         run: |
           unset AWS_PROFILE AWS_DEFAULT_PROFILE
-          sam deploy \
-            --region "$AWS_REGION" \
-            --stack-name "$STACK_NAME" \
-            --resolve-s3 \
-            --capabilities CAPABILITY_IAM \
-            --no-confirm-changeset \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides \
-            "MongoDBUri=${MONGODB_URI}" \
-            "JwtSecret=${JWT_SECRET}" \
-            "JwtRefreshSecret=${JWT_REFRESH_SECRET}" \
-            "SuperAdminSetupKey=${SUPER_ADMIN_SETUP_KEY}" \
-            "ClientOrigin=${CLIENT_ORIGIN}"
+          python3 - <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          overrides = [
+              f"MongoDBUri={os.environ['MONGODB_URI']}",
+              f"JwtSecret={os.environ['JWT_SECRET']}",
+              f"JwtRefreshSecret={os.environ['JWT_REFRESH_SECRET']}",
+              f"SuperAdminSetupKey={os.environ['SUPER_ADMIN_SETUP_KEY']}",
+              f"ClientOrigin={os.environ['CLIENT_ORIGIN']}",
+          ]
+          cmd = [
+              "sam", "deploy",
+              "--region", os.environ["AWS_REGION"],
+              "--stack-name", os.environ["STACK_NAME"],
+              "--resolve-s3",
+              "--capabilities", "CAPABILITY_IAM",
+              "--no-confirm-changeset",
+              "--no-fail-on-empty-changeset",
+              "--parameter-overrides", *overrides,
+          ]
+          print("Deploying with ClientOrigin=", os.environ["CLIENT_ORIGIN"])
+          sys.exit(subprocess.call(cmd))
+          PY
 
       - name: Fetch stack outputs
         id: outputs
