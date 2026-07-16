@@ -43,6 +43,13 @@ const formatRole = (value = '') =>
     .replace(/_/g, ' ')
     .toLowerCase();
 
+const profileFieldLabel = 'block text-xs font-medium text-slate-500 mb-1.5';
+const profileFieldInput =
+  'h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 transition-colors focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
+const profileFieldInputReadOnly =
+  'h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 cursor-default';
+const profileSectionHeading = 'text-base font-semibold text-slate-800 border-b border-slate-100 pb-2';
+
 const getLocation = (employee) => {
   const location = [
     employee?.city || employee?.address?.city,
@@ -544,14 +551,14 @@ const EmployeeProfile = () => {
                 </p>
               </div>
 
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+              <section className="space-y-4">
+                <h3 className={profileSectionHeading}>
                   Work details (read-only)
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 -mt-2">
                   These fields are maintained by HR. Contact HR if something needs to be corrected.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                   {[
                     ['Work email', editProfile.email],
                     ['Employee code', editProfile.employeeCode],
@@ -563,13 +570,13 @@ const EmployeeProfile = () => {
                     ['Employment type', formatEmploymentType(editProfile.employmentType)],
                     ['Salary on record', editProfile.salary],
                   ].map(([label, val]) => (
-                    <div key={label} className="flex flex-col gap-1">
-                      <span className="text-xs font-medium text-slate-600">{label}</span>
+                    <div key={label}>
+                      <span className={profileFieldLabel}>{label}</span>
                       <input
                         type="text"
                         readOnly
                         tabIndex={-1}
-                        className="input input-bordered w-full bg-slate-50 text-slate-700 cursor-default border-slate-200"
+                        className={profileFieldInputReadOnly}
                         value={val ?? ''}
                       />
                     </div>
@@ -577,65 +584,65 @@ const EmployeeProfile = () => {
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Identity</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-firstName">
+              <section className="space-y-4">
+                <h3 className={profileSectionHeading}>Identity</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-firstName">
                       First name
                     </label>
                     <input
                       id="ep-firstName"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="firstName"
                       value={editProfile.firstName}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-middleName">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-middleName">
                       Middle name
                     </label>
                     <input
                       id="ep-middleName"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="middleName"
                       value={editProfile.middleName}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-lastName">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-lastName">
                       Last name
                     </label>
                     <input
                       id="ep-lastName"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="lastName"
                       value={editProfile.lastName}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-dob">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-dob">
                       Date of birth
                     </label>
                     <input
                       id="ep-dob"
                       type="date"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="dateOfBirthInput"
                       value={editProfile.dateOfBirthInput}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-gender">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-gender">
                       Gender
                     </label>
                     <input
                       id="ep-gender"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="gender"
                       value={editProfile.gender}
                       onChange={handleChange}
@@ -649,13 +656,13 @@ const EmployeeProfile = () => {
                       <option value="Prefer not to say" />
                     </datalist>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-blood">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-blood">
                       Blood group
                     </label>
                     <input
                       id="ep-blood"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="bloodGroup"
                       value={editProfile.bloodGroup}
                       onChange={handleChange}
@@ -671,78 +678,78 @@ const EmployeeProfile = () => {
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+              <section className="space-y-4">
+                <h3 className={profileSectionHeading}>
                   Contact & address
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                  <div className="flex flex-col gap-1 sm:col-span-2">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-phone">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                  <div className="sm:col-span-2">
+                    <label className={profileFieldLabel} htmlFor="ep-phone">
                       Phone
                     </label>
                     <input
                       id="ep-phone"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="phone"
                       value={editProfile.phone}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1 sm:col-span-2">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-address">
+                  <div className="sm:col-span-2">
+                    <label className={profileFieldLabel} htmlFor="ep-address">
                       Street / address line
                     </label>
                     <input
                       id="ep-address"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="address"
                       value={editProfile.address}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-city">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-city">
                       City
                     </label>
                     <input
                       id="ep-city"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="city"
                       value={editProfile.city}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-state">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-state">
                       State / region
                     </label>
                     <input
                       id="ep-state"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="state"
                       value={editProfile.state}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-country">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-country">
                       Country
                     </label>
                     <input
                       id="ep-country"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="country"
                       value={editProfile.country}
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-zip">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-zip">
                       Postal code
                     </label>
                     <input
                       id="ep-zip"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="zipCode"
                       value={editProfile.zipCode}
                       onChange={handleChange}
@@ -751,31 +758,31 @@ const EmployeeProfile = () => {
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+              <section className="space-y-4">
+                <h3 className={profileSectionHeading}>
                   Government IDs
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-pan">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-pan">
                       PAN
                     </label>
                     <input
                       id="ep-pan"
-                      className="input input-bordered w-full uppercase"
+                      className={`${profileFieldInput} uppercase`}
                       name="panNumber"
                       value={editProfile.panNumber}
                       onChange={handleChange}
                       autoCapitalize="characters"
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-aadhaar">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-aadhaar">
                       Aadhaar
                     </label>
                     <input
                       id="ep-aadhaar"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="aadhaarNumber"
                       value={editProfile.aadhaarNumber}
                       onChange={handleChange}
@@ -785,42 +792,42 @@ const EmployeeProfile = () => {
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">
+              <section className="space-y-4">
+                <h3 className={profileSectionHeading}>
                   Emergency contact
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-ec-name">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-ec-name">
                       Name
                     </label>
                     <input
                       id="ep-ec-name"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="name"
                       value={editProfile.emergencyContact?.name || ''}
                       onChange={handleEmergencyChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-ec-relation">
+                  <div>
+                    <label className={profileFieldLabel} htmlFor="ep-ec-relation">
                       Relation
                     </label>
                     <input
                       id="ep-ec-relation"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="relation"
                       value={editProfile.emergencyContact?.relation || ''}
                       onChange={handleEmergencyChange}
                     />
                   </div>
-                  <div className="flex flex-col gap-1 sm:col-span-2">
-                    <label className="text-xs font-medium text-slate-600" htmlFor="ep-ec-phone">
+                  <div className="sm:col-span-2">
+                    <label className={profileFieldLabel} htmlFor="ep-ec-phone">
                       Phone
                     </label>
                     <input
                       id="ep-ec-phone"
-                      className="input input-bordered w-full"
+                      className={profileFieldInput}
                       name="phone"
                       value={editProfile.emergencyContact?.phone || ''}
                       onChange={handleEmergencyChange}
@@ -846,7 +853,7 @@ const EmployeeProfile = () => {
                 <button type="button" className="btn btn-secondary" onClick={handleSaveDraft} disabled={saving}>
                   {saving ? 'Saving…' : 'Save draft'}
                 </button>
-                <button type="button" className="btn btn-ghost" onClick={handleCancel} disabled={saving}>
+                <button type="button" className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
                   Cancel
                 </button>
               </div>

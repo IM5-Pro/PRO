@@ -242,14 +242,37 @@ export const notifyAttendanceCorrectionApproval = async (data) => {
   await createNotification({
     userId: employeeId,
     type: "attendance_correction_approval",
-    title: "Attendance Correction Approved",
-    message: `Your attendance correction for ${new Date(correctionDate).toLocaleDateString()} has been approved. New check-in: ${newCheckIn}, Check-out: ${newCheckOut}`,
+    title: "Attendance Request Approved",
+    message: `Your attendance for ${new Date(correctionDate).toLocaleDateString()} has been approved. Check-in: ${newCheckIn}, Check-out: ${newCheckOut}`,
     priority: "medium",
     category: "approval",
     referenceType: "attendance",
     referenceId: attendanceId,
     metadata: { correctionDate, newCheckIn, newCheckOut },
     triggeredBy: approvedBy,
+  });
+};
+
+export const notifyAttendanceCorrectionRejection = async (data) => {
+  const {
+    employeeId,
+    attendanceId,
+    correctionDate,
+    rejectionReason,
+    rejectedBy,
+  } = data;
+
+  await createNotification({
+    userId: employeeId,
+    type: "attendance_correction_rejection",
+    title: "Attendance Request Rejected",
+    message: `Your attendance for ${new Date(correctionDate).toLocaleDateString()} was rejected.${rejectionReason ? ` Reason: ${rejectionReason}` : ''}`,
+    priority: "high",
+    category: "alert",
+    referenceType: "attendance",
+    referenceId: attendanceId,
+    metadata: { correctionDate, rejectionReason },
+    triggeredBy: rejectedBy,
   });
 };
 
