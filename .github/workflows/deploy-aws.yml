@@ -1,0 +1,148 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-aws-develop
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  STACK_NAME: im5pro-hrms
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      - name: Validate server
+        working-directory: server
+        run: |
+          npm ci
+          npm test
+          npm run verify:nav-permissions
+
+      - name: Validate client build
+        working-directory: client
+        run: |
+          npm ci
+          npm run test -- --run
+          npm run build
+        env:
+          CI: false
+          VITE_API_URL: https://placeholder.cloudfront.net/api
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      - uses: aws-actions/setup-sam@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve ClientOrigin from existing stack
+        id: stack
+        run: |
+          set -euo pipefail
+          CLIENT_ORIGIN="${{ secrets.CLIENT_ORIGIN }}"
+          if [ -z "$CLIENT_ORIGIN" ]; then
+            CLIENT_ORIGIN=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
+              --output text 2>/dev/null || true)
+          fi
+          if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "None" ]; then
+            CLIENT_ORIGIN="https://localhost"
+          fi
+          echo "client_origin=$CLIENT_ORIGIN" >> "$GITHUB_OUTPUT"
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci --omit=dev
+
+      - name: SAM build
+        working-directory: sam
+        run: sam build
+
+      - name: SAM deploy
+        working-directory: sam
+        run: |
+          sam deploy \
+            --stack-name "$STACK_NAME" \
+            --resolve-s3 \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              "MongoDBUri=${{ secrets.MONGODB_URI }}" \
+              "JwtSecret=${{ secrets.JWT_SECRET }}" \
+              "JwtRefreshSecret=${{ secrets.JWT_REFRESH_SECRET }}" \
+              "SuperAdminSetupKey=${{ secrets.SUPER_ADMIN_SETUP_KEY }}" \
+              "ClientOrigin=${{ steps.stack.outputs.client_origin }}"
+
+      - name: Fetch stack outputs
+        id: outputs
+        run: |
+          set -euo pipefail
+          OUTPUTS=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs")
+          CF_URL=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontUrl") | .OutputValue')
+          BUCKET=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue')
+          DIST_ID=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue')
+          echo "cf_url=$CF_URL" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+          echo "dist_id=$DIST_ID" >> "$GITHUB_OUTPUT"
+          echo "api_url=${CF_URL}/api" >> "$GITHUB_OUTPUT"
+
+      - name: Build and upload frontend
+        working-directory: client
+        run: |
+          npm ci
+          VITE_API_URL="${{ steps.outputs.api_url }}" npm run build
+          aws s3 sync build "s3://${{ steps.outputs.bucket }}" --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.outputs.dist_id }}" \
+            --paths "/*"
+
+      - name: Deployment summary
+        run: |
+          echo "### AWS deployment complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- App URL: ${{ steps.outputs.cf_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API URL: ${{ steps.outputs.api_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Branch: develop" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Stack: $STACK_NAME" >> "$GITHUB_STEP_SUMMARY"

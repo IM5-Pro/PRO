@@ -1,0 +1,18 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "im5pro-hrms"
+resolve_s3 = true
+s3_prefix = "im5pro-hrms"
+region = "us-east-1"
+profile = "im5.pro"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "ClientOrigin=\"https://localhost\""
+
+[default.global.parameters]
+region = "us-east-1"
+
+[default.build.parameters]
+cached = true
+parallel = true

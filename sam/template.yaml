@@ -1,0 +1,234 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: iSpace HRMS - SAM deploy (API Lambda + schedulers + S3 + CloudFront)
+
+Parameters:
+  MongoDBUri:
+    Type: String
+    NoEcho: true
+  JwtSecret:
+    Type: String
+    NoEcho: true
+  JwtRefreshSecret:
+    Type: String
+    NoEcho: true
+  SuperAdminSetupKey:
+    Type: String
+    NoEcho: true
+  ClientOrigin:
+    Type: String
+    Default: https://localhost
+    Description: CloudFront URL (update after first deploy and redeploy)
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 1024
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        NODE_ENV: production
+        MONGODB_URI: !Ref MongoDBUri
+        JWT_SECRET: !Ref JwtSecret
+        JWT_REFRESH_SECRET: !Ref JwtRefreshSecret
+        SUPER_ADMIN_SETUP_KEY: !Ref SuperAdminSetupKey
+        CLIENT_ORIGIN: !Ref ClientOrigin
+        COOKIE_SECURE: "true"
+        COOKIE_SAME_SITE: lax
+
+Resources:
+  HrmsHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      CorsConfiguration:
+        AllowCredentials: true
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - Cookie
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowOrigins:
+          - !Ref ClientOrigin
+          - http://localhost:3000
+
+  HrmsApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../server/
+      Handler: lambda.handler
+      Description: HRMS Express API
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        ProxyApiRoot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HrmsHttpApi
+            Path: /{proxy+}
+            Method: ANY
+        ProxyApiHealth:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HrmsHttpApi
+            Path: /api/health
+            Method: GET
+
+  AutoMarkFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../server/
+      Handler: lambdas/autoMark.handler
+      Description: Auto-mark attendance (daily 10 PM UTC)
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 22 * * ? *)
+            Description: Run auto-mark attendance daily
+            Enabled: true
+
+  ResignationNoticeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../server/
+      Handler: lambdas/resignationNotice.handler
+      Description: Process resignation notice completions
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(15 1 * * ? *)
+            Description: Process resignation notices daily
+            Enabled: true
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-frontend-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${AWS::StackName} HRMS"
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        Origins:
+          - Id: S3Frontend
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt FrontendOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+          - Id: HrmsApi
+            DomainName: !Sub "${HrmsHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+            CustomOriginConfig:
+              HTTPPort: 443
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols:
+                - TLSv1.2
+        DefaultCacheBehavior:
+          TargetOriginId: S3Frontend
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CacheBehaviors:
+          - PathPattern: /api/*
+            TargetOriginId: HrmsApi
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway HTTP API URL
+    Value: !Sub "https://${HrmsHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  CloudFrontUrl:
+    Description: Public app URL (use for CLIENT_ORIGIN and VITE_API_URL)
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID (for cache invalidation)
+    Value: !Ref CloudFrontDistribution
+  FrontendBucketName:
+    Description: S3 bucket for React build upload
+    Value: !Ref FrontendBucket
+  StackName:
+    Value: !Ref AWS::StackName

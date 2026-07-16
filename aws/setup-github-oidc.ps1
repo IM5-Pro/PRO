@@ -29,7 +29,8 @@ $AccountId = Get-AwsAccountId -Config $Config
 $Region = $Config.AWS_REGION
 $OidcProviderArn = "arn:aws:iam::${AccountId}:oidc-provider/token.actions.githubusercontent.com"
 $RoleArn = "arn:aws:iam::${AccountId}:role/$RoleName"
-$RepoSubject = "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${Branch}"
+$RepoSubjectBranch = "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${Branch}"
+$RepoSubjectEnvironment = "repo:${GitHubOrg}/${GitHubRepo}:environment:${Branch}"
 
 Write-Host "=== GitHub Actions OIDC setup ===" -ForegroundColor Cyan
 Write-Host "Account:  $AccountId"
@@ -67,7 +68,10 @@ $trustPolicy = @{
                     "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
                 }
                 StringLike = @{
-                    "token.actions.githubusercontent.com:sub" = $RepoSubject
+                    "token.actions.githubusercontent.com:sub" = @(
+                        $RepoSubjectBranch
+                        $RepoSubjectEnvironment
+                    )
                 }
             }
         }
