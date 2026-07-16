@@ -143,13 +143,18 @@ jobs:
 
       - name: SAM build
         working-directory: sam
-        run: sam build
+        shell: bash
+        run: |
+          unset AWS_PROFILE AWS_DEFAULT_PROFILE
+          sam build --region "$AWS_REGION"
 
       - name: SAM deploy
         working-directory: sam
         shell: bash
         run: |
+          unset AWS_PROFILE AWS_DEFAULT_PROFILE
           sam deploy \
+            --region "$AWS_REGION" \
             --stack-name "$STACK_NAME" \
             --resolve-s3 \
             --capabilities CAPABILITY_IAM \

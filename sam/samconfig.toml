@@ -5,7 +5,8 @@ stack_name = "im5pro-hrms"
 resolve_s3 = true
 s3_prefix = "im5pro-hrms"
 region = "us-east-1"
-profile = "im5.pro"
+# Do not set profile here — GitHub Actions uses OIDC env credentials.
+# For local deploys, pass --profile via sam/deploy.ps1.
 confirm_changeset = false
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = "ClientOrigin=\"https://localhost\""
