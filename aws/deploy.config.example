@@ -1,0 +1,44 @@
+# Copy to deploy.config and fill in values for your NEW AWS account.
+#   copy deploy.config.example deploy.config
+#
+# Then run:  .\setup-new-account.ps1
+#            .\01-bootstrap.ps1
+#            .\02-deploy-backend.ps1
+#            .\03-deploy-frontend.ps1
+#            .\04-cloudfront.ps1
+
+# --- AWS account (new) ---
+AWS_PROFILE=hrms-prod
+AWS_REGION=ap-south-1
+
+# Resource naming (S3 bucket name must be globally unique)
+PROJECT_NAME=im5pro-hrms
+
+# Set after CloudFront is created (step 04)
+CLIENT_ORIGIN=https://YOUR_CLOUDFRONT_DOMAIN.cloudfront.net
+VITE_API_URL=https://YOUR_CLOUDFRONT_DOMAIN.cloudfront.net/api
+
+# --- Elastic Beanstalk (backend, no Docker) ---
+EB_APP_NAME=im5pro-hrms-api
+EB_ENV_NAME=im5pro-hrms-api-prod
+EB_PLATFORM=Node.js 20 running on 64bit Amazon Linux 2023
+EB_INSTANCE_TYPE=t3.small
+
+# --- Backend secrets (injected into EB environment) ---
+MONGODB_URI=mongodb+srv://USER:PASS@cluster.mongodb.net/HRMS
+JWT_SECRET=generate-with-openssl-rand-base64-32
+JWT_REFRESH_SECRET=generate-with-openssl-rand-base64-32
+SUPER_ADMIN_SETUP_KEY=generate-a-strong-random-key
+
+# --- Optional ---
+NODE_ENV=production
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=lax
+PORT=8080
+
+# --- GitHub Actions (develop -> AWS) ---
+# Run once:  .\setup-github-oidc.ps1
+# Then add secrets in GitHub (IM5-Pro/PRO -> Settings -> Secrets):
+#   AWS_ROLE_ARN, MONGODB_URI, JWT_SECRET, JWT_REFRESH_SECRET, SUPER_ADMIN_SETUP_KEY
+# Optional: CLIENT_ORIGIN (only needed before the first CloudFormation stack exists)
+# Workflow file: .github/workflows/deploy-aws.yml
