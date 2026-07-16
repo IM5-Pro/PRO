@@ -21,11 +21,11 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: |
             server/package-lock.json
@@ -51,12 +51,15 @@ jobs:
   deploy:
     needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: |
             server/package-lock.json
@@ -64,11 +67,24 @@ jobs:
 
       - uses: aws-actions/setup-sam@v2
 
+      - name: Verify AWS_ROLE_ARN secret
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "::error::AWS_ROLE_ARN secret is empty or not available to this workflow."
+            echo "If this is an organization secret, set visibility to Private repositories"
+            echo "(or Selected repositories including IM5-Pro/PRO), not only Public repositories."
+            echo "Expected value: arn:aws:iam::010829527639:role/github-actions-im5pro-deploy"
+            exit 1
+          fi
+          echo "AWS_ROLE_ARN secret is present."
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+          role-session-name: github-actions-im5pro-deploy
 
       - name: Resolve ClientOrigin from existing stack
         id: stack
