@@ -185,74 +185,85 @@ jobs:
           PY
 
       - name: Fetch stack outputs
-        id: outputs
+        id: stack_out
         shell: bash
         run: |
-          OUTPUTS=$(aws cloudformation describe-stacks \
+          set -euo pipefail
+          CF_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
-            --query "Stacks[0].Outputs" \
-            --output json)
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
+            --output text | tr -d '\r\n')
+          BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" \
+            --output text | tr -d '\r\n')
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
+            --output text | tr -d '\r\n')
 
-          CF_URL=$(printf '%s' "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontUrl") | .OutputValue' || true)
-          BUCKET=$(printf '%s' "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue' || true)
-          DIST_ID=$(printf '%s' "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue' || true)
-
-          if [ -z "$CF_URL" ] || [ "$CF_URL" = "null" ]; then
-            echo "CloudFrontUrl output missing from stack $STACK_NAME"
+          if [ -z "$CF_URL" ] || [ "$CF_URL" = "None" ]; then
+            echo "::error::CloudFrontUrl output missing from stack $STACK_NAME"
             exit 1
           fi
-          if [ -z "$BUCKET" ] || [ "$BUCKET" = "null" ]; then
-            echo "FrontendBucketName output missing from stack $STACK_NAME"
+          if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
+            echo "::error::FrontendBucketName output missing from stack $STACK_NAME"
             exit 1
           fi
-          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "null" ]; then
-            echo "CloudFrontDistributionId output missing from stack $STACK_NAME"
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+            echo "::error::CloudFrontDistributionId output missing from stack $STACK_NAME"
             exit 1
           fi
 
           {
-            echo "cf_url<<EOF"
+            echo "CF_URL<<EOF"
             printf '%s\n' "$CF_URL"
             echo "EOF"
-            echo "bucket<<EOF"
+            echo "FRONTEND_BUCKET<<EOF"
             printf '%s\n' "$BUCKET"
             echo "EOF"
-            echo "dist_id<<EOF"
+            echo "DIST_ID<<EOF"
             printf '%s\n' "$DIST_ID"
             echo "EOF"
-            echo "api_url<<EOF"
+            echo "VITE_API_URL<<EOF"
             printf '%s\n' "${CF_URL}/api"
             echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          } >> "$GITHUB_ENV"
+
+          echo "Stack outputs ready:"
+          echo "  CF_URL=$CF_URL"
+          echo "  FRONTEND_BUCKET=$BUCKET"
+          echo "  DIST_ID=$DIST_ID"
 
       - name: Build and upload frontend
         working-directory: client
-        env:
-          VITE_API_URL: ${{ steps.outputs.api_url }}
-          FRONTEND_BUCKET: ${{ steps.outputs.bucket }}
         shell: bash
         run: |
+          set -euo pipefail
+          if [ -z "${FRONTEND_BUCKET:-}" ]; then
+            echo "::error::FRONTEND_BUCKET is empty"
+            exit 1
+          fi
+          echo "Building frontend for API ${VITE_API_URL}"
+          echo "Uploading to s3://${FRONTEND_BUCKET}"
           npm ci
           npm run build
           aws s3 sync build "s3://${FRONTEND_BUCKET}" --delete
 
       - name: Invalidate CloudFront cache
-        env:
-          DIST_ID: ${{ steps.outputs.dist_id }}
         shell: bash
         run: |
+          set -euo pipefail
           aws cloudfront create-invalidation \
             --distribution-id "$DIST_ID" \
             --paths "/*"
 
       - name: Deployment summary
-        env:
-          CF_URL: ${{ steps.outputs.cf_url }}
-          API_URL: ${{ steps.outputs.api_url }}
         run: |
           echo "### AWS deployment complete" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- App URL: $CF_URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "- API URL: $API_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API URL: $VITE_API_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Frontend bucket: $FRONTEND_BUCKET" >> "$GITHUB_STEP_SUMMARY"
           echo "- Branch: develop" >> "$GITHUB_STEP_SUMMARY"
           echo "- Stack: $STACK_NAME" >> "$GITHUB_STEP_SUMMARY"
