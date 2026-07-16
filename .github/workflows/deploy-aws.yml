@@ -80,67 +80,62 @@ jobs:
           audience: sts.amazonaws.com
           role-session-name: github-actions-im5pro-deploy
 
-      - name: Load deploy secrets from SSM
-        id: secrets
+      - name: Load deploy config from SSM
         shell: bash
         run: |
-          set -euo pipefail
           get_param() {
-            aws ssm get-parameter --name "$1" --with-decryption --query Parameter.Value --output text | tr -d '\r'
+            aws ssm get-parameter \
+              --name "$1" \
+              --with-decryption \
+              --query Parameter.Value \
+              --output text | tr -d '\r'
           }
+
           MONGODB_URI=$(get_param "$SSM_PREFIX/mongodb-uri")
           JWT_SECRET=$(get_param "$SSM_PREFIX/jwt-secret")
           JWT_REFRESH_SECRET=$(get_param "$SSM_PREFIX/jwt-refresh-secret")
           SUPER_ADMIN_SETUP_KEY=$(get_param "$SSM_PREFIX/super-admin-setup-key")
           CLIENT_ORIGIN=$(get_param "$SSM_PREFIX/client-origin")
 
-          {
-            echo "mongodb_uri<<EOF"
-            printf '%s\n' "$MONGODB_URI"
-            echo "EOF"
-            echo "jwt_secret<<EOF"
-            printf '%s\n' "$JWT_SECRET"
-            echo "EOF"
-            echo "jwt_refresh_secret<<EOF"
-            printf '%s\n' "$JWT_REFRESH_SECRET"
-            echo "EOF"
-            echo "super_admin_setup_key<<EOF"
-            printf '%s\n' "$SUPER_ADMIN_SETUP_KEY"
-            echo "EOF"
-            echo "client_origin<<EOF"
-            printf '%s\n' "$CLIENT_ORIGIN"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "https://localhost" ]; then
+            STACK_ORIGIN=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
+              --output text 2>/dev/null || true)
+            STACK_ORIGIN=$(printf '%s' "$STACK_ORIGIN" | tr -d '\r\n')
+            if [ -n "$STACK_ORIGIN" ] && [ "$STACK_ORIGIN" != "None" ]; then
+              CLIENT_ORIGIN="$STACK_ORIGIN"
+            fi
+          fi
 
-      - name: Resolve ClientOrigin from stack if needed
-        id: stack
-        env:
-          CLIENT_ORIGIN_INPUT: ${{ steps.secrets.outputs.client_origin }}
-        shell: bash
-        run: |
-          set +e
-          CLIENT_ORIGIN=$(printf '%s' "$CLIENT_ORIGIN_INPUT" | tr -d '\r\n')
-          case "$CLIENT_ORIGIN" in
-            ''|'https://localhost'|*'YOUR_CLOUDFRONT'*)
-              STACK_ORIGIN=$(aws cloudformation describe-stacks \
-                --stack-name "$STACK_NAME" \
-                --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
-                --output text 2>/dev/null)
-              STACK_ORIGIN=$(printf '%s' "$STACK_ORIGIN" | tr -d '\r\n')
-              if [ -n "$STACK_ORIGIN" ] && [ "$STACK_ORIGIN" != "None" ]; then
-                CLIENT_ORIGIN="$STACK_ORIGIN"
-              fi
-              ;;
-          esac
           if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "None" ]; then
             CLIENT_ORIGIN="https://localhost"
           fi
+
+          echo "::add-mask::$MONGODB_URI"
+          echo "::add-mask::$JWT_SECRET"
+          echo "::add-mask::$JWT_REFRESH_SECRET"
+          echo "::add-mask::$SUPER_ADMIN_SETUP_KEY"
+
           {
-            echo "client_origin<<EOF"
-            echo "$CLIENT_ORIGIN"
+            echo "MONGODB_URI<<EOF"
+            printf '%s\n' "$MONGODB_URI"
             echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-          echo "Using ClientOrigin=$CLIENT_ORIGIN"
+            echo "JWT_SECRET<<EOF"
+            printf '%s\n' "$JWT_SECRET"
+            echo "EOF"
+            echo "JWT_REFRESH_SECRET<<EOF"
+            printf '%s\n' "$JWT_REFRESH_SECRET"
+            echo "EOF"
+            echo "SUPER_ADMIN_SETUP_KEY<<EOF"
+            printf '%s\n' "$SUPER_ADMIN_SETUP_KEY"
+            echo "EOF"
+            echo "CLIENT_ORIGIN<<EOF"
+            printf '%s\n' "$CLIENT_ORIGIN"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+          echo "Loaded SSM config. CLIENT_ORIGIN=$CLIENT_ORIGIN"
 
       - name: Install server dependencies
         working-directory: server
@@ -152,6 +147,7 @@ jobs:
 
       - name: SAM deploy
         working-directory: sam
+        shell: bash
         run: |
           sam deploy \
             --stack-name "$STACK_NAME" \
@@ -160,45 +156,81 @@ jobs:
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
-              "MongoDBUri=${{ steps.secrets.outputs.mongodb_uri }}" \
-              "JwtSecret=${{ steps.secrets.outputs.jwt_secret }}" \
-              "JwtRefreshSecret=${{ steps.secrets.outputs.jwt_refresh_secret }}" \
-              "SuperAdminSetupKey=${{ steps.secrets.outputs.super_admin_setup_key }}" \
-              "ClientOrigin=${{ steps.stack.outputs.client_origin }}"
+            "MongoDBUri=${MONGODB_URI}" \
+            "JwtSecret=${JWT_SECRET}" \
+            "JwtRefreshSecret=${JWT_REFRESH_SECRET}" \
+            "SuperAdminSetupKey=${SUPER_ADMIN_SETUP_KEY}" \
+            "ClientOrigin=${CLIENT_ORIGIN}"
 
       - name: Fetch stack outputs
         id: outputs
+        shell: bash
         run: |
-          set -euo pipefail
           OUTPUTS=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
-            --query "Stacks[0].Outputs")
-          CF_URL=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontUrl") | .OutputValue')
-          BUCKET=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue')
-          DIST_ID=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue')
-          echo "cf_url=$CF_URL" >> "$GITHUB_OUTPUT"
-          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
-          echo "dist_id=$DIST_ID" >> "$GITHUB_OUTPUT"
-          echo "api_url=${CF_URL}/api" >> "$GITHUB_OUTPUT"
+            --query "Stacks[0].Outputs" \
+            --output json)
+
+          CF_URL=$(printf '%s' "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontUrl") | .OutputValue' || true)
+          BUCKET=$(printf '%s' "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue' || true)
+          DIST_ID=$(printf '%s' "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue' || true)
+
+          if [ -z "$CF_URL" ] || [ "$CF_URL" = "null" ]; then
+            echo "CloudFrontUrl output missing from stack $STACK_NAME"
+            exit 1
+          fi
+          if [ -z "$BUCKET" ] || [ "$BUCKET" = "null" ]; then
+            echo "FrontendBucketName output missing from stack $STACK_NAME"
+            exit 1
+          fi
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "null" ]; then
+            echo "CloudFrontDistributionId output missing from stack $STACK_NAME"
+            exit 1
+          fi
+
+          {
+            echo "cf_url<<EOF"
+            printf '%s\n' "$CF_URL"
+            echo "EOF"
+            echo "bucket<<EOF"
+            printf '%s\n' "$BUCKET"
+            echo "EOF"
+            echo "dist_id<<EOF"
+            printf '%s\n' "$DIST_ID"
+            echo "EOF"
+            echo "api_url<<EOF"
+            printf '%s\n' "${CF_URL}/api"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and upload frontend
         working-directory: client
+        env:
+          VITE_API_URL: ${{ steps.outputs.api_url }}
+          FRONTEND_BUCKET: ${{ steps.outputs.bucket }}
+        shell: bash
         run: |
           npm ci
-          VITE_API_URL="${{ steps.outputs.api_url }}" npm run build
-          aws s3 sync build "s3://${{ steps.outputs.bucket }}" --delete
+          npm run build
+          aws s3 sync build "s3://${FRONTEND_BUCKET}" --delete
 
       - name: Invalidate CloudFront cache
+        env:
+          DIST_ID: ${{ steps.outputs.dist_id }}
+        shell: bash
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id "${{ steps.outputs.dist_id }}" \
+            --distribution-id "$DIST_ID" \
             --paths "/*"
 
       - name: Deployment summary
+        env:
+          CF_URL: ${{ steps.outputs.cf_url }}
+          API_URL: ${{ steps.outputs.api_url }}
         run: |
           echo "### AWS deployment complete" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- App URL: ${{ steps.outputs.cf_url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- API URL: ${{ steps.outputs.api_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- App URL: $CF_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API URL: $API_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Branch: develop" >> "$GITHUB_STEP_SUMMARY"
           echo "- Stack: $STACK_NAME" >> "$GITHUB_STEP_SUMMARY"
