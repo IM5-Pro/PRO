@@ -16,6 +16,9 @@ permissions:
 env:
   AWS_REGION: us-east-1
   STACK_NAME: im5pro-hrms
+  # Role ARN is public identity; security is enforced by IAM OIDC trust policy.
+  AWS_ROLE_ARN: arn:aws:iam::010829527639:role/github-actions-im5pro-deploy
+  SSM_PREFIX: /im5pro-hrms/github-actions
 
 jobs:
   validate:
@@ -66,32 +69,54 @@ jobs:
             client/package-lock.json
 
       - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
 
-      - name: Verify AWS_ROLE_ARN secret
-        run: |
-          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
-            echo "::error::AWS_ROLE_ARN secret is empty or not available to this workflow."
-            echo "If this is an organization secret, set visibility to Private repositories"
-            echo "(or Selected repositories including IM5-Pro/PRO), not only Public repositories."
-            echo "Expected value: arn:aws:iam::010829527639:role/github-actions-im5pro-deploy"
-            exit 1
-          fi
-          echo "AWS_ROLE_ARN secret is present."
-
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
           role-session-name: github-actions-im5pro-deploy
 
-      - name: Resolve ClientOrigin from existing stack
+      - name: Load deploy secrets from SSM
+        id: secrets
+        run: |
+          set -euo pipefail
+          get_param() {
+            aws ssm get-parameter --name "$1" --with-decryption --query Parameter.Value --output text
+          }
+          MONGODB_URI=$(get_param "$SSM_PREFIX/mongodb-uri")
+          JWT_SECRET=$(get_param "$SSM_PREFIX/jwt-secret")
+          JWT_REFRESH_SECRET=$(get_param "$SSM_PREFIX/jwt-refresh-secret")
+          SUPER_ADMIN_SETUP_KEY=$(get_param "$SSM_PREFIX/super-admin-setup-key")
+          CLIENT_ORIGIN=$(get_param "$SSM_PREFIX/client-origin")
+
+          {
+            echo "mongodb_uri<<EOF"
+            echo "$MONGODB_URI"
+            echo "EOF"
+            echo "jwt_secret<<EOF"
+            echo "$JWT_SECRET"
+            echo "EOF"
+            echo "jwt_refresh_secret<<EOF"
+            echo "$JWT_REFRESH_SECRET"
+            echo "EOF"
+            echo "super_admin_setup_key<<EOF"
+            echo "$SUPER_ADMIN_SETUP_KEY"
+            echo "EOF"
+            echo "client_origin<<EOF"
+            echo "$CLIENT_ORIGIN"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve ClientOrigin from stack if needed
         id: stack
         run: |
           set -euo pipefail
-          CLIENT_ORIGIN="${{ secrets.CLIENT_ORIGIN }}"
-          if [ -z "$CLIENT_ORIGIN" ]; then
+          CLIENT_ORIGIN="${{ steps.secrets.outputs.client_origin }}"
+          if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "https://localhost" ] || [[ "$CLIENT_ORIGIN" == *"YOUR_CLOUDFRONT"* ]]; then
             CLIENT_ORIGIN=$(aws cloudformation describe-stacks \
               --stack-name "$STACK_NAME" \
               --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
@@ -120,10 +145,10 @@ jobs:
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
-              "MongoDBUri=${{ secrets.MONGODB_URI }}" \
-              "JwtSecret=${{ secrets.JWT_SECRET }}" \
-              "JwtRefreshSecret=${{ secrets.JWT_REFRESH_SECRET }}" \
-              "SuperAdminSetupKey=${{ secrets.SUPER_ADMIN_SETUP_KEY }}" \
+              "MongoDBUri=${{ steps.secrets.outputs.mongodb_uri }}" \
+              "JwtSecret=${{ steps.secrets.outputs.jwt_secret }}" \
+              "JwtRefreshSecret=${{ steps.secrets.outputs.jwt_refresh_secret }}" \
+              "SuperAdminSetupKey=${{ steps.secrets.outputs.super_admin_setup_key }}" \
               "ClientOrigin=${{ steps.stack.outputs.client_origin }}"
 
       - name: Fetch stack outputs
