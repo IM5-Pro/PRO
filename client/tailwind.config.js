@@ -5,7 +5,20 @@ module.exports = {
     "./src/**/*.{js,jsx}",
   ],
   theme: {
+    // Mobile → tablet → laptop → desktop → large monitor
+    screens: {
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+      '3xl': '1920px',
+    },
     extend: {
+      maxWidth: {
+        content: '90rem',
+        monitor: '100rem',
+      },
       colors: {
         primary: '#3B82F6',
         secondary: '#10B981',

@@ -562,7 +562,7 @@ const UnifiedDashboard = () => {
         sidebarRole={isWorkPortal ? ROLES.EMPLOYEE : userRole}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden md:ml-0">
         <HRHeader
           user={currentUser}
           onProfileClick={handleProfileAction}
@@ -576,14 +576,14 @@ const UnifiedDashboard = () => {
           onPortalModeChange={handlePortalModeChange}
         />
 
-        <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
-          <div className="flex min-h-0 flex-1 flex-col p-3 md:p-5">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 2xl:p-8">
             <div
-              className="bg-im5-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring-1 ring-white/50"
+              className="bg-im5-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl ring-1 ring-white/50 sm:rounded-2xl"
             >
               <div
                 ref={contentScrollRef}
-                className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain"
+                className="page-content-constrain flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain"
               >
                 <Suspense
                   fallback={

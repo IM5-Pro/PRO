@@ -32,16 +32,16 @@ const AuthLayout = ({
   return (
     // full-screen background image with form card on the right side
     <div
-      className="min-h-screen bg-cover bg-center bg-fixed flex flex-col items-center md:items-end justify-center p-2 sm:p-4 md:p-8 relative"
+      className="relative flex min-h-[100dvh] flex-col items-center justify-center bg-cover bg-center bg-no-repeat p-3 sm:p-4 md:items-end md:p-8 lg:p-10 xl:p-12 md:bg-fixed"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
       {/* Login Card */}
-      <div className="w-full max-w-md mx-auto md:mr-8 lg:mr-16 xl:mr-24">
+      <div className="mx-auto w-full max-w-sm sm:max-w-md md:mr-8 lg:mr-16 xl:mr-24 2xl:mr-32">
         {/* Content Card */}
-        <div className="rounded-3xl border border-im5-border-soft bg-im5-surface/90 p-4 shadow-2xl backdrop-blur-md sm:p-6 md:p-10">
+        <div className="rounded-2xl border border-im5-border-soft bg-im5-surface/90 p-4 shadow-2xl backdrop-blur-md sm:rounded-3xl sm:p-6 md:p-10">
           {/* Logo Header Inside Card */}
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-blue-600 tracking-tight">
+          <div className="mb-5 text-center sm:mb-6 md:mb-8">
+            <h1 className="text-2xl font-bold tracking-tight text-blue-600 sm:text-3xl md:text-4xl">
               HRMS
             </h1>
           </div>
