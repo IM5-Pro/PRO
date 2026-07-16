@@ -82,10 +82,11 @@ jobs:
 
       - name: Load deploy secrets from SSM
         id: secrets
+        shell: bash
         run: |
           set -euo pipefail
           get_param() {
-            aws ssm get-parameter --name "$1" --with-decryption --query Parameter.Value --output text
+            aws ssm get-parameter --name "$1" --with-decryption --query Parameter.Value --output text | tr -d '\r'
           }
           MONGODB_URI=$(get_param "$SSM_PREFIX/mongodb-uri")
           JWT_SECRET=$(get_param "$SSM_PREFIX/jwt-secret")
@@ -95,37 +96,51 @@ jobs:
 
           {
             echo "mongodb_uri<<EOF"
-            echo "$MONGODB_URI"
+            printf '%s\n' "$MONGODB_URI"
             echo "EOF"
             echo "jwt_secret<<EOF"
-            echo "$JWT_SECRET"
+            printf '%s\n' "$JWT_SECRET"
             echo "EOF"
             echo "jwt_refresh_secret<<EOF"
-            echo "$JWT_REFRESH_SECRET"
+            printf '%s\n' "$JWT_REFRESH_SECRET"
             echo "EOF"
             echo "super_admin_setup_key<<EOF"
-            echo "$SUPER_ADMIN_SETUP_KEY"
+            printf '%s\n' "$SUPER_ADMIN_SETUP_KEY"
             echo "EOF"
             echo "client_origin<<EOF"
-            echo "$CLIENT_ORIGIN"
+            printf '%s\n' "$CLIENT_ORIGIN"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
       - name: Resolve ClientOrigin from stack if needed
         id: stack
+        env:
+          CLIENT_ORIGIN_INPUT: ${{ steps.secrets.outputs.client_origin }}
+        shell: bash
         run: |
-          set -euo pipefail
-          CLIENT_ORIGIN="${{ steps.secrets.outputs.client_origin }}"
-          if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "https://localhost" ] || [[ "$CLIENT_ORIGIN" == *"YOUR_CLOUDFRONT"* ]]; then
-            CLIENT_ORIGIN=$(aws cloudformation describe-stacks \
-              --stack-name "$STACK_NAME" \
-              --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
-              --output text 2>/dev/null || true)
-          fi
+          set +e
+          CLIENT_ORIGIN=$(printf '%s' "$CLIENT_ORIGIN_INPUT" | tr -d '\r\n')
+          case "$CLIENT_ORIGIN" in
+            ''|'https://localhost'|*'YOUR_CLOUDFRONT'*)
+              STACK_ORIGIN=$(aws cloudformation describe-stacks \
+                --stack-name "$STACK_NAME" \
+                --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue" \
+                --output text 2>/dev/null)
+              STACK_ORIGIN=$(printf '%s' "$STACK_ORIGIN" | tr -d '\r\n')
+              if [ -n "$STACK_ORIGIN" ] && [ "$STACK_ORIGIN" != "None" ]; then
+                CLIENT_ORIGIN="$STACK_ORIGIN"
+              fi
+              ;;
+          esac
           if [ -z "$CLIENT_ORIGIN" ] || [ "$CLIENT_ORIGIN" = "None" ]; then
             CLIENT_ORIGIN="https://localhost"
           fi
-          echo "client_origin=$CLIENT_ORIGIN" >> "$GITHUB_OUTPUT"
+          {
+            echo "client_origin<<EOF"
+            echo "$CLIENT_ORIGIN"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Using ClientOrigin=$CLIENT_ORIGIN"
 
       - name: Install server dependencies
         working-directory: server
