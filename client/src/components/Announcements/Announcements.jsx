@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { FiBell, FiX } from 'react-icons/fi';
+import { FiMessageSquare, FiVolume2, FiXCircle } from 'react-icons/fi';
 
 /**
  * Announcements Component - Shows company announcements
@@ -81,7 +81,7 @@ const Announcements = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-          <FiBell size={20} className="text-blue-600" />
+          <FiMessageSquare size={20} className="text-blue-600" />
           Announcements
         </h2>
         <span className="badge bg-blue-100 text-blue-800">{announcements.length}</span>
@@ -118,7 +118,7 @@ const Announcements = () => {
                   className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors duration-200"
                   aria-label="Dismiss announcement"
                 >
-                  <FiX size={18} />
+                  <FiXCircle size={18} />
                 </button>
               </div>
             </div>
@@ -126,7 +126,7 @@ const Announcements = () => {
         </div>
       ) : (
         <div className="py-8 text-center">
-          <FiBell className="mx-auto text-gray-400 mb-2" size={32} />
+          <FiVolume2 className="mx-auto text-gray-400 mb-2" size={32} />
           <p className="text-gray-500">No announcements at the moment</p>
         </div>
       )}

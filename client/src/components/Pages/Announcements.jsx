@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiBell, FiEdit2, FiFilter, FiPlus, FiSend, FiTrash2, FiX } from 'react-icons/fi';
+import { FiMessageSquare, FiEdit2, FiFilter, FiPlus, FiSend, FiTrash2, FiX } from 'react-icons/fi';
 import API from '../../api/client';
 import { ANNOUNCEMENT_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -292,7 +292,7 @@ const Announcements = () => {
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className={`text-4xl font-bold ${colors.text.primary} flex items-center gap-3`}>
-            <FiBell className="w-10 h-10" /> Announcements
+            <FiMessageSquare className="w-10 h-10" /> Announcements
           </h1>
         </div>
 

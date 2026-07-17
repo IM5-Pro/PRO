@@ -1,5 +1,5 @@
 import {
-  FiBell,
+  FiMessageSquare,
   FiBookOpen,
   FiBriefcase,
   FiCalendar,
@@ -35,7 +35,7 @@ import { ROLES } from '../../utils/roles';
 const PAGE_ICON_COMPONENTS = {
   dashboard: FiHome,
   attendance: FiCalendar,
-  announcements: FiBell,
+  announcements: FiMessageSquare,
   analytics: FiTrendingUp,
   'employee-profile': FiUser,
   'insurance-details': FiShield,
@@ -95,7 +95,7 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
     pages: [
       { id: 'dashboard', label: 'Dashboard', icon: FiHome, category: 'overview', order: 0, description: 'Personal HR summary and quick actions' },
-      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'communications', order: 10, description: 'Company updates and important notices' },
+      { id: 'announcements', label: 'Announcements', icon: FiMessageSquare, category: 'communications', order: 10, description: 'Company updates and important notices' },
       { id: 'attendance', label: 'Attendance', icon: FiCalendar, category: 'workplace', order: 10, description: 'Daily punch history and attendance status' },
       { id: 'leaves', label: 'Leaves', icon: FiCalendar, category: 'workplace', order: 20, description: 'Apply leave and track request progress' },
       { id: 'payroll', label: 'Payroll', icon: RupeeIcon, category: 'workplace', order: 30, description: 'Payslips, deductions, and payroll details' },
@@ -126,7 +126,7 @@ export const ROLE_DASHBOARD_CONFIG = {
       { id: 'payroll', label: 'Payroll', icon: RupeeIcon, category: 'workplace', order: 30, description: 'Payroll summaries and payouts' },
       { id: 'performance', label: 'Performance', icon: FiTrendingUp, category: 'workplace', order: 40, description: 'Performance reviews and goals' },
       { id: 'employee-profile', label: 'My Profile', icon: FiUser, category: 'workplace', order: 50, description: 'Profile and role details' },
-      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'communications', order: 10, description: 'Company updates and important notices' },
+      { id: 'announcements', label: 'Announcements', icon: FiMessageSquare, category: 'communications', order: 10, description: 'Company updates and important notices' },
       { id: 'attendance-approvals', label: 'Attendance Approvals', icon: FiCheckSquare, category: 'approvals', order: 10, description: 'Approve attendance corrections for your team' },
       { id: 'tool-provisioning', label: 'Tool Provisioning', icon: FiTool, category: 'approvals', order: 20, description: 'Approve or reject tool access requests' },
       { id: 'resignation', label: 'Resignation', icon: FiLogOut, category: 'approvals', order: 30, description: 'Approve and manage team resignation requests' },
@@ -166,7 +166,7 @@ export const ROLE_DASHBOARD_CONFIG = {
     ],
     pages: [
       { id: 'dashboard', label: 'HR Overview', icon: FiHome, category: 'overview', order: 0, description: 'Organization-wide HR health summary' },
-      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'communications', order: 10, description: 'Create and send company announcements' },
+      { id: 'announcements', label: 'Announcements', icon: FiMessageSquare, category: 'communications', order: 10, description: 'Create and send company announcements' },
       { id: 'user-management', label: 'User Management', icon: FiUser, category: 'workforce', order: 10, description: 'Manage user accounts and access' },
       { id: 'profile-approvals', label: 'Profile approvals', icon: FiUser, category: 'workforce', order: 15, description: 'Review employee profile updates and onboarding' },
       { id: 'insurance-cycles', label: 'Insurance cycles', icon: FiShield, category: 'workforce', order: 16, description: 'Open enrollment or update windows for all employees' },
@@ -206,7 +206,7 @@ export const ROLE_DASHBOARD_CONFIG = {
       { id: 'org-structure', label: 'Org Structure', icon: FiGitBranch, category: 'governance', order: 30, description: 'Organization hierarchy and chart' },
       { id: 'roles-permissions', label: 'Access Control', icon: FiLock, category: 'governance', order: 40, description: 'Roles, permissions, and assignment management' },
       { id: 'role-transfer', label: 'Role Transfer', icon: FiShield, category: 'governance', order: 50, description: 'Transfer super admin credentials to another person' },
-      { id: 'announcements', label: 'Announcements', icon: FiBell, category: 'communications', order: 10, description: 'Create and send announcements to employees' },
+      { id: 'announcements', label: 'Announcements', icon: FiMessageSquare, category: 'communications', order: 10, description: 'Create and send announcements to employees' },
       { id: 'projects-admin', label: 'Projects', icon: FiLayers, category: 'governance', order: 70, description: 'Enterprise project registry' },
       { id: 'employee-bulk-ops', label: 'Bulk Import', icon: FiUpload, category: 'governance', order: 80, description: 'Bulk employee import and transfers' },
       { id: 'resignation', label: 'Resignation', icon: FiLogOut, category: 'separation', order: 10, description: 'System-wide resignation monitoring and controls' },
