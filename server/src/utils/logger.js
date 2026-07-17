@@ -6,10 +6,23 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create logs directory if it doesn't exist
-const logsDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+const isLambda = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+// Lambda /var/task is read-only — use /tmp there, otherwise repo logs/
+const logsDir = isLambda
+  ? path.join('/tmp', 'hrms-logs')
+  : path.join(__dirname, '../../logs');
+
+let canWriteFiles = false;
+try {
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
+  canWriteFiles = true;
+} catch (error) {
+  // Never crash app startup if filesystem is read-only
+  console.warn(`File logging disabled: ${error.message}`);
+  canWriteFiles = false;
 }
 
 /**
@@ -53,52 +66,54 @@ const logger = winston.createLogger({
   defaultMeta: { service: 'hrms-server' },
 });
 
-// Add console transport for development
+// Console transport (CloudWatch captures this in Lambda)
 logger.add(
   new winston.transports.Console({
     format: winston.format.combine(
-      winston.format.colorize(),
+      winston.format.colorize({ all: !isLambda }),
       winston.format.simple(),
       customFormat
     ),
   })
 );
 
-// Add file transports for different log levels
-logger.add(
-  new winston.transports.File({
-    filename: path.join(logsDir, 'error.log'),
-    level: 'error',
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  })
-);
+// File transports only when the filesystem allows it
+if (canWriteFiles) {
+  logger.add(
+    new winston.transports.File({
+      filename: path.join(logsDir, 'error.log'),
+      level: 'error',
+      maxsize: 5242880,
+      maxFiles: 5,
+    })
+  );
 
-logger.add(
-  new winston.transports.File({
-    filename: path.join(logsDir, 'warn.log'),
-    level: 'warn',
-    maxsize: 5242880,
-    maxFiles: 5,
-  })
-);
+  logger.add(
+    new winston.transports.File({
+      filename: path.join(logsDir, 'warn.log'),
+      level: 'warn',
+      maxsize: 5242880,
+      maxFiles: 5,
+    })
+  );
 
-logger.add(
-  new winston.transports.File({
-    filename: path.join(logsDir, 'combined.log'),
-    maxsize: 5242880,
-    maxFiles: 5,
-  })
-);
+  logger.add(
+    new winston.transports.File({
+      filename: path.join(logsDir, 'combined.log'),
+      maxsize: 5242880,
+      maxFiles: 5,
+    })
+  );
 
-logger.add(
-  new winston.transports.File({
-    filename: path.join(logsDir, 'debug.log'),
-    level: 'debug',
-    maxsize: 5242880,
-    maxFiles: 5,
-  })
-);
+  logger.add(
+    new winston.transports.File({
+      filename: path.join(logsDir, 'debug.log'),
+      level: 'debug',
+      maxsize: 5242880,
+      maxFiles: 5,
+    })
+  );
+}
 
 /**
  * Get caller information (file, function, line number)
