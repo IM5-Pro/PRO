@@ -140,10 +140,12 @@ const HRHeader = ({
         return;
       }
       const rect = searchContainerRef.current.getBoundingClientRect();
+      const width = Math.min(Math.max(rect.width, 280), window.innerWidth - 16);
+      const left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
       setSearchDropdownRect({
         top: rect.bottom + 6,
-        left: rect.left,
-        width: Math.max(rect.width, 280),
+        left,
+        width,
       });
     };
 
@@ -579,10 +581,10 @@ const HRHeader = ({
   );
 
   const headerActions = (
-    <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-6">
-          {/* Current Time - Desktop Only */}
+    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-4 lg:gap-6">
+          {/* Current Time - Laptop / monitor */}
           <div
-            className="hidden lg:flex flex-col items-end text-slate-700"
+            className="hidden xl:flex flex-col items-end text-slate-700"
             title={formattedDate}
           >
             <p className="text-sm font-semibold">{formattedTime}</p>
@@ -610,7 +612,7 @@ const HRHeader = ({
                     ? 'Punched out — open attendance'
                     : 'Not punched in — open attendance'
               }
-              className={`hidden sm:flex items-center justify-center p-2 rounded-lg text-white transition-all duration-200 shadow-md disabled:opacity-60 ${
+              className={`flex items-center justify-center rounded-lg p-2 text-white shadow-md transition-all duration-200 disabled:opacity-60 ${
                 punchStatus === 'in'
                   ? 'bg-green-600 hover:bg-green-700'
                   : punchStatus === 'out'
@@ -627,7 +629,7 @@ const HRHeader = ({
             <button
               data-menu-trigger="notifications"
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-slate-700 hover:text-slate-900 hover:bg-white/30 rounded-lg transition-all duration-300"
+              className="relative rounded-lg p-2 text-slate-700 transition-all duration-300 hover:bg-white/30 hover:text-slate-900"
               aria-label={`Notifications (${unreadCount} unread)`}
               title={`${unreadCount} new notifications`}
             >
@@ -636,7 +638,7 @@ const HRHeader = ({
               {/* Notification Badge */}
               {unreadCount > 0 && (
                 <span
-                  className="absolute top-0 right-0 w-5 h-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse"
+                  className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white animate-pulse"
                   aria-label={`${unreadCount} new notifications`}
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -656,13 +658,13 @@ const HRHeader = ({
             <button
               data-menu-trigger="profile"
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-white/30 rounded-lg transition-all duration-300"
+              className="flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 transition-all duration-300 hover:bg-white/30 sm:gap-2 sm:px-3 sm:py-2"
               aria-label="User profile menu"
               aria-expanded={showProfileMenu}
             >
               {/* Avatar */}
               <div
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-bold shadow-lg"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-sm font-bold text-white shadow-lg sm:h-9 sm:w-9 sm:text-base"
                 title={user.name}
               >
                 {user.avatar || user.name?.charAt(0) || 'U'}
@@ -671,7 +673,7 @@ const HRHeader = ({
               {/* Dropdown Arrow */}
               <FiChevronDown
                 size={18}
-                className={`text-slate-700 transition-transform duration-300 hidden md:block ${
+                className={`hidden text-slate-700 transition-transform duration-300 lg:block ${
                   showProfileMenu ? 'rotate-180' : ''
                 }`}
               />
@@ -680,7 +682,7 @@ const HRHeader = ({
             {/* Profile Dropdown Menu */}
             {showProfileMenu && (
               <div
-                className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 top-full"
+                className="absolute right-0 top-full z-50 mt-3 w-[min(16rem,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-lg"
                 role="menu"
                 aria-label="Profile menu"
               >
@@ -726,10 +728,10 @@ const HRHeader = ({
   return (
     <header className="sticky top-0 z-40 overflow-visible border-b border-im5-border-soft bg-im5-header shadow-sm backdrop-blur-sm">
       <div
-        className={`px-4 md:px-8 ${
+        className={`px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 ${
           portalSwitcher
-            ? 'flex flex-col gap-3 py-3 md:py-3'
-            : 'flex items-center justify-between gap-4 py-4'
+            ? 'flex flex-col gap-2.5 py-2.5 sm:gap-3 sm:py-3'
+            : 'flex items-center justify-between gap-2 sm:gap-4 py-3 sm:py-4'
         }`}
       >
         {portalSwitcher ? (

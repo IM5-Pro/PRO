@@ -193,12 +193,12 @@ const HRSidebar = ({
           MOBILE MENU TOGGLE BUTTON
           ======================================== */}
       <button
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all duration-300"
+        className="md:hidden fixed z-50 rounded-lg bg-blue-600 p-2.5 text-white shadow-lg transition-all duration-300 hover:bg-blue-700 top-[max(0.75rem,env(safe-area-inset-top))] left-[max(0.75rem,env(safe-area-inset-left))]"
         onClick={toggleSidebar}
         aria-label={isOpen ? "Close navigation" : "Open navigation"}
         aria-expanded={isOpen}
       >
-        {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+        {isOpen ? <FiX size={22} /> : <FiMenu size={22} />}
       </button>
 
       {/* ========================================
@@ -206,7 +206,8 @@ const HRSidebar = ({
           ======================================== */}
       <aside
         className={`
-          fixed md:static left-0 top-0 h-full max-h-[100dvh] md:max-h-none w-64
+          fixed md:static left-0 top-0 h-full max-h-[100dvh] md:max-h-none
+          w-[min(18rem,85vw)] md:w-60 lg:w-64 xl:w-72
           bg-im5-surface/95 text-slate-800 shadow-sm border-r border-im5-border-soft backdrop-blur-sm
           transform transition-transform duration-300 md:translate-x-0 z-40
           flex flex-col overflow-hidden
@@ -216,12 +217,12 @@ const HRSidebar = ({
         {/* ========================================
             LOGO SECTION
             ======================================== */}
-        <div className="p-6 border-b border-im5-border-soft">
-          <div className="flex h-10 w-full items-center justify-center">
+        <div className="border-b border-im5-border-soft p-4 md:p-5 lg:p-6">
+          <div className="flex h-9 w-full items-center justify-center md:h-10">
             <img
               src={logo}
               alt="iSpace"
-              className="h-22 w-auto max-w-[100px] shrink-0 object-fill"
+              className="h-auto w-auto max-h-9 max-w-[88px] shrink-0 object-contain md:max-h-10 md:max-w-[100px]"
             />
             {/* <h1 className="text-2xl font-bold leading-none text-slate-900">
               HRMS
