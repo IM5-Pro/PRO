@@ -19,6 +19,9 @@ import SubmitButton from '../Auth/SubmitButton';
 import AlertMessage from '../Auth/AlertMessage';
 import { createPortal } from 'react-dom';
 import { LOGOUT_REASON_IDLE, LOGOUT_REASON_KEY } from '../../constants/session';
+import { normalizeRole, ROLES } from '../../utils/roles';
+
+const PUNCH_ROLES = [ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN];
 
 /**
  * Login Component
@@ -83,6 +86,17 @@ const Login = ({ onLoginSuccess = null }) => {
     }
 
     return redirect;
+  };
+
+  // Punch-required roles land on /punch first so a restored ?page= deep link
+  // cannot skip the attendance screen after login.
+  const getPostLoginPath = (authenticatedUser) => {
+    const role = normalizeRole(authenticatedUser?.role);
+    if (PUNCH_ROLES.includes(role)) {
+      return '/punch';
+    }
+
+    return getRedirectPath();
   };
 
   useEffect(() => {
@@ -194,10 +208,8 @@ const Login = ({ onLoginSuccess = null }) => {
 
       setSuccess(true);
 
-      // push the user off the login route so AppContent can render the
-      // appropriate dashboard for their role. we navigate to the root
-      // because AppContent handles role-based routing on '/'.
-      navigate(getRedirectPath(), { replace: true });
+      // Punch roles go straight to /punch; other roles keep their redirect.
+      navigate(getPostLoginPath(authenticatedUser), { replace: true });
 
       // Call success callback (legacy prop, still supported)
       if (onLoginSuccess) {
@@ -268,7 +280,7 @@ const Login = ({ onLoginSuccess = null }) => {
 
       setTimeout(() => {
         setShowInitialPasswordSetup(false);
-        navigate(getRedirectPath(), { replace: true });
+        navigate(getPostLoginPath(currentUser), { replace: true });
       }, 500);
     } catch (err) {
       setInitialPasswordError(err?.response?.data?.message || err?.message || 'Failed to create password');

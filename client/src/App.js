@@ -71,18 +71,19 @@ const AppContent = () => {
   // AUTHENTICATED - ROLE-BASED DASHBOARD ROUTING
   // ============================================================================
 
-  // Check if user needs to punch in/out first (only on initial login)
-  // hasPunchedInToday allows punch out without forced return to punch screen
+  // Check if user needs to punch in/out first (on dashboard root entry).
+  // Ignore ?page= so a restored deep link (e.g. /?page=leaves) cannot skip attendance.
+  // hasPunchedInToday allows punch out without forced return to punch screen.
   const isPunchCookieCurrent = getCookie('punchDayKey') === getPunchDayKey();
   const isPunchedIn = getCookie('isPunchedIn') === 'true' && isPunchCookieCurrent;
   const hasPunchedInToday = getCookie('hasPunchedInToday') === 'true' && isPunchCookieCurrent;
-  const searchParams = new URLSearchParams(location.search);
-  const hasSelectedDashboardPage = searchParams.has('page');
-  const isHomeEntry = location.pathname === '/' && !hasSelectedDashboardPage;
-  
-  // For employee, manager, and HR admin roles: check punch status
   const punchRoles = [ROLES.EMPLOYEE, ROLES.MANAGER, ROLES.HR_ADMIN];
-  if (!isPunchedIn && !hasPunchedInToday && punchRoles.includes(userRole) && isHomeEntry) {
+  if (
+    !isPunchedIn &&
+    !hasPunchedInToday &&
+    punchRoles.includes(userRole) &&
+    location.pathname === '/'
+  ) {
     return <Navigate to="/punch" replace />;
   }
 
