@@ -694,6 +694,30 @@ export const deleteAllNotifications = async (req, res) => {
 // HELPER FUNCTIONS (For use in other controllers)
 // ============================================================================
 
+const resolveNotificationRecipientId = async (recipientId) => {
+  if (!recipientId) return recipientId;
+
+  const directUser = await User.findById(recipientId).select("_id").lean();
+  if (directUser?._id) {
+    return directUser._id;
+  }
+
+  const linkedUser = await User.findOne({ employeeId: recipientId }).select("_id").lean();
+  if (linkedUser?._id) {
+    return linkedUser._id;
+  }
+
+  return recipientId;
+};
+
+const normalizeNotificationData = async (notificationData) => {
+  const resolvedUserId = await resolveNotificationRecipientId(notificationData?.userId);
+  return {
+    ...notificationData,
+    userId: resolvedUserId,
+  };
+};
+
 /**
  * Create notification - Can be used by other controllers
  * @param {Object} notificationData
@@ -702,28 +726,30 @@ export const deleteAllNotifications = async (req, res) => {
  */
 export const createNotification = async (notificationData, user = null) => {
   try {
+    const normalizedNotificationData = await normalizeNotificationData(notificationData);
+
     appLogger.info('Creating notification', {
       userId: user?.id || user?._id || 'system',
       userName: user ? `${user.firstName} ${user.lastName}` : 'system',
       userRole: user?.role || 'system',
-      notificationType: notificationData.type,
-      targetUserId: notificationData.userId,
+      notificationType: normalizedNotificationData.type,
+      targetUserId: normalizedNotificationData.userId,
     });
 
     const notification = new Notification({
-      userId: notificationData.userId,
-      type: notificationData.type,
-      title: notificationData.title,
-      message: notificationData.message,
-      priority: notificationData.priority || "medium",
-      category: notificationData.category || "update",
-      referenceType: notificationData.referenceType,
-      referenceId: notificationData.referenceId,
-      actionUrl: notificationData.actionUrl,
-      metadata: notificationData.metadata || {},
-      triggeredBy: notificationData.triggeredBy,
-      batchId: notificationData.batchId,
-      expiresAt: notificationData.expiresAt,
+      userId: normalizedNotificationData.userId,
+      type: normalizedNotificationData.type,
+      title: normalizedNotificationData.title,
+      message: normalizedNotificationData.message,
+      priority: normalizedNotificationData.priority || "medium",
+      category: normalizedNotificationData.category || "update",
+      referenceType: normalizedNotificationData.referenceType,
+      referenceId: normalizedNotificationData.referenceId,
+      actionUrl: normalizedNotificationData.actionUrl,
+      metadata: normalizedNotificationData.metadata || {},
+      triggeredBy: normalizedNotificationData.triggeredBy,
+      batchId: normalizedNotificationData.batchId,
+      expiresAt: normalizedNotificationData.expiresAt,
     });
 
     await notification.save();
@@ -758,14 +784,18 @@ export const createNotification = async (notificationData, user = null) => {
  */
 export const createBulkNotifications = async (notificationsData, user = null) => {
   try {
+    const normalizedNotifications = await Promise.all(
+      (notificationsData || []).map(normalizeNotificationData)
+    );
+
     appLogger.info('Creating bulk notifications', {
       userId: user?.id || user?._id || 'system',
       userName: user ? `${user.firstName} ${user.lastName}` : 'system',
       userRole: user?.role || 'system',
-      count: notificationsData.length,
+      count: normalizedNotifications.length,
     });
 
-    const notifications = await Notification.insertMany(notificationsData);
+    const notifications = await Notification.insertMany(normalizedNotifications);
 
     appLogger.logDatabaseOperation('CREATE', 'Notification', user || {}, {
       operation: 'createBulkNotifications',

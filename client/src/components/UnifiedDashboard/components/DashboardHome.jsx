@@ -69,7 +69,7 @@ const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading 
   return (
     <div className="min-h-full bg-im5-page p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10">
       <div className="mb-6 flex flex-col gap-1 rounded-xl border border-im5-border-soft bg-im5-banner p-4 shadow-sm sm:mb-8 sm:rounded-2xl sm:p-6 md:p-8">
-        <h1 className="mb-1 text-xl font-extrabold tracking-tight text-slate-800 sm:text-2xl md:text-3xl lg:text-4xl">
+        <h1 className="mb-1 text-xl font-bold tracking-tight text-slate-800 sm:text-2xl md:text-3xl lg:text-4xl">
           {heading}
         </h1>
         <p className="text-sm font-medium text-slate-500 sm:text-base">{subtitle}</p>
@@ -91,7 +91,7 @@ const DashboardHome = ({ heading, subtitle, widgets, pages, onNavigate, loading 
                 <span className="mb-0.5 text-sm font-semibold tracking-wide text-slate-500 sm:mb-1 sm:text-base">
                   {widget.title}
                 </span>
-                <span className="mb-0.5 text-2xl font-extrabold text-slate-900 sm:text-3xl md:text-4xl">
+                <span className="mb-0.5 text-2xl font-bold text-slate-900 sm:text-3xl md:text-4xl">
                   {loading ? '—' : widget.value}
                 </span>
                 <span className="line-clamp-2 text-xs leading-relaxed text-slate-400">{widget.note}</span>

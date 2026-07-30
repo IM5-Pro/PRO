@@ -4,7 +4,7 @@
  * Features: Monthly calendar view, shift tracking, hours logged, view options
  */
 
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { FiChevronLeft, FiChevronRight, FiRefreshCw, FiX, FiClock, FiEdit } from 'react-icons/fi';
 import API from '../../api/client';
@@ -120,6 +120,104 @@ const buildCalendarObject = (attendanceArr, leaveArr, y, m, holidayArr = HOLIDAY
   return calendarObj;
 };
 
+const DayCell = memo(({ day, data, employeeShift, currentDate, onDateClick }) => {
+  if (!day) {
+    return <div className="aspect-square min-w-0 rounded-xl border border-transparent bg-gray-50 p-1 sm:p-2" />;
+  }
+
+  const isToday =
+    day === new Date().getDate() &&
+    currentDate.getMonth() === new Date().getMonth() &&
+    currentDate.getFullYear() === new Date().getFullYear();
+  const isWeekend = [0, 6].includes(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay());
+  const shiftDisplay = employeeShift
+    ? `${employeeShift.name}:${employeeShift.startTime}-${employeeShift.endTime}`
+    : 'Day Shift:09:00-17:00';
+
+  const leaveRequest = data.leaveRequest;
+  const holiday = data.holiday;
+  const hasBothLeaveAndAttendance = leaveRequest && (data.timeEntry || data.offType);
+
+  const leaveBadge = leaveRequest
+    ? leaveRequest.status === 'approved'
+      ? 'Approved Leave'
+      : 'Applied Leave'
+    : null;
+  const badgeClass = leaveRequest
+    ? leaveRequest.status === 'approved'
+      ? 'bg-purple-600 text-white'
+      : 'bg-indigo-600 text-white'
+    : '';
+
+  const cellBase = holiday
+    ? 'bg-green-50 border border-green-200'
+    : hasBothLeaveAndAttendance
+      ? 'bg-violet-50 border border-violet-300'
+      : leaveRequest
+        ? 'bg-violet-50 border border-violet-200'
+        : isToday
+          ? 'bg-blue-50 border-blue-400 border-2'
+          : isWeekend
+            ? 'bg-red-50 border border-red-200'
+            : 'bg-white border border-gray-200';
+
+  return (
+    <div
+      onClick={() => onDateClick?.(day)}
+      className={`flex aspect-square min-w-0 flex-col overflow-hidden rounded-xl p-1 sm:p-2 ${cellBase} cursor-pointer hover:brightness-[0.98]`}
+    >
+      <div
+        className={`mb-1 shrink-0 text-sm font-semibold leading-none sm:text-lg ${holiday ? 'text-green-800' : hasBothLeaveAndAttendance ? 'text-violet-700' : leaveRequest ? 'text-violet-800' : isToday ? 'text-blue-700' : isWeekend ? 'text-red-800' : 'text-gray-700'}`}
+      >
+        {day}
+      </div>
+      <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden text-[9px] sm:space-y-1 sm:text-xs">
+        {shiftDisplay && (
+          <div className="truncate rounded bg-red-700 px-1 py-0.5 font-medium text-white sm:px-2 sm:py-1">{shiftDisplay}</div>
+        )}
+        {holiday && (
+          <div className="truncate rounded bg-green-600 px-1 py-0.5 font-medium text-white sm:px-2 sm:py-1">Holiday</div>
+        )}
+        {holiday && holiday.occasion && (
+          <div className="truncate rounded bg-green-100 px-1 py-0.5 text-green-800 sm:px-2 sm:py-1">{holiday.occasion}</div>
+        )}
+        {leaveRequest && (
+          <div className={`truncate rounded px-1 py-0.5 font-medium sm:px-2 sm:py-1 ${badgeClass}`}>{leaveBadge}</div>
+        )}
+        {leaveRequest && leaveRequest.type && (
+          <div className="truncate rounded bg-violet-100 px-1 py-0.5 text-violet-800 sm:px-2 sm:py-1">{leaveRequest.type}</div>
+        )}
+        {data.timeEntry && (
+          <div className="truncate rounded bg-blue-500 px-1 py-0.5 font-semibold text-white sm:px-2 sm:py-1">{data.timeEntry}</div>
+        )}
+        {data.offType && !leaveRequest && !holiday && (
+          <div className="truncate rounded bg-red-500 px-1 py-0.5 font-medium text-white sm:px-2 sm:py-1">{data.offType}</div>
+        )}
+        {data.isLossOfPay && (
+          <div className="truncate rounded bg-orange-600 px-1 py-0.5 font-medium text-white sm:px-2 sm:py-1">LOP: {data.lopReason}</div>
+        )}
+        {data.isAutoMarked && (
+          <div className="truncate rounded bg-amber-500 px-1 py-0.5 text-white sm:px-2 sm:py-1">Auto</div>
+        )}
+        {data.approvalStatus === 'Pending' && (
+          <div className="truncate rounded bg-blue-600 px-1 py-0.5 font-medium text-white sm:px-2 sm:py-1">Pending</div>
+        )}
+        {data.approvalStatus === 'Approved' && data.manuallyAdded && (
+          <div className="truncate rounded bg-green-600 px-1 py-0.5 font-medium text-white sm:px-2 sm:py-1">Approved</div>
+        )}
+        {data.approvalStatus === 'Rejected' && (
+          <div className="truncate rounded bg-red-600 px-1 py-0.5 font-medium text-white sm:px-2 sm:py-1">Rejected</div>
+        )}
+        {hasBothLeaveAndAttendance && (
+          <div className="truncate rounded bg-blue-500 px-1 py-0.5 text-center font-medium text-white sm:px-2 sm:py-1">L&amp;A</div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+DayCell.displayName = 'DayCell';
+
 const AttendanceSheet = () => {
   const { user } = useContext(AuthContext);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -182,7 +280,6 @@ const AttendanceSheet = () => {
   const fetchMonthAttendance = useCallback(async ({ showLoading = true } = {}) => {
     if (showLoading) {
       setLoading(true);
-      setAttendanceData({});
     }
     setError(null);
 
@@ -342,127 +439,29 @@ const AttendanceSheet = () => {
     }
   };
 
-  // Day cell rendering
-  const DayCell = ({ day, onDateClick }) => {
-    if (!day) return <div className="aspect-square min-w-0 rounded-xl border border-transparent bg-gray-50 p-1 sm:p-2" />;
-    const data = attendanceData[day] || {};
-    const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
-    const isWeekend = [0, 6].includes(new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay());
-    const shiftDisplay = employeeShift ? `${employeeShift.name}:${employeeShift.startTime}-${employeeShift.endTime}` : 'Day Shift:09:00-17:00';
-    
-    const leaveRequest = data.leaveRequest;
-    const holiday = data.holiday;
-    const hasBothLeaveAndAttendance = leaveRequest && (data.timeEntry || data.offType);
-    
-    const leaveBadge = leaveRequest
-      ? leaveRequest.status === 'approved'
-        ? 'Approved Leave'
-        : 'Applied Leave'
-      : null;
-    const badgeClass = leaveRequest
-      ? leaveRequest.status === 'approved'
-        ? 'bg-purple-600 text-white'
-        : 'bg-indigo-600 text-white'
-      : '';
-    
-    // Adjust background when both leave and attendance exist
-    const cellBase =
-      holiday
-        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'
-        : hasBothLeaveAndAttendance
-          ? 'bg-gradient-to-br from-violet-50 via-blue-50 to-fuchsia-50 border border-violet-300'
-          : leaveRequest
-            ? 'bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200'
-            : isToday
-              ? 'bg-gradient-to-br from-blue-100 to-blue-50 border-blue-400 border-2'
-              : isWeekend
-                ? 'bg-red-50 border border-red-200'
-                : 'bg-white border border-gray-200';
-    
-    return (
-      <div
-        onClick={() => onDateClick?.(day)}
-        className={`flex aspect-square min-w-0 flex-col overflow-hidden rounded-xl p-1 shadow-sm transition-all duration-300 sm:p-2 ${cellBase} hover:shadow-lg hover:bg-opacity-80 cursor-pointer active:scale-95`}
-      >
-        <div
-          className={`mb-1 shrink-0 text-sm font-semibold leading-none sm:text-lg ${holiday ? 'text-green-800' : hasBothLeaveAndAttendance ? 'text-violet-700' : leaveRequest ? 'text-violet-800' : isToday ? 'text-blue-700' : isWeekend ? 'text-red-800' : 'text-gray-700'}`}
-        >
-          {day}
-        </div>
-        <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden text-[9px] sm:space-y-1 sm:text-xs">
-          {shiftDisplay && (
-            <div className="truncate rounded bg-gradient-to-r from-red-700 to-yellow-700 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">{shiftDisplay}</div>
-          )}
-          {holiday && (
-            <div className="truncate rounded bg-green-600 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">Holiday</div>
-          )}
-          {holiday && holiday.occasion && (
-            <div className="truncate rounded bg-green-100 px-1 py-0.5 text-green-800 shadow-sm sm:px-2 sm:py-1">{holiday.occasion}</div>
-          )}
-          {leaveRequest && (
-            <div className={`truncate rounded px-1 py-0.5 font-medium shadow-sm sm:px-2 sm:py-1 ${badgeClass}`}>{leaveBadge}</div>
-          )}
-          {leaveRequest && leaveRequest.type && (
-            <div className="truncate rounded bg-violet-100 px-1 py-0.5 text-violet-800 shadow-sm sm:px-2 sm:py-1">{leaveRequest.type}</div>
-          )}
-          {data.timeEntry && (
-            <div className="truncate rounded bg-gradient-to-r from-blue-500 to-blue-300 px-1 py-0.5 font-semibold text-white shadow-sm sm:px-2 sm:py-1">{data.timeEntry}</div>
-          )}
-          {data.offType && !leaveRequest && !holiday && (
-            <div className="truncate rounded bg-gradient-to-r from-red-500 to-pink-400 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">{data.offType}</div>
-          )}
-          {data.isLossOfPay && (
-            <div className="truncate rounded bg-gradient-to-r from-orange-600 to-red-600 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">💼 LOP: {data.lopReason}</div>
-          )}
-          {data.isAutoMarked && (
-            <div className="truncate rounded bg-gradient-to-r from-amber-500 to-yellow-500 px-1 py-0.5 text-white shadow-sm sm:px-2 sm:py-1">🤖 Auto</div>
-          )}
-          {data.approvalStatus === 'Pending' && (
-            <div className="truncate rounded bg-gradient-to-r from-blue-600 to-cyan-600 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">
-              ⏳ Pending
-            </div>
-          )}
-          {data.approvalStatus === 'Approved' && data.manuallyAdded && (
-            <div className="truncate rounded bg-gradient-to-r from-green-600 to-emerald-500 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">
-              ✓ Approved
-            </div>
-          )}
-          {data.approvalStatus === 'Rejected' && (
-            <div className="truncate rounded bg-gradient-to-r from-red-600 to-rose-500 px-1 py-0.5 font-medium text-white shadow-sm sm:px-2 sm:py-1">
-              ✗ Rejected
-            </div>
-          )}
-          {hasBothLeaveAndAttendance && (
-            <div className="truncate rounded bg-blue-500 px-1 py-0.5 text-center font-medium text-white shadow-sm sm:px-2 sm:py-1">📌 L&A</div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   return (
-    <div className="w-full card animate-fadeInUp bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+    <div className="w-full rounded-2xl border border-gray-100 bg-white p-6 shadow-xl">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-2">
           <button
             onClick={previousMonth}
-            className="p-3 hover:bg-blue-100 text-gray-600 hover:text-blue-700 rounded-xl transition-all transform hover:scale-110 active:scale-95 shadow-sm"
+            className="rounded-xl p-3 text-gray-600 shadow-sm hover:bg-blue-100 hover:text-blue-700"
             title="Previous month"
           >
             <FiChevronLeft size={20} />
           </button>
           <button
             onClick={nextMonth}
-            className="p-3 hover:bg-blue-100 text-gray-600 hover:text-blue-700 rounded-xl transition-all transform hover:scale-110 active:scale-95 shadow-sm"
+            className="rounded-xl p-3 text-gray-600 shadow-sm hover:bg-blue-100 hover:text-blue-700"
             title="Next month"
           >
             <FiChevronRight size={20} />
           </button>
           <button
             onClick={goToToday}
-            className="px-4 py-2 text-gray-600 hover:text-blue-700 hover:bg-blue-100 rounded-xl transition-all text-sm font-medium transform hover:scale-105 active:scale-95 shadow-sm"
+            className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-blue-100 hover:text-blue-700"
           >
             today
           </button>
@@ -493,60 +492,69 @@ const AttendanceSheet = () => {
       {/* Calendar */}
       {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
       {success && <div className="text-green-600 text-sm mb-4 font-medium">✓ Attendance synced successfully!</div>}
-      {loading ? (
-        <div className="w-full text-center py-12 text-lg text-gray-500 animate-pulse">Loading attendance...</div>
+      {loading && Object.keys(attendanceData).length === 0 ? (
+        <div className="w-full py-12 text-center text-lg text-gray-500">Loading attendance...</div>
       ) : (
-        <div className="animate-fadeInUp">
-          <div className="grid min-w-0 grid-cols-7 gap-0 mb-0 header-blue overflow-hidden rounded-xl">
+        <div className={loading ? 'pointer-events-none opacity-70' : undefined}>
+          <div className="header-blue mb-0 grid min-w-0 grid-cols-7 gap-0 overflow-hidden rounded-xl">
             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-              <div key={day} className="truncate bg-gradient-to-b from-blue-700 to-blue-500 p-2 text-center text-[10px] font-semibold tracking-wide text-white shadow-sm sm:p-3 sm:text-sm">{day}</div>
+              <div key={day} className="truncate bg-blue-600 p-2 text-center text-[10px] font-semibold tracking-wide text-white sm:p-3 sm:text-sm">{day}</div>
             ))}
           </div>
-          <div className="grid min-w-0 grid-cols-7 gap-0 overflow-hidden rounded-xl border border-gray-200">
+          <div
+            className="grid min-w-0 grid-cols-7 gap-0 overflow-hidden rounded-xl border border-gray-200 [content-visibility:auto]"
+            style={{ containIntrinsicSize: 'auto 720px' }}
+          >
             {days.map((day, idx) => (
-              <div key={idx} className="min-w-0 border-r border-b border-gray-200 last:border-r-0 transition-all duration-300">
-                <DayCell day={day} onDateClick={handleDateClick} />
+              <div key={idx} className="min-w-0 border-b border-r border-gray-200 last:border-r-0">
+                <DayCell
+                  day={day}
+                  data={day ? attendanceData[day] || {} : {}}
+                  employeeShift={employeeShift}
+                  currentDate={currentDate}
+                  onDateClick={handleDateClick}
+                />
               </div>
             ))}
           </div>
         </div>
       )}
       {/* Legend */}
-      <div className={`mt-6 flex flex-wrap gap-6 pt-6 border-t border-gray-200 animate-slideInDown`}>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-amber-700 to-yellow-400 rounded shadow"></div>
+      <div className="mt-6 flex flex-wrap gap-6 border-t border-gray-200 pt-6">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-red-700"></div>
           <span className="text-sm text-gray-600">Shift</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-blue-300 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-blue-500"></div>
           <span className="text-sm text-gray-600">Hours Logged</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-red-500 to-pink-400 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-red-500"></div>
           <span className="text-sm text-gray-600">Weekly Off</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-purple-600 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-purple-600"></div>
           <span className="text-sm text-gray-600">Approved Leave</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-purple-600 to-blue-400 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-violet-500"></div>
           <span className="text-sm text-gray-600">Leave + Attendance</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-green-600 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-green-600"></div>
           <span className="text-sm text-gray-600">Holiday</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-orange-600 to-red-600 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-orange-600"></div>
           <span className="text-sm text-gray-600">Loss of Pay (LOP)</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-amber-500"></div>
           <span className="text-sm text-gray-600">Auto-marked</span>
         </div>
-        <div className="flex items-center gap-2 hover:scale-110 transition-transform duration-300 cursor-pointer">
-          <div className="w-4 h-4 bg-gradient-to-r from-blue-600 to-cyan-600 rounded shadow"></div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded bg-blue-600"></div>
           <span className="text-sm text-gray-600">Pending Approval</span>
         </div>
       </div>

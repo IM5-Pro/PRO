@@ -218,11 +218,11 @@ const HRSidebar = ({
             LOGO SECTION
             ======================================== */}
         <div className="border-b border-im5-border-soft p-4 md:p-5 lg:p-6">
-          <div className="flex h-9 w-full items-center justify-center md:h-10">
+          <div className="flex h-15 w-full items-center justify-center md:h-10">
             <img
               src={logo}
               alt="iSpace"
-              className="h-auto w-auto max-h-9 max-w-[88px] shrink-0 object-contain md:max-h-10 md:max-w-[100px]"
+              className="h-auto w-auto max-h-10 max-w-[88px] shrink-0 object-contain md:max-h-20 md:max-w-[100px]"
             />
             {/* <h1 className="text-2xl font-bold leading-none text-slate-900">
               HRMS

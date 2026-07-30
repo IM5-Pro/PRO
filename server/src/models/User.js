@@ -39,6 +39,13 @@ const userSchema = new mongoose.Schema(
 
 // Index for better query performance
 userSchema.index({ role: 1 });
+userSchema.index(
+  { role: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { role: "SUPER_ADMIN" },
+  },
+);
 userSchema.index({ createdBy: 1 });
 userSchema.index({ passwordResetTokenExpiresAt: 1 }, { expireAfterSeconds: 0 });
 

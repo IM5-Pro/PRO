@@ -288,9 +288,14 @@ export const registerSuperAdminAccount = async ({ email, password }) => {
     return { ok: false, status: 409, message: "Email already registered", details: { email: "This email is already in use" } };
   }
 
-  const existingSuperAdmin = await User.findOne({ role: Roles.SUPER_ADMIN });
+  const existingSuperAdmin = await User.findOne({ role: Roles.SUPER_ADMIN }).lean();
   if (existingSuperAdmin) {
-    return { ok: false, status: 403, message: "Super admin already exists" };
+    return {
+      ok: false,
+      status: 403,
+      message: "Super admin already exists",
+      details: { role: "SUPER_ADMIN" },
+    };
   }
 
   const hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -335,7 +340,7 @@ export const processForgotPassword = async (email) => {
   }
 
   const responseData = {};
-  if (resetToken && process.env.NODE_ENV !== "production") {
+  if (resetToken) {
     responseData.resetToken = resetToken;
   }
 

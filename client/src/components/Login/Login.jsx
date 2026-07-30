@@ -451,7 +451,7 @@ const Login = ({ onLoginSuccess = null }) => {
 
           {/* Submit Button */}
           <SubmitButton
-            label="Continue"
+            label="Login"
             isLoading={isLoading}
             loadingLabel="Signing in..."
             onClick={handleSubmit}

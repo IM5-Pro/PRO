@@ -89,7 +89,7 @@ export const ROLE_DASHBOARD_CONFIG = {
     subtitle: 'Manage attendance, leave, payroll, and documents in one place.',
     widgets: [
       { key: 'attendance', title: 'Days Present', value: '0', note: 'Present days this month from your attendance records' },
-      { key: 'leaves', title: 'My Leave Requests', value: '0', note: 'Submitted and approved leave requests from backend' },
+      { key: 'leaves', title: 'My Leave Requests', value: '0', note: 'Submitted or approved leave requests from backend' },
       { key: 'holidays', title: 'Upcoming Holidays', value: '0', note: 'Holiday calendar synced from company leave policy' },
       { key: 'payslip', title: 'Payslips Available', value: '0', note: 'Payroll statements available for secure download' },
     ],

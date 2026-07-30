@@ -46,6 +46,11 @@ const registerSuperAdmin = async (req, res) => {
       return sendError(res, 400, "Validation failed", validation.errors);
     }
 
+    const existingSuperAdmin = await User.findOne({ role: Roles.SUPER_ADMIN }).lean();
+    if (existingSuperAdmin) {
+      return sendError(res, 409, "Super admin already exists", { role: Roles.SUPER_ADMIN });
+    }
+
     const result = await registerSuperAdminAccount({ email, password });
     if (!result.ok) {
       return sendError(res, result.status, result.message, result.details);
@@ -56,6 +61,9 @@ const registerSuperAdmin = async (req, res) => {
     });
   } catch (err) {
     console.error("Register error:", err);
+    if (err?.code === 11000 || (err?.name === "MongoServerError" && /index:/.test(err?.message || ""))) {
+      return sendError(res, 409, "Super admin already exists", { role: Roles.SUPER_ADMIN });
+    }
     return sendError(res, 500, "Internal server error", { error: err.message });
   }
 };

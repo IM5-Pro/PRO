@@ -542,7 +542,7 @@ const InsuranceCycles = () => {
 
   return (
     <ModulePageLayout
-      title="Insurance enrollment cycles"
+      title="Insurance Enrollment Cycles"
       subtitle="Monitor participation, export approved data for the insurance company, and manage enrollment windows."
       icon={FiShield}
       actions={
